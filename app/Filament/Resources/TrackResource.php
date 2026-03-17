@@ -68,8 +68,8 @@ class TrackResource extends Resource
                 ->schema([
                     Forms\Components\FileUpload::make('audio_file_path')
                         ->label('Audio File')
-                        ->disk('public')
-                        ->directory('audio/tracks')
+                        ->disk(config('media-storage.private_disk', 'local'))
+                        ->directory('tracks/tmp/audio')
                         ->acceptedFileTypes(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/flac', 'audio/ogg', 'audio/x-wav'])
                         ->maxSize(fn (): int => UploadLimits::audioKb())
                         ->helperText(fn (): string => 'MP3, WAV, FLAC or OGG up to ' . UploadLimits::formatKilobytes(UploadLimits::audioKb()))

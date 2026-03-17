@@ -152,6 +152,14 @@ new #[Layout('layouts.glass-app')] class extends Component
                 </div>
 
                 <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('artist.edit-profile') }}" wire:navigate
+                       class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                        Edit Artist Profile
+                    </a>
+                    <a href="{{ route('profile') }}" wire:navigate
+                       class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                        Account Settings
+                    </a>
                     <a href="{{ route('artist.tracks') }}" wire:navigate
                        class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
                         Manage Tracks
@@ -178,7 +186,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             @foreach([
                 ['label' => 'Published Tracks', 'value' => number_format($overview['totalTracks'])],
                 ['label' => 'Total Plays', 'value' => number_format($overview['totalPlays'])],
-                ['label' => 'Downloads', 'value' => number_format($overview['totalDownloads'])],
+                ['label' => 'Total Downloads', 'value' => number_format($overview['totalDownloads'])],
                 ['label' => 'Followers', 'value' => number_format($overview['followers'])],
                 ['label' => 'Donations', 'value' => '$' . number_format($overview['totalDonations'], 2)],
                 ['label' => 'Avg Plays / Track', 'value' => number_format($overview['avgPlaysPerTrack'])],

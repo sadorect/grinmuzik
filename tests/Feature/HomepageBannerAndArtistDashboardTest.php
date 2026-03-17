@@ -7,6 +7,8 @@ use App\Models\HomepageBannerSlide;
 use App\Models\Track;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
@@ -48,6 +50,34 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
             ->assertSee('Fresh from admin')
             ->assertSee('Spotlight the next wave')
             ->assertSee('Browse now');
+    }
+
+    #[Test]
+    public function homepage_featured_artists_section_uses_the_linked_user_avatar_when_profile_avatar_is_missing(): void
+    {
+        Storage::fake('public');
+        Cache::flush();
+
+        $user = User::factory()->create([
+            'name' => 'Avatar Fallback User',
+        ]);
+
+        $user->addMedia(UploadedFile::fake()->image('avatar.jpg'))
+            ->toMediaCollection('avatar');
+
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Fallback Artist',
+            'slug' => 'fallback-artist',
+            'is_approved' => true,
+            'is_active' => true,
+            'followers_count' => 999,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Featured Artists')
+            ->assertSee($profile->fresh()->getAvatarMediaUrl(), escape: false);
     }
 
     #[Test]

@@ -6,12 +6,14 @@ use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\File;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Throwable;
 
 class Track extends Model implements HasMedia
 {
@@ -112,16 +114,17 @@ class Track extends Model implements HasMedia
     // ─── Media Collections ────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {
-        $disk = config('media-library.disk_name', env('MEDIA_DISK', env('FILESYSTEM_DISK', 'public')));
+        $publicDisk = config('media-storage.public_disk', config('media-library.disk_name'));
+        $privateDisk = config('media-storage.private_disk', 'local');
 
         $this->addMediaCollection('audio')
-            ->useDisk($disk)
+            ->useDisk($privateDisk)
             ->singleFile()
             ->acceptsMimeTypes(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/flac', 'audio/ogg', 'audio/aac', 'audio/mp4', 'audio/x-m4a', 'video/mp4'])
             ->acceptsFile(fn (File $file) => $file->size <= UploadLimits::audioBytes());
 
         $this->addMediaCollection('cover')
-            ->useDisk($disk)
+            ->useDisk($publicDisk)
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->acceptsFile(fn (File $file) => $file->size <= UploadLimits::imageBytes())
@@ -263,15 +266,50 @@ class Track extends Model implements HasMedia
 
     public function getAudioUrl(): string
     {
-        // First try Spatie Media Library
-        $url = $this->getFirstMediaUrl('audio');
-        if ($url) {
-            return $url;
+        $privateDisk = config('media-storage.private_disk', 'local');
+        $audio = $this->getFirstMedia('audio');
+
+        if ($audio) {
+            if ($audio->disk === $privateDisk) {
+                try {
+                    return $audio->getTemporaryUrl(
+                        now()->addMinutes((int) config('media-storage.private_url_ttl_minutes', 15))
+                    );
+                } catch (Throwable $exception) {
+                    report($exception);
+
+                    return '';
+                }
+            }
+
+            return $audio->getUrl();
         }
 
-        // Fall back to direct file path stored in audio_file_path column
         if ($this->audio_file_path) {
-            return \Illuminate\Support\Facades\Storage::url($this->audio_file_path);
+            $candidateDisks = array_values(array_unique(array_filter([
+                $privateDisk,
+                config('media-storage.public_disk', config('media-library.disk_name')),
+                'public',
+            ])));
+
+            foreach ($candidateDisks as $disk) {
+                try {
+                    $storage = Storage::disk($disk);
+
+                    if (! $storage->exists($this->audio_file_path)) {
+                        continue;
+                    }
+
+                    return $disk === $privateDisk
+                        ? $storage->temporaryUrl(
+                            $this->audio_file_path,
+                            now()->addMinutes((int) config('media-storage.private_url_ttl_minutes', 15))
+                        )
+                        : $storage->url($this->audio_file_path);
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            }
         }
 
         return '';

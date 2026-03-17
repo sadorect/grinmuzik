@@ -120,6 +120,7 @@ Route::view('profile', 'profile')->middleware(['auth'])->name('profile');
 Route::middleware(['auth', 'verified'])->prefix('artist')->name('artist.')->group(function () {
     Volt::route('/setup', 'pages.artist.setup')->name('setup');
     Volt::route('/', 'pages.artist.dashboard')->name('dashboard');
+    Volt::route('/profile', 'pages.artist.edit-profile')->name('edit-profile');
     Volt::route('/tracks', 'pages.artist.tracks')->name('tracks');
     Volt::route('/tracks/upload', 'pages.artist.upload-track')->name('upload-track');
     Volt::route('/tracks/{track}/edit', 'pages.artist.edit-track')->name('edit-track');

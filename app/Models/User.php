@@ -115,7 +115,10 @@ class User extends Authenticatable implements HasMedia, FilamentUser
     // ─── MediaLibrary ────────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {
+        $disk = config('media-storage.public_disk', config('media-library.disk_name'));
+
         $this->addMediaCollection('avatar')
+            ->useDisk($disk)
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->acceptsFile(fn (File $file) => $file->size <= UploadLimits::imageBytes())
@@ -131,9 +134,22 @@ class User extends Authenticatable implements HasMedia, FilamentUser
             ->performOnCollections('avatar');
     }
 
-    public function getAvatarUrl(): string
+    public function getAvatarMediaUrl(string $conversion = 'thumb'): string
     {
-        return $this->getFirstMediaUrl('avatar', 'thumb')
+        $avatar = $this->getFirstMedia('avatar');
+
+        if (! $avatar) {
+            return '';
+        }
+
+        return $conversion !== ''
+            ? $avatar->getAvailableUrl([$conversion])
+            : $avatar->getUrl();
+    }
+
+    public function getAvatarUrl(string $conversion = 'thumb'): string
+    {
+        return $this->getAvatarMediaUrl($conversion)
             ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=ef4444&color=fff&size=200';
     }
 

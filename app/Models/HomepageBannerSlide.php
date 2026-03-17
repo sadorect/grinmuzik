@@ -45,7 +45,7 @@ class HomepageBannerSlide extends Model
             return $this->background_image;
         }
 
-        return Storage::disk('public')->url($this->background_image);
+        return Storage::disk(config('media-storage.public_disk', 'public'))->url($this->background_image);
     }
 
     public function getEffectiveBackgroundAltAttribute(): string

@@ -22,7 +22,6 @@ class ArtistTrackUploadTest extends TestCase
     #[Test]
     public function artist_can_upload_a_track_without_relying_on_livewire_tmp_paths(): void
     {
-        config()->set('media-library.disk_name', 'public');
         Storage::fake('local');
         Storage::fake('public');
 
@@ -51,14 +50,14 @@ class ArtistTrackUploadTest extends TestCase
         $media = $track->getFirstMedia('audio');
 
         $this->assertNotNull($media);
-        Storage::disk('public')->assertExists($media->getPathRelativeToRoot());
+        $this->assertStringStartsWith("tracks/{$track->id}/audio/", $media->getPathRelativeToRoot());
+        Storage::disk('local')->assertExists($media->getPathRelativeToRoot());
         $this->assertSame([], Storage::disk('local')->allFiles('tmp/media-imports'));
     }
 
     #[Test]
     public function artist_can_upload_a_track_when_the_temp_file_reports_a_generic_mime_type(): void
     {
-        config()->set('media-library.disk_name', 'public');
         Storage::fake('local');
         Storage::fake('public');
 
@@ -163,7 +162,7 @@ class ArtistTrackUploadTest extends TestCase
     #[Test]
     public function artist_sees_a_friendly_error_when_media_storage_fails(): void
     {
-        config()->set('media-library.disk_name', 'missing-disk');
+        config()->set('media-storage.private_disk', 'missing-disk');
         Storage::fake('local');
 
         $user = User::factory()->create();

@@ -782,8 +782,11 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                 <a href="{{ route('artist.page', $artist) }}"
                                    class="group flex w-40 shrink-0 flex-col items-center gap-3 rounded-[1.5rem] p-4 text-center transition glass-card glass-card-hover hover:-translate-y-1">
                                     <div class="h-20 w-20 overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-200 ring-2 ring-white shadow-sm transition duration-300 group-hover:scale-[1.04]">
-                                        @if($artist->getFirstMediaUrl('avatar'))
-                                            <img src="{{ $artist->getFirstMediaUrl('avatar', 'thumb') }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
+                                        @php
+                                            $avatarUrl = $artist->getAvatarMediaUrl();
+                                        @endphp
+                                        @if($avatarUrl)
+                                            <img src="{{ $avatarUrl }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
                                         @else
                                             <div class="flex h-full w-full items-center justify-center text-2xl font-black text-primary-400">
                                                 {{ strtoupper(substr($artist->stage_name ?? $artist->user->name, 0, 1)) }}

@@ -134,7 +134,7 @@ class SiteSetting extends Model
             return null;
         }
 
-        $url = Storage::disk('public')->url($path);
+        $url = Storage::disk(config('media-storage.public_disk', 'public'))->url($path);
         $version = $this->updated_at?->timestamp;
 
         return $version ? "{$url}?v={$version}" : $url;

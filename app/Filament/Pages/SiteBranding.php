@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\SiteSetting;
+use App\Support\MediaStorage\OrganizedStorageMigrator;
 use App\Support\UploadLimits;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -93,15 +94,15 @@ class SiteBranding extends Page implements HasForms
                     ->schema([
                         Forms\Components\FileUpload::make('site_logo')
                             ->label('Site logo')
-                            ->disk('public')
-                            ->directory('site-branding')
+                            ->disk(config('media-storage.public_disk', 'public'))
+                            ->directory('site/branding/tmp')
                             ->acceptedFileTypes(['image/png', 'image/webp', 'image/svg+xml'])
                             ->maxSize(fn (): int => UploadLimits::siteLogoKb())
                             ->helperText(fn (): string => 'Upload PNG, WEBP, or SVG. Recommended canvas: 320 x 96px with transparent background. Max ' . UploadLimits::formatKilobytes(UploadLimits::siteLogoKb()) . '.'),
                         Forms\Components\FileUpload::make('favicon')
                             ->label('Favicon')
-                            ->disk('public')
-                            ->directory('site-branding')
+                            ->disk(config('media-storage.public_disk', 'public'))
+                            ->directory('site/branding/tmp')
                             ->acceptedFileTypes(['image/png', 'image/x-icon', 'image/svg+xml'])
                             ->maxSize(fn (): int => UploadLimits::faviconKb())
                             ->helperText(fn (): string => 'Upload a square PNG, SVG, or ICO. Recommended: 64 x 64px or 512 x 512px. Max ' . UploadLimits::formatKilobytes(UploadLimits::faviconKb()) . '.'),
@@ -226,6 +227,10 @@ class SiteBranding extends Page implements HasForms
     public function save(): void
     {
         $settings = $this->getSettings();
+        $previousBrandPaths = [
+            'site_logo' => $settings->site_logo,
+            'favicon' => $settings->favicon,
+        ];
         $data = Arr::only($this->data, [
             'site_name',
             'site_title',
@@ -276,6 +281,18 @@ class SiteBranding extends Page implements HasForms
         }
 
         $settings->forceFill($data)->save();
+
+        $migrator = app(OrganizedStorageMigrator::class);
+
+        foreach (['site_logo', 'favicon'] as $attribute) {
+            $migrator->normalizeSiteBrandAsset(
+                $settings,
+                $attribute,
+                previousPath: $previousBrandPaths[$attribute] ?? null,
+                keepSource: false,
+            );
+        }
+
         $settings->refresh();
         $this->settings = $settings;
         UploadLimits::resetCache();
@@ -349,26 +366,29 @@ class SiteBranding extends Page implements HasForms
         }
 
         if (blank($state)) {
-            if ($currentPath && Storage::disk('public')->exists($currentPath)) {
-                Storage::disk('public')->delete($currentPath);
+            $disk = config('media-storage.public_disk', 'public');
+
+            if ($currentPath && Storage::disk($disk)->exists($currentPath)) {
+                Storage::disk($disk)->delete($currentPath);
             }
 
             return null;
         }
 
         if ($state instanceof TemporaryUploadedFile) {
+            $disk = config('media-storage.public_disk', 'public');
             $newPath = $state->storeAs(
-                'site-branding',
+                'site/branding/tmp',
                 Str::ulid() . '.' . $state->getClientOriginalExtension(),
-                'public',
+                $disk,
             );
 
             if (
                 $currentPath &&
                 ($currentPath !== $newPath) &&
-                Storage::disk('public')->exists($currentPath)
+                Storage::disk($disk)->exists($currentPath)
             ) {
-                Storage::disk('public')->delete($currentPath);
+                Storage::disk($disk)->delete($currentPath);
             }
 
             return $newPath;

@@ -691,8 +691,11 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                wire:navigate
                                class="flex items-center gap-3 rounded-[1.5rem] border border-white/60 bg-white/75 p-3 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-md">
                                 <div class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
-                                    @if($artist->getFirstMediaUrl('avatar'))
-                                        <img src="{{ $artist->getFirstMediaUrl('avatar', 'thumb') }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
+                                    @php
+                                        $avatarUrl = $artist->getAvatarMediaUrl();
+                                    @endphp
+                                    @if($avatarUrl)
+                                        <img src="{{ $avatarUrl }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
                                     @else
                                         <div class="flex h-full w-full items-center justify-center text-lg font-black text-primary-500">
                                             {{ strtoupper(substr($artist->display_name, 0, 1)) }}

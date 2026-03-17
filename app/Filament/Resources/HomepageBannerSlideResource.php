@@ -60,8 +60,8 @@ class HomepageBannerSlideResource extends Resource
                         ->default(true),
                     Forms\Components\FileUpload::make('background_image')
                         ->label('Background image')
-                        ->disk('public')
-                        ->directory('homepage-banners')
+                        ->disk(config('media-storage.public_disk', 'public'))
+                        ->directory('site/homepage-slides/tmp')
                         ->image()
                         ->imageEditor()
                         ->imageResizeTargetWidth('1920')
@@ -110,7 +110,7 @@ class HomepageBannerSlideResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\ImageColumn::make('background_image')
-                    ->disk('public')
+                    ->disk(config('media-storage.public_disk', 'public'))
                     ->square(),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()

@@ -127,7 +127,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 'description' => Str::limit(strip_tags($description), 160),
                 'canonical' => route('artist.page', $this->profile),
                 'type' => 'website',
-                'image' => $this->profile->getFirstMediaUrl('avatar') ?: $this->profile->getFirstMediaUrl('banner'),
+                'image' => $this->profile->getAvatarMediaUrl() ?: $this->profile->getBannerUrl(),
                 'json_ld' => [
                     [
                         '@context' => 'https://schema.org',
@@ -135,7 +135,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                         'name' => $this->profile->stage_name ?? $this->profile->user->name,
                         'description' => Str::limit(strip_tags($description), 160),
                         'url' => route('artist.page', $this->profile),
-                        'image' => $this->profile->getFirstMediaUrl('avatar') ?: $this->profile->getFirstMediaUrl('banner') ?: null,
+                        'image' => $this->profile->getAvatarMediaUrl() ?: $this->profile->getBannerUrl() ?: null,
                     ],
                 ],
             ],
@@ -174,8 +174,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
 <div class="min-h-screen">
     <section class="relative overflow-hidden">
         <div class="absolute inset-x-0 top-0 h-72 overflow-hidden sm:h-96">
-            @if($profile->getFirstMediaUrl('banner'))
-                <img src="{{ $profile->getFirstMediaUrl('banner', 'large') }}" alt="{{ $profile->banner_alt }}" class="h-full w-full object-cover">
+            @if($profile->getBannerUrl('large'))
+                <img src="{{ $profile->getBannerUrl('large') }}" alt="{{ $profile->banner_alt }}" class="h-full w-full object-cover">
             @else
                 <div class="h-full w-full bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900"></div>
             @endif
@@ -187,8 +187,11 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                     <div class="flex flex-col gap-5 sm:flex-row sm:items-end">
                         <div class="h-28 w-28 shrink-0 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-primary-400 to-primary-700 ring-4 ring-white/70 shadow-xl sm:h-36 sm:w-36">
-                            @if($profile->getFirstMediaUrl('avatar'))
-                                <img src="{{ $profile->getFirstMediaUrl('avatar', 'thumb') }}" alt="{{ $profile->avatar_alt }}" class="h-full w-full object-cover">
+                            @php
+                                $avatarUrl = $profile->getAvatarMediaUrl();
+                            @endphp
+                            @if($avatarUrl)
+                                <img src="{{ $avatarUrl }}" alt="{{ $profile->avatar_alt }}" class="h-full w-full object-cover">
                             @else
                                 <div class="flex h-full w-full items-center justify-center text-4xl font-bold text-white/30">
                                     {{ strtoupper(substr($profile->stage_name ?? $profile->user->name, 0, 1)) }}
@@ -324,8 +327,11 @@ new #[Layout('layouts.glass-app')] class extends Component {
                            wire:navigate
                            class="rounded-[1.5rem] border border-white/60 bg-white/75 p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-md">
                             <div class="mx-auto h-16 w-16 overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-200 ring-2 ring-white/80">
-                                @if($artist->getFirstMediaUrl('avatar'))
-                                    <img src="{{ $artist->getFirstMediaUrl('avatar', 'thumb') }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
+                                @php
+                                    $avatarUrl = $artist->getAvatarMediaUrl();
+                                @endphp
+                                @if($avatarUrl)
+                                    <img src="{{ $avatarUrl }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
                                 @else
                                     <div class="flex h-full w-full items-center justify-center text-lg font-black text-primary-500">
                                         {{ strtoupper(substr($artist->display_name, 0, 1)) }}
@@ -390,6 +396,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
         @php
             $socialLinks = array_filter([
                 'spotify' => $profile->spotify_url ?? null,
+                'youtube' => $profile->youtube_url ?? null,
                 'instagram' => $profile->instagram_url ?? null,
                 'twitter' => $profile->twitter_url ?? null,
                 'website' => $profile->website_url ?? null,

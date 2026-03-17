@@ -60,7 +60,7 @@ class ArtistProfile extends Model implements HasMedia
     // ─── Media Collections ────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {
-        $disk = config('media-library.disk_name', env('MEDIA_DISK', env('FILESYSTEM_DISK', 'public')));
+        $disk = config('media-storage.public_disk', config('media-library.disk_name'));
 
         $this->addMediaCollection('avatar')
             ->useDisk($disk)
@@ -133,16 +133,38 @@ class ArtistProfile extends Model implements HasMedia
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
-    public function getAvatarUrl(): string
+    public function getAvatarMediaUrl(string $conversion = 'thumb'): string
     {
-        return $this->getFirstMediaUrl('avatar', 'thumb')
-            ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->stage_name) . '&background=ef4444&color=fff&size=200';
+        $avatar = $this->getFirstMedia('avatar');
+
+        if ($avatar) {
+            return $conversion !== ''
+                ? $avatar->getAvailableUrl([$conversion])
+                : $avatar->getUrl();
+        }
+
+        $user = $this->relationLoaded('user') ? $this->user : $this->user()->first();
+
+        return $user?->getAvatarMediaUrl($conversion) ?? '';
     }
 
-    public function getBannerUrl(): string
+    public function getAvatarUrl(string $conversion = 'thumb'): string
     {
-        return $this->getFirstMediaUrl('banner', 'preview')
-            ?: '';
+        return $this->getAvatarMediaUrl($conversion)
+            ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->display_name) . '&background=ef4444&color=fff&size=200';
+    }
+
+    public function getBannerUrl(string $conversion = 'preview'): string
+    {
+        $banner = $this->getFirstMedia('banner');
+
+        if (! $banner) {
+            return '';
+        }
+
+        return $conversion !== ''
+            ? $banner->getAvailableUrl([$conversion])
+            : $banner->getUrl();
     }
 
     public function getDisplayNameAttribute(): string
@@ -158,6 +180,31 @@ class ArtistProfile extends Model implements HasMedia
     public function getBannerAltAttribute(): string
     {
         return "{$this->display_name} artist banner";
+    }
+
+    public function getWebsiteUrlAttribute(): ?string
+    {
+        return $this->normalizeExternalUrl($this->website);
+    }
+
+    public function getInstagramUrlAttribute(): ?string
+    {
+        return $this->normalizeProfileUrl($this->instagram, 'https://instagram.com/');
+    }
+
+    public function getTwitterUrlAttribute(): ?string
+    {
+        return $this->normalizeProfileUrl($this->twitter, 'https://twitter.com/');
+    }
+
+    public function getYoutubeUrlAttribute(): ?string
+    {
+        return $this->normalizeProfileUrl($this->youtube, 'https://youtube.com/');
+    }
+
+    public function getSpotifyUrlAttribute(): ?string
+    {
+        return $this->normalizeProfileUrl($this->spotify, 'https://open.spotify.com/');
     }
 
     public static function supportsFeaturedCuration(): bool
@@ -191,5 +238,35 @@ class ArtistProfile extends Model implements HasMedia
         }
 
         return $query->where('is_featured', true);
+    }
+
+    protected function normalizeExternalUrl(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+
+        return 'https://' . ltrim($value, '/');
+    }
+
+    protected function normalizeProfileUrl(?string $value, string $baseUrl): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+
+        return rtrim($baseUrl, '/') . '/' . ltrim($value, '@/');
     }
 }

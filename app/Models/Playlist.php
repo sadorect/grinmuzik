@@ -52,7 +52,7 @@ class Playlist extends Model implements HasMedia
     // ─── Media Collections ────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {
-        $disk = config('media-library.disk_name', env('MEDIA_DISK', env('FILESYSTEM_DISK', 'public')));
+        $disk = config('media-storage.public_disk', config('media-library.disk_name'));
 
         $this->addMediaCollection('cover')
             ->useDisk($disk)

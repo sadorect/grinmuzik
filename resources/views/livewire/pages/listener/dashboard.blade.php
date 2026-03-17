@@ -210,8 +210,11 @@ new #[Layout('layouts.glass-app')] class extends Component
                     @forelse($topArtists as $item)
                         <a href="{{ route('artist.page', $item['artist']) }}" wire:navigate class="rounded-[1.4rem] border border-white/50 bg-white/70 p-4 text-center transition hover:bg-white/90">
                             <div class="mx-auto h-14 w-14 overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-200 ring-2 ring-white/80">
-                                @if($item['artist']->getFirstMediaUrl('avatar'))
-                                    <img src="{{ $item['artist']->getFirstMediaUrl('avatar', 'thumb') }}" alt="{{ $item['artist']->avatar_alt }}" class="h-full w-full object-cover">
+                                @php
+                                    $avatarUrl = $item['artist']->getAvatarMediaUrl();
+                                @endphp
+                                @if($avatarUrl)
+                                    <img src="{{ $avatarUrl }}" alt="{{ $item['artist']->avatar_alt }}" class="h-full w-full object-cover">
                                 @else
                                     <div class="flex h-full w-full items-center justify-center text-lg font-black text-primary-400">
                                         {{ strtoupper(substr($item['artist']->display_name, 0, 1)) }}

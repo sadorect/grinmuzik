@@ -47,7 +47,10 @@ class Album extends Model implements HasMedia
     // ─── Media Collections ────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {
+        $disk = config('media-storage.public_disk', config('media-library.disk_name'));
+
         $this->addMediaCollection('cover')
+            ->useDisk($disk)
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->acceptsFile(fn (File $file) => $file->size <= UploadLimits::imageBytes())

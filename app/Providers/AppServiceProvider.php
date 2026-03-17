@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\SiteSetting;
+use App\Support\MediaLibrary\OrganizedPathGenerator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -15,7 +16,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        config([
+            'media-library.disk_name' => config('media-storage.public_disk'),
+            'media-library.path_generator' => OrganizedPathGenerator::class,
+        ]);
     }
 
     /**
@@ -139,6 +143,10 @@ class AppServiceProvider extends ServiceProvider
                     ],
                     'artist.dashboard' => [
                         'title' => 'Artist Dashboard',
+                        'robots' => 'noindex,nofollow',
+                    ],
+                    'artist.edit-profile' => [
+                        'title' => 'Edit Artist Profile',
                         'robots' => 'noindex,nofollow',
                     ],
                     'artist.tracks' => [

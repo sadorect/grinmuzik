@@ -55,9 +55,15 @@
                             </button>
                             <div x-show="open" @click.outside="open = false" x-transition
                                  class="absolute right-0 mt-2 w-44 glass-panel rounded-xl shadow-glass overflow-hidden text-sm" style="display:none">
+                                @if(Auth::user()->isArtist())
+                                <a href="{{ route('artist.edit-profile') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h6m-6 4h6m-9 8h8a2 2 0 002-2V7a2 2 0 00-2-2h-2.586a1 1 0 01-.707-.293l-.828-.828A1 1 0 0011.172 3H8a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    Artist Profile
+                                </a>
+                                @endif
                                 <a href="{{ route('profile') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                    Profile
+                                    Account Settings
                                 </a>
                                 @if(Auth::user()->isSuperAdmin())
                                 <a href="{{ url('/musicdirector') }}" class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
@@ -124,7 +130,10 @@
                 <div class="mt-4 space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
                     <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Account</p>
                     <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Dashboard</a>
-                    <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Profile</a>
+                    @if(Auth::user()->isArtist())
+                        <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
+                    @endif
+                    <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Account Settings</a>
                     @if(Auth::user()->isSuperAdmin())
                         <a href="{{ url('/musicdirector') }}" class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Admin Panel</a>
                     @endif
@@ -209,6 +218,7 @@
                         @auth
                             @if(Auth::user()->isArtist())
                                 <li><a href="{{ route('artist.dashboard') }}" class="hover:text-primary-400 transition">Dashboard</a></li>
+                                <li><a href="{{ route('artist.edit-profile') }}" class="hover:text-primary-400 transition">Edit Profile</a></li>
                                 <li><a href="{{ route('artist.upload-track') }}" class="hover:text-primary-400 transition">Upload Track</a></li>
                                 <li><a href="{{ route('artist.albums') }}" class="hover:text-primary-400 transition">My Albums</a></li>
                             @endif
