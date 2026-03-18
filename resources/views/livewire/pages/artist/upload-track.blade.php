@@ -349,9 +349,6 @@ new #[Layout('layouts.glass-app')] class extends Component
                     </div>
                 @endif
             @else
-                <div class="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-gray-600">
-                    Downloads are currently free across the platform. Donation-based unlocks can be re-enabled later from Site Branding in admin.
-                </div>
             @endif
         </div>
 
