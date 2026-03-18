@@ -17,7 +17,9 @@ class SiteSetting extends Model
     protected static ?bool $supportsUploadLimitsCache = null;
     protected static ?bool $supportsMonetizationControlsCache = null;
     protected static ?bool $supportsThemeCustomizationCache = null;
+    protected static ?bool $supportsAutoPlaylistControlsCache = null;
     protected static ?bool $paymentsEnabledCache = null;
+    protected static ?bool $autoPlaylistEnabledCache = null;
 
     protected $fillable = [
         'site_name',
@@ -49,6 +51,7 @@ class SiteSetting extends Model
         'payments_enabled',
         'primary_color',
         'secondary_color',
+        'auto_playlist_enabled',
     ];
 
     protected $casts = [
@@ -68,7 +71,14 @@ class SiteSetting extends Model
         'show_search_trending_tracks' => 'boolean',
         'show_search_popular_artists' => 'boolean',
         'payments_enabled' => 'boolean',
+        'auto_playlist_enabled' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(fn (): bool => static::flushRuntimeCaches());
+        static::deleted(fn (): bool => static::flushRuntimeCaches());
+    }
 
     public static function current(): self
     {
@@ -161,6 +171,23 @@ class SiteSetting extends Model
         }
     }
 
+    public static function supportsAutoPlaylistControls(): bool
+    {
+        if (static::$supportsAutoPlaylistControlsCache !== null) {
+            return static::$supportsAutoPlaylistControlsCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsAutoPlaylistControlsCache = false;
+            }
+
+            return static::$supportsAutoPlaylistControlsCache = Schema::hasColumn('site_settings', 'auto_playlist_enabled');
+        } catch (Throwable) {
+            return static::$supportsAutoPlaylistControlsCache = false;
+        }
+    }
+
     public static function paymentsEnabled(): bool
     {
         if (static::$paymentsEnabledCache !== null) {
@@ -175,6 +202,23 @@ class SiteSetting extends Model
             return static::$paymentsEnabledCache = (bool) (static::current()->payments_enabled ?? false);
         } catch (Throwable) {
             return static::$paymentsEnabledCache = false;
+        }
+    }
+
+    public static function autoPlaylistEnabled(): bool
+    {
+        if (static::$autoPlaylistEnabledCache !== null) {
+            return static::$autoPlaylistEnabledCache;
+        }
+
+        if (! static::supportsAutoPlaylistControls()) {
+            return static::$autoPlaylistEnabledCache = false;
+        }
+
+        try {
+            return static::$autoPlaylistEnabledCache = (bool) (static::current()->auto_playlist_enabled ?? true);
+        } catch (Throwable) {
+            return static::$autoPlaylistEnabledCache = false;
         }
     }
 
@@ -260,6 +304,15 @@ class SiteSetting extends Model
         );
     }
 
+    public function getEffectiveAutoPlaylistEnabledAttribute(): bool
+    {
+        if (! static::supportsAutoPlaylistControls()) {
+            return false;
+        }
+
+        return (bool) ($this->auto_playlist_enabled ?? true);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -332,5 +385,19 @@ class SiteSetting extends Model
         }
 
         return $baseUrl . $value;
+    }
+
+    protected static function flushRuntimeCaches(): bool
+    {
+        static::$supportsDiscoveryVisibilityCache = null;
+        static::$supportsDiscoveryOrderingCache = null;
+        static::$supportsUploadLimitsCache = null;
+        static::$supportsMonetizationControlsCache = null;
+        static::$supportsThemeCustomizationCache = null;
+        static::$supportsAutoPlaylistControlsCache = null;
+        static::$paymentsEnabledCache = null;
+        static::$autoPlaylistEnabledCache = null;
+
+        return true;
     }
 }

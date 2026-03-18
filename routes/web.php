@@ -3,11 +3,57 @@
 use App\Http\Controllers\DonationController;
 use App\Models\ArtistProfile;
 use App\Models\Playlist;
+use App\Models\SiteSetting;
 use App\Models\Track;
+use App\Support\ThemePalette;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Volt\Volt;
 
 Volt::route('/', 'pages.home')->name('home');
+
+Route::get('/manifest.webmanifest', function () {
+    try {
+        $siteSettings = Schema::hasTable('site_settings')
+            ? SiteSetting::current()
+            : null;
+    } catch (\Throwable) {
+        $siteSettings = null;
+    }
+
+    $siteName = $siteSettings?->effective_site_name ?? 'GrinMuzik';
+    $themeColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+    $manifest = [
+        'id' => route('home'),
+        'name' => $siteName,
+        'short_name' => $siteName,
+        'description' => 'Discover independent music, follow artists, and keep GrinMuzik on your desktop or home screen.',
+        'start_url' => route('home'),
+        'scope' => url('/'),
+        'display' => 'standalone',
+        'background_color' => '#F8FAFC',
+        'theme_color' => $themeColor,
+        'icons' => [
+            [
+                'src' => asset('pwa-icon.svg'),
+                'sizes' => 'any',
+                'type' => 'image/svg+xml',
+                'purpose' => 'any maskable',
+            ],
+        ],
+    ];
+
+    return response(
+        json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        200,
+        [
+            'Content-Type' => 'application/manifest+json; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=3600',
+        ],
+    );
+})->name('manifest');
+
+Route::view('/offline', 'offline')->name('offline');
 
 Route::get('/robots.txt', function () {
     $content = implode("\n", [

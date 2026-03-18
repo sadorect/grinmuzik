@@ -135,6 +135,37 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
     }
 
     #[Test]
+    public function homepage_track_rails_do_not_render_manual_queue_buttons(): void
+    {
+        Cache::flush();
+
+        $user = User::factory()->create();
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Queueless Artist',
+            'slug' => 'queueless-artist',
+            'is_approved' => true,
+            'is_active' => true,
+            'followers_count' => 777,
+        ]);
+
+        $track = Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Queueless Home Track',
+            'slug' => 'queueless-home-track',
+            'is_published' => true,
+            'is_free' => true,
+            'play_count' => 120,
+            'downloads_count' => 15,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('Add ' . $track->title . ' to queue');
+    }
+
+    #[Test]
     public function artist_dashboard_shows_total_downloads_metric(): void
     {
         $user = User::factory()->create();

@@ -526,12 +526,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                         @endif
                                         <x-track-duration :track="$track" class="text-gray-400" />
                                     </div>
-                                    <div class="mt-3 flex items-center justify-between gap-3">
-                                        <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
-                                            <span>{{ number_format($track->play_count) }} plays</span>
-                                            <span>{{ number_format($track->downloads_count) }} downloads</span>
-                                        </div>
-                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+                                    <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
+                                        <span>{{ number_format($track->play_count) }} plays</span>
+                                        <span>{{ number_format($track->downloads_count) }} downloads</span>
                                     </div>
                                 </div>
                             </div>
@@ -580,12 +577,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                         @endif
                                         <x-track-duration :track="$track" class="text-gray-400" />
                                     </div>
-                                    <div class="mt-3 flex items-center justify-between gap-3">
-                                        <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
-                                            <span>{{ number_format($track->play_count) }} plays</span>
-                                            <span>{{ number_format($track->downloads_count) }} downloads</span>
-                                        </div>
-                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+                                    <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
+                                        <span>{{ number_format($track->play_count) }} plays</span>
+                                        <span>{{ number_format($track->downloads_count) }} downloads</span>
                                     </div>
                                 </div>
                             </div>
@@ -633,9 +627,6 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                             {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
                                         </a>
                                         <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
-                                    </div>
-                                    <div class="pt-1">
-                                        <x-queue-track-button :track="$track" label="+" class="w-full justify-center border-white/70 bg-white/85 px-3 py-2 text-[11px]" />
                                     </div>
                                 </div>
                             </div>
@@ -685,9 +676,6 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                             {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
                                         </a>
                                         <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
-                                    </div>
-                                    <div class="pt-1">
-                                        <x-queue-track-button :track="$track" label="+" class="w-full justify-center border-white/70 bg-white/85 px-3 py-2 text-[11px]" />
                                     </div>
                                 </div>
                             </div>
@@ -804,12 +792,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                                 @endif
                                                 <x-track-duration :track="$track" class="text-gray-400" />
                                             </div>
-                                            <div class="mt-3 flex items-center justify-between gap-3">
-                                                <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
-                                                    <span>{{ number_format($track->play_count) }} plays</span>
-                                                    <span>{{ number_format($track->downloads_count) }} downloads</span>
-                                                </div>
-                                                <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+                                            <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
+                                                <span>{{ number_format($track->play_count) }} plays</span>
+                                                <span>{{ number_format($track->downloads_count) }} downloads</span>
                                             </div>
                                         </div>
                                     </div>

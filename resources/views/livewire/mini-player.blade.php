@@ -329,6 +329,7 @@ function miniPlayer() {
                 console.warn('GrinMusic: track has no audio URL, skipping playback.');
                 return;
             }
+            const wasEmptyQueue = this.queue.length === 0;
             const existingIdx = this.queue.indexOf(t.id);
             if (existingIdx !== -1) {
                 this.queueIndex = existingIdx;
@@ -336,6 +337,9 @@ function miniPlayer() {
                 this.queue.push(t.id);
                 this.queueTracks.push(t);
                 this.queueIndex = this.queue.length - 1;
+            }
+            if (wasEmptyQueue && Array.isArray(t.auto_queue_tracks) && t.auto_queue_tracks.length) {
+                this.appendTracks(t.auto_queue_tracks);
             }
             P.queue       = this.queue;
             P.queueTracks = this.queueTracks;
@@ -367,6 +371,19 @@ function miniPlayer() {
                 clearTimeout(this._toastTimer);
                 this._toastTimer = setTimeout(() => { this.queueToast = false; }, 2000);
             }
+        },
+
+        appendTracks(tracks) {
+            if (!Array.isArray(tracks)) return;
+
+            tracks.forEach((candidate) => {
+                if (!candidate?.id || this.queue.includes(candidate.id)) {
+                    return;
+                }
+
+                this.queue.push(candidate.id);
+                this.queueTracks.push(candidate);
+            });
         },
 
         jumpTo(idx) {

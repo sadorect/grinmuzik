@@ -325,6 +325,8 @@
 
 </div>
 
+@include('partials.pwa-install')
+
 @livewireScripts
 @stack('scripts')
 </body>

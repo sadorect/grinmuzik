@@ -224,6 +224,15 @@ class SiteBranding extends Page implements HasForms
                             ->default(false),
                     ])
                     ->visible(fn (): bool => SiteSetting::supportsMonetizationControls()),
+                Section::make('Playback')
+                    ->description('Control whether the player automatically builds an Up Next queue when someone starts playback from a single track.')
+                    ->schema([
+                        Forms\Components\Toggle::make('auto_playlist_enabled')
+                            ->label('Enable auto playlist after first play')
+                            ->helperText('When on, the first track a listener plays seeds an Up Next queue using album, artist, genre, and popularity signals.')
+                            ->default(true),
+                    ])
+                    ->visible(fn (): bool => SiteSetting::supportsAutoPlaylistControls()),
                 Section::make('Discovery Ordering')
                     ->description('Control where the editorial rails appear relative to personalized sections.')
                     ->schema([
@@ -301,6 +310,12 @@ class SiteBranding extends Page implements HasForms
         if (SiteSetting::supportsMonetizationControls()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'payments_enabled',
+            ]));
+        }
+
+        if (SiteSetting::supportsAutoPlaylistControls()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'auto_playlist_enabled',
             ]));
         }
 
@@ -396,6 +411,10 @@ class SiteBranding extends Page implements HasForms
 
         if (SiteSetting::supportsMonetizationControls()) {
             $keys[] = 'payments_enabled';
+        }
+
+        if (SiteSetting::supportsAutoPlaylistControls()) {
+            $keys[] = 'auto_playlist_enabled';
         }
 
         if (SiteSetting::supportsDiscoveryOrdering()) {

@@ -35,6 +35,12 @@
 <meta name="robots" content="{{ $robots }}">
 <link rel="canonical" href="{{ $canonicalUrl }}">
 <meta name="theme-color" content="{{ $themePrimaryColor ?? '#305CDE' }}">
+<link rel="manifest" href="{{ route('manifest') }}">
+<meta name="application-name" content="{{ $siteNameTag }}">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="{{ $siteNameTag }}">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
 <meta property="og:type" content="{{ $ogType }}">

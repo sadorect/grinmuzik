@@ -7,9 +7,11 @@ use App\Livewire\MiniPlayer;
 use App\Models\ArtistProfile;
 use App\Models\Like;
 use App\Models\PlayHistory;
+use App\Models\SiteSetting;
 use App\Models\Track;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -147,6 +149,91 @@ class MediaActionsTest extends TestCase
             ->dispatch('play-track', id: $track->id);
 
         $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function mini_player_builds_auto_playlist_recommendations_when_enabled(): void
+    {
+        config()->set('media-storage.private_disk', 'local');
+        config()->set('media-storage.public_disk', 'public');
+
+        Storage::fake('local');
+        Storage::fake('public');
+
+        SiteSetting::current()->update([
+            'auto_playlist_enabled' => true,
+        ]);
+
+        [$user, $profile, $track] = $this->createArtistWithTrack([
+            'audio_file_path' => 'audio/test-track.mp3',
+        ]);
+
+        Storage::disk('public')->put('audio/test-track.mp3', 'seed-audio');
+        Storage::disk('public')->put('audio/follow-up-one.mp3', 'follow-up-one');
+        Storage::disk('public')->put('audio/follow-up-two.mp3', 'follow-up-two');
+
+        $followUpOne = Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Follow Up One',
+            'slug' => 'follow-up-one',
+            'is_published' => true,
+            'is_free' => true,
+            'audio_file_path' => 'audio/follow-up-one.mp3',
+            'play_count' => 90,
+        ]);
+
+        $followUpTwo = Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Follow Up Two',
+            'slug' => 'follow-up-two',
+            'is_published' => true,
+            'is_free' => true,
+            'audio_file_path' => 'audio/follow-up-two.mp3',
+            'play_count' => 75,
+        ]);
+
+        $component = Livewire::test(MiniPlayer::class);
+        $component->call('loadTrack', $track->id)
+            ->assertSet('trackId', $track->id);
+
+        $payload = $component->get('track');
+        $recommendedIds = collect($payload['auto_queue_tracks'] ?? [])
+            ->pluck('id')
+            ->all();
+
+        $this->assertContains($followUpOne->id, $recommendedIds);
+        $this->assertContains($followUpTwo->id, $recommendedIds);
+        $this->assertNotContains($track->id, $recommendedIds);
+    }
+
+    #[Test]
+    public function mini_player_skips_auto_playlist_recommendations_when_disabled(): void
+    {
+        config()->set('media-storage.private_disk', 'local');
+        config()->set('media-storage.public_disk', 'public');
+
+        Storage::fake('local');
+        Storage::fake('public');
+
+        SiteSetting::current()->update([
+            'auto_playlist_enabled' => false,
+        ]);
+
+        [, , $track] = $this->createArtistWithTrack([
+            'audio_file_path' => 'audio/test-track.mp3',
+        ]);
+
+        Storage::disk('public')->put('audio/test-track.mp3', 'seed-audio');
+
+        $component = Livewire::test(MiniPlayer::class);
+        $component->call('loadTrack', $track->id)
+            ->assertSet('trackId', $track->id);
+
+        $payload = $component->get('track');
+
+        $this->assertSame([], $payload['auto_queue_tracks'] ?? null);
     }
 
     #[Test]
