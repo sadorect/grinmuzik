@@ -226,4 +226,45 @@ class ArtistTrackUploadTest extends TestCase
             ->call('save')
             ->assertHasErrors(['coverFile' => 'max']);
     }
+
+    #[Test]
+    public function disabled_payments_force_new_uploads_to_stay_free(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        SiteSetting::current()->update([
+            'payments_enabled' => false,
+        ]);
+
+        $user = User::factory()->create();
+        Role::findOrCreate('artist', 'web');
+        $user->assignRole('artist');
+
+        ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Free Upload Artist',
+            'slug' => 'free-upload-artist',
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        Volt::test('pages.artist.upload-track')
+            ->assertSee('Downloads are currently free across the platform.')
+            ->assertDontSee('Require donation to unlock full track')
+            ->set('title', 'Always Free Track')
+            ->set('requires_donation', true)
+            ->set('donation_amount', '5.00')
+            ->set('audioFile', UploadedFile::fake()->create('always-free.mp3', 1024, 'audio/mpeg'))
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('artist.tracks'));
+
+        $track = Track::query()->firstOrFail();
+
+        $this->assertTrue($track->is_free);
+        $this->assertFalse($track->fresh()->requires_donation);
+    }
 }

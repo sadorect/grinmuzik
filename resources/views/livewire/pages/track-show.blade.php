@@ -299,6 +299,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                             Play
                         </button>
                     @endif
+                    <x-queue-track-button :track="$track" class="px-4 py-2 text-sm" />
                     @livewire('like-button', ['trackId' => $track->id], key('like-'.$track->id))
                     {{-- Download button --}}
                     <button wire:click="download"
@@ -382,6 +383,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                     <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
                                         <span>{{ number_format($relatedTrack->play_count) }} plays</span>
                                         <span>{{ number_format($relatedTrack->downloads_count) }} downloads</span>
+                                    </div>
+                                    <div class="mt-3">
+                                        <x-queue-track-button :track="$relatedTrack" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                     </div>
                                 </div>
                             </div>

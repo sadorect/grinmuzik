@@ -526,9 +526,12 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                         @endif
                                         <x-track-duration :track="$track" class="text-gray-400" />
                                     </div>
-                                    <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
-                                        <span>{{ number_format($track->play_count) }} plays</span>
-                                        <span>{{ number_format($track->downloads_count) }} downloads</span>
+                                    <div class="mt-3 flex items-center justify-between gap-3">
+                                        <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
+                                            <span>{{ number_format($track->play_count) }} plays</span>
+                                            <span>{{ number_format($track->downloads_count) }} downloads</span>
+                                        </div>
+                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                     </div>
                                 </div>
                             </div>
@@ -538,56 +541,6 @@ new #[Layout('layouts.glass-app')] class extends Component {
             </div>
         </section>
     @endif
-
-    @auth
-        @if($showHomePersonalized && $personalizedTracks->isNotEmpty())
-            <section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-                <div class="rounded-[2rem] glass-card p-5 sm:p-7">
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">For You</p>
-                            <h2 class="mt-2 text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">Suggested</h2>
-                            <p class="mt-2 max-w-2xl text-sm text-gray-500">Recommendations shaped by your likes, recent listening, and the artists you keep circling back to.</p>
-                        </div>
-                        <a href="{{ route('listener.dashboard') }}" wire:navigate class="text-sm font-semibold text-primary transition hover:text-primary-600">Open taste profile</a>
-                    </div>
-
-                    <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        @foreach($personalizedTracks as $track)
-                            <article class="rounded-[1.5rem] border border-white/60 bg-white/75 p-3 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-md">
-                                <div class="flex items-center gap-3">
-                                    <button @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })"
-                                            class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
-                                        @if($track->getCoverUrl())
-                                            <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                        @endif
-                                    </button>
-                                    <div class="min-w-0 flex-1">
-                                        <a href="{{ route('track.show', $track) }}" wire:navigate class="truncate text-sm font-semibold text-gray-900 hover:text-primary">
-                                            {{ $track->title }}
-                                        </a>
-                                        <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-                                            <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate hover:text-primary">
-                                                {{ $track->artistProfile?->display_name ?? 'Unknown artist' }}
-                                            </a>
-                                            @if($track->genre)
-                                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
-                                            @endif
-                                            <x-track-duration :track="$track" class="text-gray-400" />
-                                        </div>
-                                        <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
-                                            <span>{{ number_format($track->play_count) }} plays</span>
-                                            <span>{{ number_format($track->downloads_count) }} downloads</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </article>
-                        @endforeach
-                    </div>
-                </div>
-            </section>
-        @endif
-    @endauth
 
     @if($showHomeEditorPicks && $homeEditorPicksPosition !== 'before-personalized' && $editorPicks->isNotEmpty())
         <section class="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8">
@@ -627,9 +580,12 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                         @endif
                                         <x-track-duration :track="$track" class="text-gray-400" />
                                     </div>
-                                    <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
-                                        <span>{{ number_format($track->play_count) }} plays</span>
-                                        <span>{{ number_format($track->downloads_count) }} downloads</span>
+                                    <div class="mt-3 flex items-center justify-between gap-3">
+                                        <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
+                                            <span>{{ number_format($track->play_count) }} plays</span>
+                                            <span>{{ number_format($track->downloads_count) }} downloads</span>
+                                        </div>
+                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                     </div>
                                 </div>
                             </div>
@@ -678,6 +634,61 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                         </a>
                                         <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
                                     </div>
+                                    <div class="pt-1">
+                                        <x-queue-track-button :track="$track" label="+" class="w-full justify-center border-white/70 bg-white/85 px-3 py-2 text-[11px]" />
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    @if($latest->count())
+        <section class="overflow-hidden bg-gray-50/80 py-10">
+            <div class="mx-auto mb-5 flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">New Releases</h2>
+                    <p class="mt-1 text-sm text-gray-500">Fresh uploads moving through the latest stack.</p>
+                </div>
+                <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
+            </div>
+            <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
+                 x-data="{ paused: false }"
+                 @mouseenter="paused = true"
+                 @mouseleave="paused = false">
+                <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent"></div>
+                <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent"></div>
+
+                <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
+                    @foreach([$latest, $latest] as $loopSet)
+                        @foreach($loopSet as $track)
+                            <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
+                                <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                    @if($track->getFirstMediaUrl('cover'))
+                                        <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                    @else
+                                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
+                                            <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                                        </div>
+                                    @endif
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                                        <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
+                                </div>
+                                <div class="space-y-1 p-3">
+                                    <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                    <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                                        <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                            {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
+                                        </a>
+                                        <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
+                                    </div>
+                                    <div class="pt-1">
+                                        <x-queue-track-button :track="$track" label="+" class="w-full justify-center border-white/70 bg-white/85 px-3 py-2 text-[11px]" />
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -688,56 +699,6 @@ new #[Layout('layouts.glass-app')] class extends Component {
     @endif
 
     <div class="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
-        @if($latest->count())
-            <section class="mb-14 mt-12">
-                <div class="mb-5 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">New Releases</h2>
-                        <p class="mt-1 text-sm text-gray-500">Fresh uploads moving through the latest stack.</p>
-                    </div>
-                    <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
-                </div>
-
-                <div class="relative overflow-hidden rounded-[1.75rem] p-4 glass-card"
-                     x-data="{ paused: false }"
-                     @mouseenter="paused = true"
-                     @mouseleave="paused = false">
-                    <div class="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white via-white/95 to-transparent"></div>
-                    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white via-white/95 to-transparent"></div>
-
-                    <div class="max-h-[26rem] overflow-hidden">
-                        <div class="vertical-marquee-track" :class="{ 'paused': paused }">
-                            @foreach([$latest, $latest] as $loopSet)
-                                @foreach($loopSet as $i => $track)
-                                    <div class="group flex items-center gap-3 rounded-2xl p-3 transition hover:bg-white/70"
-                                         @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                        <span class="w-5 shrink-0 text-center text-sm text-gray-400 group-hover:hidden">{{ $i + 1 }}</span>
-                                        <svg class="hidden h-5 w-5 shrink-0 text-primary group-hover:block" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                                        <div class="h-11 w-11 shrink-0 overflow-hidden rounded-xl">
-                                            @if($track->getFirstMediaUrl('cover'))
-                                                <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                            @else
-                                                <div class="h-full w-full bg-gradient-to-br from-primary-100 to-primary-200"></div>
-                                            @endif
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <p class="truncate text-sm font-medium text-gray-800">{{ $track->title }}</p>
-                                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-                                                <a href="{{ route('artist.page', $track->artistProfile) }}" @click.stop class="truncate hover:text-primary">
-                                                    {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
-                                                </a>
-                                                <x-track-duration :track="$track" class="text-gray-400" />
-                                            </div>
-                                        </div>
-                                        <span class="hidden shrink-0 text-xs text-gray-400 sm:block">{{ $track->created_at->diffForHumans(null, true) }} ago</span>
-                                    </div>
-                                @endforeach
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </section>
-        @endif
 
         @if($genres->count())
             <section class="mb-14">
@@ -807,6 +768,59 @@ new #[Layout('layouts.glass-app')] class extends Component {
             </section>
         @endif
 
+        @auth
+            @if($showHomePersonalized && $personalizedTracks->isNotEmpty())
+                <section class="mb-14">
+                    <div class="rounded-[2rem] glass-card p-5 sm:p-7">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">For You</p>
+                                <h2 class="mt-2 text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">Suggested</h2>
+                                <p class="mt-2 max-w-2xl text-sm text-gray-500">Recommendations shaped by your likes, recent listening, and the artists you keep circling back to.</p>
+                            </div>
+                            <a href="{{ route('listener.dashboard') }}" wire:navigate class="text-sm font-semibold text-primary transition hover:text-primary-600">Open taste profile</a>
+                        </div>
+
+                        <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            @foreach($personalizedTracks as $track)
+                                <article class="rounded-[1.5rem] border border-white/60 bg-white/75 p-3 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-md">
+                                    <div class="flex items-center gap-3">
+                                        <button @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })"
+                                                class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
+                                            @if($track->getCoverUrl())
+                                                <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                            @endif
+                                        </button>
+                                        <div class="min-w-0 flex-1">
+                                            <a href="{{ route('track.show', $track) }}" wire:navigate class="truncate text-sm font-semibold text-gray-900 hover:text-primary">
+                                                {{ $track->title }}
+                                            </a>
+                                            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                                                <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate hover:text-primary">
+                                                    {{ $track->artistProfile?->display_name ?? 'Unknown artist' }}
+                                                </a>
+                                                @if($track->genre)
+                                                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
+                                                @endif
+                                                <x-track-duration :track="$track" class="text-gray-400" />
+                                            </div>
+                                            <div class="mt-3 flex items-center justify-between gap-3">
+                                                <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
+                                                    <span>{{ number_format($track->play_count) }} plays</span>
+                                                    <span>{{ number_format($track->downloads_count) }} downloads</span>
+                                                </div>
+                                                <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                </section>
+            @endif
+        @endauth
+
         <section class="mb-14"
                  x-data="{ ready: false }"
                  x-init="
@@ -823,8 +837,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 @foreach([
                     ['icon' => '🎧', 'title' => 'Discover', 'desc' => 'Browse thousands of tracks across every genre. Search by artist, mood or vibe.', 'color' => 'from-primary-50 to-primary-100', 'border' => 'border-primary-100'],
-                    ['icon' => '❤️', 'title' => 'Support', 'desc' => 'Unlock premium tracks with a small donation. Every rand goes directly to the artist.', 'color' => 'from-primary-50 to-blue-50', 'border' => 'border-primary-100'],
-                    ['icon' => '🚀', 'title' => 'Create', 'desc' => 'Are you an artist? Upload your music, build a following and earn from your craft.', 'color' => 'from-blue-50 to-primary-50', 'border' => 'border-primary-100'],
+                    ['icon' => '❤️', 'title' => ($paymentsEnabled ? 'Support' : 'Save'), 'desc' => ($paymentsEnabled ? 'Unlock premium tracks with a small donation. Every rand goes directly to the artist.' : 'Queue your next listens, build playlists, and keep your favorite discoveries close.'), 'color' => 'from-primary-50 to-secondary-50', 'border' => 'border-primary-100'],
+                    ['icon' => '🚀', 'title' => 'Create', 'desc' => ($paymentsEnabled ? 'Are you an artist? Upload your music, build a following and earn from your craft.' : 'Are you an artist? Upload your music, build a following, and grow your audience without extra setup.'), 'color' => 'from-secondary-50 to-primary-50', 'border' => 'border-primary-100'],
                 ] as $index => $step)
                     <div class="float-card rounded-2xl border bg-gradient-to-br p-6 transition hover:shadow-lg glass-card {{ $step['border'] }} {{ $step['color'] }}"
                          :class="{ 'visible': ready }"
@@ -847,7 +861,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 <div class="relative z-10">
                     <h2 class="mb-2 text-3xl font-black text-white">Are you an artist?</h2>
                     <p class="mx-auto mb-7 max-w-sm text-base text-white/80">
-                        Upload your music, grow your audience, and receive donations from your fans for free.
+                        {{ $paymentsEnabled
+                            ? 'Upload your music, grow your audience, and receive donations from your fans for free.'
+                            : 'Upload your music, grow your audience, and get your releases live without extra setup.' }}
                     </p>
                     <div class="flex flex-wrap justify-center gap-3">
                         <a href="{{ route('register') }}"

@@ -60,6 +60,22 @@ class SiteBranding extends Page implements HasForms
                             ->placeholder('GrinMuzik')
                             ->helperText('Used for the browser tab title when a page does not provide its own title.'),
                     ])->columns(2),
+                Section::make('Theme Colors')
+                    ->description('Set the primary and secondary theme colors used across the public-facing experience. Enter full hex values such as #305CDE.')
+                    ->schema([
+                        Forms\Components\TextInput::make('primary_color')
+                            ->label('Primary color')
+                            ->placeholder('#305CDE')
+                            ->helperText('Used for buttons, highlights, accents, and the browser theme color.')
+                            ->regex('/^#[0-9A-Fa-f]{6}$/'),
+                        Forms\Components\TextInput::make('secondary_color')
+                            ->label('Secondary color')
+                            ->placeholder('#7BA7FF')
+                            ->helperText('Used for softer gradients and background accents across the site.')
+                            ->regex('/^#[0-9A-Fa-f]{6}$/'),
+                    ])
+                    ->columns(2)
+                    ->visible(fn (): bool => SiteSetting::supportsThemeCustomization()),
                 Section::make('Social Profiles')
                     ->description('Add social media handles or full profile URLs. Only configured profiles will appear in the footer and shared branding areas.')
                     ->schema([
@@ -199,6 +215,15 @@ class SiteBranding extends Page implements HasForms
                     ])
                     ->columns(2)
                     ->visible(fn (): bool => SiteSetting::supportsDiscoveryVisibility()),
+                Section::make('Monetization')
+                    ->description('Control whether donation and payment flows are available across uploads, downloads, and unlocks. Turning this off keeps existing track pricing data intact but disables payment gating site-wide.')
+                    ->schema([
+                        Forms\Components\Toggle::make('payments_enabled')
+                            ->label('Enable donations and paid unlocks')
+                            ->helperText('When off, all tracks behave as free downloads and donation-specific controls are hidden from artists and listeners.')
+                            ->default(false),
+                    ])
+                    ->visible(fn (): bool => SiteSetting::supportsMonetizationControls()),
                 Section::make('Discovery Ordering')
                     ->description('Control where the editorial rails appear relative to personalized sections.')
                     ->schema([
@@ -241,6 +266,13 @@ class SiteBranding extends Page implements HasForms
             'youtube_handle',
         ]);
 
+        if (SiteSetting::supportsThemeCustomization()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'primary_color',
+                'secondary_color',
+            ]));
+        }
+
         if (SiteSetting::supportsUploadLimits()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'audio_upload_limit_kb',
@@ -263,6 +295,12 @@ class SiteBranding extends Page implements HasForms
                 'show_browse_support_direct',
                 'show_search_trending_tracks',
                 'show_search_popular_artists',
+            ]));
+        }
+
+        if (SiteSetting::supportsMonetizationControls()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'payments_enabled',
             ]));
         }
 
@@ -324,6 +362,13 @@ class SiteBranding extends Page implements HasForms
             'favicon',
         ];
 
+        if (SiteSetting::supportsThemeCustomization()) {
+            $keys = array_merge($keys, [
+                'primary_color',
+                'secondary_color',
+            ]);
+        }
+
         if (SiteSetting::supportsUploadLimits()) {
             $keys = array_merge($keys, [
                 'audio_upload_limit_kb',
@@ -347,6 +392,10 @@ class SiteBranding extends Page implements HasForms
                 'show_search_trending_tracks',
                 'show_search_popular_artists',
             ]);
+        }
+
+        if (SiteSetting::supportsMonetizationControls()) {
+            $keys[] = 'payments_enabled';
         }
 
         if (SiteSetting::supportsDiscoveryOrdering()) {

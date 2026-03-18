@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TrackResource\Pages;
+use App\Models\SiteSetting;
 use App\Models\Track;
 use App\Support\UploadLimits;
 use Filament\Forms;
@@ -81,12 +82,14 @@ class TrackResource extends Resource
                     Forms\Components\Toggle::make('is_published')->label('Published')->default(false),
                     Forms\Components\Toggle::make('is_featured')->label('Featured')->helperText('Prioritize this track in discovery rails.'),
                     Forms\Components\Toggle::make('is_demo')->label('Demo track')->default(false),
-                    Forms\Components\Toggle::make('requires_donation')->label('Requires donation to unlock'),
+                    Forms\Components\Toggle::make('requires_donation')
+                        ->label('Requires donation to unlock')
+                        ->visible(fn (): bool => SiteSetting::paymentsEnabled()),
                     Forms\Components\TextInput::make('donation_amount')
                         ->numeric()
                         ->prefix('$')
                         ->minValue(0.5)
-                        ->visible(fn (Get $get) => $get('requires_donation')),
+                        ->visible(fn (Get $get) => SiteSetting::paymentsEnabled() && $get('requires_donation')),
                 ]),
         ]);
     }

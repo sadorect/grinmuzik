@@ -154,7 +154,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
         $showBrowsePersonalized = $this->discoveryToggle('show_browse_personalized');
         $showBrowseFreshThisWeek = $this->discoveryToggle('show_browse_fresh_this_week');
         $showBrowseArtistsToWatch = $this->discoveryToggle('show_browse_artists_to_watch');
-        $showBrowseSupportDirect = $this->discoveryToggle('show_browse_support_direct');
+        $paymentsEnabled = SiteSetting::paymentsEnabled();
+        $showBrowseSupportDirect = $paymentsEnabled && $this->discoveryToggle('show_browse_support_direct');
         $browseEditorPicksPosition = SiteSetting::supportsDiscoveryOrdering()
             ? ($this->discoverySettings()?->browse_editor_picks_position ?? 'before-personalized')
             : 'before-personalized';
@@ -265,6 +266,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             'showBrowseFreshThisWeek' => $showBrowseFreshThisWeek,
             'showBrowseArtistsToWatch' => $showBrowseArtistsToWatch,
             'showBrowseSupportDirect' => $showBrowseSupportDirect,
+            'paymentsEnabled' => $paymentsEnabled,
             'browseEditorPicksPosition' => $browseEditorPicksPosition,
             'seo' => [
                 'title' => $seoTitle,
@@ -339,17 +341,19 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     </h1>
                     <p class="mt-4 max-w-2xl text-sm leading-relaxed text-gray-500 sm:text-base">
                         {{ $selectedGenre
-                            ? ($selectedGenre->description ?: 'Fresh releases, fan favorites, donation-powered unlocks, and artists shaping this genre.')
+                            ? ($selectedGenre->description ?: ($paymentsEnabled ? 'Fresh releases, fan favorites, donation-powered unlocks, and artists shaping this genre.' : 'Fresh releases, fan favorites, and artists shaping this genre right now.'))
                             : ($selectedMood
                                 ? 'Jump into a mood-led stream built around '.$selectedMood['label'].' energy, from fresh tracks to artists that naturally fit the same space.'
-                                : 'Jump between fresh drops, fan favorites, support-first releases, and artist scenes built for deeper discovery.') }}
+                                : ($paymentsEnabled
+                                    ? 'Jump between fresh drops, fan favorites, support-first releases, and artist scenes built for deeper discovery.'
+                                    : 'Jump between fresh drops, fan favorites, and artist scenes built for deeper discovery.')) }}
                     </p>
 
                     <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         @foreach([
                             ['label' => 'Tracks', 'value' => number_format($stats['tracks'])],
                             ['label' => 'Artists', 'value' => number_format($stats['artists'])],
-                            ['label' => 'Support Unlocks', 'value' => number_format($stats['support'])],
+                            ['label' => $paymentsEnabled ? 'Support Unlocks' : 'Downloads', 'value' => $paymentsEnabled ? number_format($stats['support']) : 'Free'],
                             ['label' => 'Lens', 'value' => $selectedMood['label'] ?? ($sort === 'popular' ? 'Popular' : 'Latest')],
                         ] as $stat)
                             <div class="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
@@ -410,6 +414,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                 <span>{{ number_format($heroTrack->play_count) }} plays</span>
                                 <span>{{ number_format($heroTrack->downloads_count) }} downloads</span>
                                 <x-track-duration :track="$heroTrack" class="text-gray-400" />
+                            </div>
+                            <div class="mt-4">
+                                <x-queue-track-button :track="$heroTrack" class="px-4 py-2 text-sm" />
                             </div>
                         </div>
                     @else
@@ -522,6 +529,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                         @endif
                                         <x-track-duration :track="$track" class="text-gray-400" />
                                     </div>
+                                    <div class="mt-3">
+                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+                                    </div>
                                 </div>
                             </div>
                         </article>
@@ -564,14 +574,17 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                             @if($track->mood_label)
                                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->mood_label }}</span>
                                             @endif
-                                            @if($track->genre)
-                                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
-                                            @endif
-                                            <x-track-duration :track="$track" class="text-gray-400" />
-                                        </div>
+                                        @if($track->genre)
+                                            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
+                                        @endif
+                                        <x-track-duration :track="$track" class="text-gray-400" />
+                                    </div>
+                                    <div class="mt-3">
+                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                     </div>
                                 </div>
-                            </article>
+                            </div>
+                        </article>
                         @endforeach
                     </div>
                 </div>
@@ -765,6 +778,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                             <span>{{ $track->genre->name }}</span>
                                         @endif
                                             <x-track-duration :track="$track" class="text-gray-400" />
+                                        </div>
+                                        <div class="mt-3">
+                                            <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                         </div>
                                     </div>
                                 </div>

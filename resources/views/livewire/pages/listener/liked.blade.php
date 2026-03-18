@@ -171,6 +171,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                         </div>
 
                         <div class="hidden text-xs text-gray-400 md:block">{{ number_format($track->play_count) }} plays</div>
+                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
 
                         <button wire:click="unlike({{ $track->id }})"
                                 class="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold text-red-500 shadow-sm transition hover:bg-red-50 hover:text-red-600"

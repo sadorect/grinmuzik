@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ArtistProfile;
 use App\Models\HomepageBannerSlide;
+use App\Models\Like;
 use App\Models\Track;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,6 +79,59 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Featured Artists')
             ->assertSee($profile->fresh()->getAvatarMediaUrl(), escape: false);
+    }
+
+    #[Test]
+    public function signed_in_homepage_places_suggested_after_featured_artists(): void
+    {
+        Cache::flush();
+
+        $listener = User::factory()->create();
+        $artist = User::factory()->create(['name' => 'Featured Artist User']);
+
+        $profile = ArtistProfile::create([
+            'user_id' => $artist->id,
+            'stage_name' => 'Featured Artist',
+            'slug' => 'featured-artist',
+            'is_approved' => true,
+            'is_active' => true,
+            'followers_count' => 999,
+        ]);
+
+        $seedTrack = Track::create([
+            'user_id' => $artist->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Seed Track',
+            'slug' => 'seed-track',
+            'is_published' => true,
+            'is_free' => true,
+            'play_count' => 50,
+            'downloads_count' => 10,
+        ]);
+
+        Track::create([
+            'user_id' => $artist->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Suggested Track',
+            'slug' => 'suggested-track',
+            'is_published' => true,
+            'is_free' => true,
+            'play_count' => 75,
+            'downloads_count' => 20,
+        ]);
+
+        Like::create([
+            'user_id' => $listener->id,
+            'track_id' => $seedTrack->id,
+        ]);
+
+        $this->actingAs($listener)
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Featured Artists',
+                'Suggested',
+            ]);
     }
 
     #[Test]

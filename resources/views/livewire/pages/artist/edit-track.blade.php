@@ -5,6 +5,7 @@ use App\Models\Track;
 use App\Rules\ValidAudioUpload;
 use App\StagesLivewireUploads;
 use App\Support\UploadLimits;
+use App\Models\SiteSetting;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -35,6 +36,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     public array $genres = [];
     public array $albums = [];
     public array $moods = [];
+    public bool $paymentsEnabled = false;
 
     public function mount(Track $track): void
     {
@@ -61,6 +63,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             ->map(fn (string $label, string $slug) => ['slug' => $slug, 'label' => $label])
             ->values()
             ->all();
+        $this->paymentsEnabled = SiteSetting::paymentsEnabled();
     }
 
     public function suggestedMoodLabel(): ?string
@@ -112,7 +115,12 @@ new #[Layout('layouts.glass-app')] class extends Component
     public function save(): void
     {
         $this->resetErrorBag('save');
+        $this->paymentsEnabled = SiteSetting::paymentsEnabled();
         $this->validate();
+
+        $effectiveRequiresDonation = $this->paymentsEnabled
+            ? $this->requires_donation
+            : ! ($this->track->is_free ?? true);
 
         try {
             $this->track->update([
@@ -124,8 +132,10 @@ new #[Layout('layouts.glass-app')] class extends Component
                 'mood' => $this->mood,
                 'track_number' => $this->track_number ?: 1,
                 'is_published' => $this->is_published,
-                'is_free' => ! $this->requires_donation,
-                'donation_amount' => $this->requires_donation ? (float) $this->donation_amount : 1.00,
+                'is_free' => ! $effectiveRequiresDonation,
+                'donation_amount' => $effectiveRequiresDonation
+                    ? (float) ($this->donation_amount ?: $this->track->donation_amount ?: 1.00)
+                    : 1.00,
             ]);
 
             if ($this->audioFile) {
@@ -321,21 +331,27 @@ new #[Layout('layouts.glass-app')] class extends Component
                 <x-input-label for="is_published" value="Published (visible to listeners)" class="!mb-0" />
             </div>
 
-            <div class="flex items-center gap-3">
-                <input wire:model.live="requires_donation" id="requires_donation" type="checkbox"
-                    class="rounded border-gray-300 text-red-500 focus:ring-red-400">
-                <x-input-label for="requires_donation" value="Requires donation to unlock" class="!mb-0" />
-            </div>
+            @if($paymentsEnabled)
+                <div class="flex items-center gap-3">
+                    <input wire:model.live="requires_donation" id="requires_donation" type="checkbox"
+                        class="rounded border-gray-300 text-primary focus:ring-primary-400">
+                    <x-input-label for="requires_donation" value="Requires donation to unlock" class="!mb-0" />
+                </div>
 
-            @if($requires_donation)
-                <div class="w-48">
-                    <x-input-label for="donation_amount" value="Minimum Amount (USD) *" />
-                    <div class="relative mt-1">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                        <x-text-input wire:model="donation_amount" id="donation_amount"
-                            class="block w-full pl-6" type="number" step="0.50" min="0.50" placeholder="1.00" />
+                @if($requires_donation)
+                    <div class="w-48">
+                        <x-input-label for="donation_amount" value="Minimum Amount (USD) *" />
+                        <div class="relative mt-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <x-text-input wire:model="donation_amount" id="donation_amount"
+                                class="block w-full pl-6" type="number" step="0.50" min="0.50" placeholder="1.00" />
+                        </div>
+                        <x-input-error :messages="$errors->get('donation_amount')" class="mt-1" />
                     </div>
-                    <x-input-error :messages="$errors->get('donation_amount')" class="mt-1" />
+                @endif
+            @else
+                <div class="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-gray-600">
+                    Donations are paused right now. Existing pricing is preserved in the background, but listeners can access this track for free until the admin enables monetization again.
                 </div>
             @endif
         </div>

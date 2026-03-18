@@ -252,6 +252,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     @endif
                                     <x-track-duration :track="$track" class="text-gray-400" />
                                 </div>
+                                <div class="mt-3">
+                                    <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+                                </div>
                             </div>
                         </div>
                     </article>
@@ -291,6 +294,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     <x-track-duration :track="$play->track" class="text-gray-400" />
                                 </div>
                             </div>
+                            <x-queue-track-button :track="$play->track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                             <span class="text-xs text-gray-400 shrink-0">{{ $play->created_at->diffForHumans() }}</span>
                         </li>
                     @endif
@@ -310,25 +314,30 @@ new #[Layout('layouts.glass-app')] class extends Component
             @else
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4">
                     @foreach($likedTracks as $track)
-                        <button @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })"
-                                class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/60 transition text-left">
-                            <div class="w-10 h-10 rounded-lg bg-gray-200 overflow-hidden shrink-0">
-                                @if($track->getCoverUrl())
-                                    <img src="{{ $track->getCoverUrl() }}" class="w-full h-full object-cover" alt="{{ $track->cover_alt }}">
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>
+                        <article class="rounded-xl p-2 transition hover:bg-white/60">
+                            <div class="flex items-center gap-3">
+                                <button @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })"
+                                        class="flex min-w-0 flex-1 items-center gap-3 text-left">
+                                    <div class="w-10 h-10 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+                                        @if($track->getCoverUrl())
+                                            <img src="{{ $track->getCoverUrl() }}" class="w-full h-full object-cover" alt="{{ $track->cover_alt }}">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center">
+                                                <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>
+                                            </div>
+                                        @endif
                                     </div>
-                                @endif
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-semibold text-gray-800 truncate">{{ $track->title }}</p>
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                                            <span class="truncate">{{ $track->artistProfile?->display_name }}</span>
+                                            <x-track-duration :track="$track" class="text-gray-400" />
+                                        </div>
+                                    </div>
+                                </button>
+                                <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                             </div>
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold text-gray-800 truncate">{{ $track->title }}</p>
-                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-                                    <span class="truncate">{{ $track->artistProfile?->display_name }}</span>
-                                    <x-track-duration :track="$track" class="text-gray-400" />
-                                </div>
-                            </div>
-                        </button>
+                        </article>
                     @endforeach
                 </div>
             @endif

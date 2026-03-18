@@ -240,29 +240,32 @@ new #[Layout('layouts.glass-app')] class extends Component
                     <p class="mt-2 text-sm text-gray-500">{{ $tracksSummary }}</p>
                     <div class="mt-5 space-y-3">
                         @foreach($featuredTracks as $track)
-                            <button class="group flex w-full items-center gap-4 rounded-[1.4rem] border border-white/40 bg-white/60 p-3 text-left transition hover:bg-white/85"
-                                    @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                <div class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
-                                    @if($track->getCoverUrl())
-                                        <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                    @endif
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <p class="truncate text-sm font-semibold text-gray-900">{{ $track->title }}</p>
-                                        @if($track->is_featured)
-                                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">Curated</span>
+                            <div class="group flex items-center gap-4 rounded-[1.4rem] border border-white/40 bg-white/60 p-3 transition hover:bg-white/85">
+                                <button class="flex min-w-0 flex-1 items-center gap-4 text-left"
+                                        @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                    <div class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
+                                        @if($track->getCoverUrl())
+                                            <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
                                         @endif
                                     </div>
-                                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-                                        <span class="truncate">{{ $track->artistProfile?->display_name ?? 'Unknown artist' }}</span>
-                                        @if($track->mood_label)
-                                            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->mood_label }}</span>
-                                        @endif
-                                        <x-track-duration :track="$track" class="text-gray-400" />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="truncate text-sm font-semibold text-gray-900">{{ $track->title }}</p>
+                                            @if($track->is_featured)
+                                                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">Curated</span>
+                                            @endif
+                                        </div>
+                                        <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                                            <span class="truncate">{{ $track->artistProfile?->display_name ?? 'Unknown artist' }}</span>
+                                            @if($track->mood_label)
+                                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->mood_label }}</span>
+                                            @endif
+                                            <x-track-duration :track="$track" class="text-gray-400" />
+                                        </div>
                                     </div>
-                                </div>
-                            </button>
+                                </button>
+                                <x-queue-track-button :track="$track" label="+" class="shrink-0 px-2.5 py-1.5 text-[11px]" />
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -325,6 +328,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                                 </div>
                                 <div class="mt-5 flex flex-wrap gap-3">
                                     <button @click="Livewire.dispatch('play-track', { id: {{ $topTrack->id }} })" class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600">Play Match</button>
+                                    <x-queue-track-button :track="$topTrack" class="px-5 py-3 text-sm" />
                                     <a href="{{ route('track.show', $topTrack->slug) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">Open Track</a>
                                 </div>
                             </div>
@@ -365,38 +369,41 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                 <section wire:loading.class="opacity-60" class="space-y-3 transition-opacity">
                     @forelse($tracks as $track)
-                        <div class="glass-card group flex items-center gap-4 rounded-[1.6rem] p-4 transition hover:-translate-y-0.5 hover:bg-white/85 hover:shadow-lg"
-                             @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                            <div class="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
-                                @if($track->getCoverUrl())
-                                    <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                @else
-                                    <div class="flex h-full w-full items-center justify-center">
-                                        <svg class="h-6 w-6 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
-                                    </div>
-                                @endif
-                                <div class="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition group-hover:opacity-100">
-                                    <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                                </div>
-                            </div>
-
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-base font-semibold text-gray-900">{{ $track->title }}</p>
-                                <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
-                                    <span class="truncate">{{ $track->artistProfile?->display_name ?? 'Unknown artist' }}</span>
-                                    @if($track->genre)
-                                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
+                        <div class="glass-card group flex items-center gap-4 rounded-[1.6rem] p-4 transition hover:-translate-y-0.5 hover:bg-white/85 hover:shadow-lg">
+                            <button class="flex min-w-0 flex-1 items-center gap-4 text-left"
+                                    @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                <div class="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
+                                    @if($track->getCoverUrl())
+                                        <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                    @else
+                                        <div class="flex h-full w-full items-center justify-center">
+                                            <svg class="h-6 w-6 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                                        </div>
                                     @endif
-                                    <x-track-duration :track="$track" class="text-gray-400" />
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition group-hover:opacity-100">
+                                        <svg class="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="hidden shrink-0 items-center gap-3 sm:flex">
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-base font-semibold text-gray-900">{{ $track->title }}</p>
+                                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
+                                        <span class="truncate">{{ $track->artistProfile?->display_name ?? 'Unknown artist' }}</span>
+                                        @if($track->genre)
+                                            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
+                                        @endif
+                                        <x-track-duration :track="$track" class="text-gray-400" />
+                                    </div>
+                                </div>
+                            </button>
+
+                            <div class="flex shrink-0 items-center gap-3">
                                 @if($track->requires_donation)
                                     <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
                                         ${{ number_format($track->donation_amount, 2) }}
                                     </span>
                                 @endif
+                                <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                 @livewire('like-button', ['trackId' => $track->id], key('search-like-'.$track->id))
                             </div>
                         </div>

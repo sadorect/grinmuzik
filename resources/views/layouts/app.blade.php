@@ -11,6 +11,13 @@
             <link rel="shortcut icon" href="{{ $siteSettings->favicon_url }}">
             <link rel="apple-touch-icon" href="{{ $siteSettings->favicon_url }}">
         @endif
+        <style>
+            :root {
+@foreach($themeCssVariables as $name => $value)
+                {{ $name }}: {{ $value }};
+@endforeach
+            }
+        </style>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -11,6 +11,13 @@
         <link rel="shortcut icon" href="{{ $siteSettings->favicon_url }}">
         <link rel="apple-touch-icon" href="{{ $siteSettings->favicon_url }}">
     @endif
+    <style>
+        :root {
+@foreach($themeCssVariables as $name => $value)
+            {{ $name }}: {{ $value }};
+@endforeach
+        }
+    </style>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -25,8 +32,8 @@
 
     {{-- Decorative background blobs --}}
     <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div class="absolute -top-40 -right-40 w-96 h-96 bg-primary-200/30 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-primary-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary-200/30 blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-secondary-100/45 blur-3xl"></div>
     </div>
 
     <div class="relative min-h-screen flex flex-col items-center justify-center px-4 py-12">

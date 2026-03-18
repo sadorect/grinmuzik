@@ -145,6 +145,8 @@ new #[Layout('layouts.glass-app')] class extends Component
                                 <span class="text-rose-600 font-medium">${{ $track->donation_amount }} unlock</span>
                             @endif
 
+                            <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
+
                             <button wire:click="togglePublished({{ $track->id }})"
                                     class="px-2.5 py-1 rounded-full font-medium transition {{ $track->is_published ? 'bg-green-100 text-green-700 hover:bg-yellow-100 hover:text-yellow-700' : 'bg-yellow-100 text-yellow-700 hover:bg-green-100 hover:text-green-700' }}">
                                 {{ $track->is_published ? 'Live' : 'Draft' }}

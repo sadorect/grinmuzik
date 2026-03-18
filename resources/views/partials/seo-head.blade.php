@@ -34,7 +34,7 @@
 <meta name="description" content="{{ $metaDescription }}">
 <meta name="robots" content="{{ $robots }}">
 <link rel="canonical" href="{{ $canonicalUrl }}">
-<meta name="theme-color" content="#cc181e">
+<meta name="theme-color" content="{{ $themePrimaryColor ?? '#305CDE' }}">
 
 <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
 <meta property="og:type" content="{{ $ogType }}">

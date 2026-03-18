@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\SiteSetting;
+use App\Support\ThemePalette;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -44,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
                 $siteUrl = url('/');
                 $siteLogo = $siteSettings?->site_logo_url;
                 $routeName = request()->route()?->getName();
+                $themeCssVariables = $siteSettings?->theme_css_variables ?? ThemePalette::cssVariables();
+                $themePrimaryColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+                $paymentsEnabled = $siteSettings?->effective_payments_enabled ?? ! SiteSetting::supportsMonetizationControls();
 
                 $defaultDescription = 'Discover independent music, explore fresh releases, support artists, and build playlists on GrinMuzik.';
 
@@ -200,6 +204,9 @@ class AppServiceProvider extends ServiceProvider
                     'siteSettings' => $siteSettings,
                     'siteName' => $siteName,
                     'siteTitle' => $siteTitle,
+                    'themeCssVariables' => $themeCssVariables,
+                    'themePrimaryColor' => $themePrimaryColor,
+                    'paymentsEnabled' => $paymentsEnabled,
                     'socialLinks' => $siteSettings?->social_links ?? [],
                     'defaultSeo' => [
                         'title' => $siteTitle,

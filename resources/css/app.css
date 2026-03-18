@@ -68,7 +68,7 @@
 
     /* Glass Gradient Backgrounds */
     .glass-gradient-light {
-        @apply bg-gradient-to-br from-gray-50 via-blue-50/20 to-gray-100;
+        @apply bg-gradient-to-br from-gray-50 via-secondary-50/25 to-secondary-100/15;
     }
 
     .glass-gradient-subtle {

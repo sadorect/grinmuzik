@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ThemePalette;
 use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Model;
 use Throwable;
@@ -14,6 +15,9 @@ class SiteSetting extends Model
     protected static ?bool $supportsDiscoveryVisibilityCache = null;
     protected static ?bool $supportsDiscoveryOrderingCache = null;
     protected static ?bool $supportsUploadLimitsCache = null;
+    protected static ?bool $supportsMonetizationControlsCache = null;
+    protected static ?bool $supportsThemeCustomizationCache = null;
+    protected static ?bool $paymentsEnabledCache = null;
 
     protected $fillable = [
         'site_name',
@@ -42,6 +46,9 @@ class SiteSetting extends Model
         'show_search_popular_artists',
         'home_editor_picks_position',
         'browse_editor_picks_position',
+        'payments_enabled',
+        'primary_color',
+        'secondary_color',
     ];
 
     protected $casts = [
@@ -60,6 +67,7 @@ class SiteSetting extends Model
         'show_browse_support_direct' => 'boolean',
         'show_search_trending_tracks' => 'boolean',
         'show_search_popular_artists' => 'boolean',
+        'payments_enabled' => 'boolean',
     ];
 
     public static function current(): self
@@ -118,6 +126,58 @@ class SiteSetting extends Model
         }
     }
 
+    public static function supportsMonetizationControls(): bool
+    {
+        if (static::$supportsMonetizationControlsCache !== null) {
+            return static::$supportsMonetizationControlsCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsMonetizationControlsCache = false;
+            }
+
+            return static::$supportsMonetizationControlsCache = Schema::hasColumn('site_settings', 'payments_enabled');
+        } catch (Throwable) {
+            return static::$supportsMonetizationControlsCache = false;
+        }
+    }
+
+    public static function supportsThemeCustomization(): bool
+    {
+        if (static::$supportsThemeCustomizationCache !== null) {
+            return static::$supportsThemeCustomizationCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsThemeCustomizationCache = false;
+            }
+
+            return static::$supportsThemeCustomizationCache = Schema::hasColumn('site_settings', 'primary_color')
+                && Schema::hasColumn('site_settings', 'secondary_color');
+        } catch (Throwable) {
+            return static::$supportsThemeCustomizationCache = false;
+        }
+    }
+
+    public static function paymentsEnabled(): bool
+    {
+        if (static::$paymentsEnabledCache !== null) {
+            return static::$paymentsEnabledCache;
+        }
+
+        if (! static::supportsMonetizationControls()) {
+            return static::$paymentsEnabledCache = true;
+        }
+
+        try {
+            return static::$paymentsEnabledCache = (bool) (static::current()->payments_enabled ?? false);
+        } catch (Throwable) {
+            return static::$paymentsEnabledCache = false;
+        }
+    }
+
     public function getSiteLogoUrlAttribute(): ?string
     {
         return $this->buildPublicAssetUrl($this->site_logo);
@@ -173,6 +233,42 @@ class SiteSetting extends Model
     public function getEffectiveHeroImageUploadLimitKbAttribute(): int
     {
         return (int) ($this->hero_image_upload_limit_kb ?: UploadLimits::DEFAULT_HERO_IMAGE_KB);
+    }
+
+    public function getEffectivePaymentsEnabledAttribute(): bool
+    {
+        if (! static::supportsMonetizationControls()) {
+            return true;
+        }
+
+        return (bool) ($this->payments_enabled ?? false);
+    }
+
+    public function getEffectivePrimaryColorAttribute(): string
+    {
+        return ThemePalette::normalize(
+            static::supportsThemeCustomization() ? $this->primary_color : null,
+            ThemePalette::DEFAULT_PRIMARY,
+        );
+    }
+
+    public function getEffectiveSecondaryColorAttribute(): string
+    {
+        return ThemePalette::normalize(
+            static::supportsThemeCustomization() ? $this->secondary_color : null,
+            ThemePalette::DEFAULT_SECONDARY,
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getThemeCssVariablesAttribute(): array
+    {
+        return ThemePalette::cssVariables(
+            $this->effective_primary_color,
+            $this->effective_secondary_color,
+        );
     }
 
     public function getSocialLinksAttribute(): array

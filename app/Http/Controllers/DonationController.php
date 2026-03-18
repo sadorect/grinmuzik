@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ArtistProfile;
 use App\Models\Donation;
+use App\Models\SiteSetting;
 use App\Models\Track;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,8 @@ class DonationController extends Controller
      */
     public function createIntent(Request $request, Track $track): JsonResponse
     {
+        abort_unless(SiteSetting::paymentsEnabled(), 403, 'Payments are currently disabled.');
+
         $request->validate([
             'type'    => ['required', 'in:unlock,tip'],
             'amount'  => ['required_if:type,tip', 'numeric', 'min:0.50'],

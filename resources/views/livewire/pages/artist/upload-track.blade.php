@@ -5,6 +5,7 @@ use App\Models\Track;
 use App\Rules\ValidAudioUpload;
 use App\StagesLivewireUploads;
 use App\Support\UploadLimits;
+use App\Models\SiteSetting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     public array $genres = [];
     public array $albums = [];
     public array $moods = [];
+    public bool $paymentsEnabled = false;
 
     public function mount(): void
     {
@@ -52,6 +54,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             ->map(fn (string $label, string $slug) => ['slug' => $slug, 'label' => $label])
             ->values()
             ->all();
+        $this->paymentsEnabled = SiteSetting::paymentsEnabled();
     }
 
     public function suggestedMoodLabel(): ?string
@@ -102,6 +105,12 @@ new #[Layout('layouts.glass-app')] class extends Component
     public function save(): void
     {
         $this->resetErrorBag('save');
+        $this->paymentsEnabled = SiteSetting::paymentsEnabled();
+
+        if (! $this->paymentsEnabled) {
+            $this->requires_donation = false;
+        }
+
         $this->validate();
 
         $profile = auth()->user()->artistProfile;
@@ -119,8 +128,8 @@ new #[Layout('layouts.glass-app')] class extends Component
                     'description' => $this->description,
                     'track_number' => $this->track_number ?: 1,
                     'is_published' => $this->is_published,
-                    'requires_donation' => $this->requires_donation,
-                    'donation_amount' => $this->requires_donation ? (float) $this->donation_amount : 1.00,
+                    'is_free' => ! ($this->paymentsEnabled && $this->requires_donation),
+                    'donation_amount' => ($this->paymentsEnabled && $this->requires_donation) ? (float) $this->donation_amount : 1.00,
                 ]);
 
                 $audioExt = strtolower($this->audioFile->getClientOriginalExtension());
@@ -320,22 +329,28 @@ new #[Layout('layouts.glass-app')] class extends Component
                 </div>
             </label>
 
-            <label class="flex items-center gap-3 cursor-pointer">
-                <input wire:model.live="requires_donation" type="checkbox" class="rounded border-gray-300 text-red-500 focus:ring-red-400">
-                <div>
-                    <p class="text-sm font-medium text-gray-700">Require donation to unlock full track</p>
-                    <p class="text-xs text-gray-400">Listeners pay once to stream and download</p>
-                </div>
-            </label>
-
-            @if($requires_donation)
-                <div class="ml-7 w-44">
-                    <x-input-label for="donation_amount" value="Unlock Price (USD) *" />
-                    <div class="relative mt-1">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-                        <x-text-input wire:model="donation_amount" id="donation_amount" class="block w-full pl-7" type="number" min="0.5" step="0.5" placeholder="2.00" />
+            @if($paymentsEnabled)
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input wire:model.live="requires_donation" type="checkbox" class="rounded border-gray-300 text-primary focus:ring-primary-400">
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Require donation to unlock full track</p>
+                        <p class="text-xs text-gray-400">Listeners pay once to stream and download</p>
                     </div>
-                    <x-input-error :messages="$errors->get('donation_amount')" class="mt-1" />
+                </label>
+
+                @if($requires_donation)
+                    <div class="ml-7 w-44">
+                        <x-input-label for="donation_amount" value="Unlock Price (USD) *" />
+                        <div class="relative mt-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                            <x-text-input wire:model="donation_amount" id="donation_amount" class="block w-full pl-7" type="number" min="0.5" step="0.5" placeholder="2.00" />
+                        </div>
+                        <x-input-error :messages="$errors->get('donation_amount')" class="mt-1" />
+                    </div>
+                @endif
+            @else
+                <div class="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-gray-600">
+                    Downloads are currently free across the platform. Donation-based unlocks can be re-enabled later from Site Branding in admin.
                 </div>
             @endif
         </div>

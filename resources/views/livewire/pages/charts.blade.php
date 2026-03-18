@@ -288,6 +288,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     <span>{{ number_format($track->likes_count) }} likes</span>
                                 </div>
                             </div>
+                            <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                         </article>
                     @endforeach
                 </div>

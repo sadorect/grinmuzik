@@ -11,6 +11,13 @@
         <link rel="shortcut icon" href="{{ $siteSettings->favicon_url }}">
         <link rel="apple-touch-icon" href="{{ $siteSettings->favicon_url }}">
     @endif
+    <style>
+        :root {
+@foreach($themeCssVariables as $name => $value)
+            {{ $name }}: {{ $value }};
+@endforeach
+        }
+    </style>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -226,7 +233,7 @@
                             <li><a href="{{ route('register') }}" class="hover:text-primary-400 transition">Join as Artist</a></li>
                         @endauth
                         <li><a href="{{ route('artist-guide') }}" wire:navigate class="hover:text-primary-400 transition">Artist Guide</a></li>
-                        <li><a href="{{ route('pricing') }}" wire:navigate class="hover:text-primary-400 transition">Pricing &amp; Donations</a></li>
+                        <li><a href="{{ route('pricing') }}" wire:navigate class="hover:text-primary-400 transition">{{ $paymentsEnabled ? 'Pricing &amp; Donations' : 'Creator Access' }}</a></li>
                     </ul>
                 </div>
 

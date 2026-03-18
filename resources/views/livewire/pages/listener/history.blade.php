@@ -159,6 +159,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                             </div>
 
                             <div class="hidden text-xs text-gray-400 md:block">{{ number_format($play->track->play_count) }} plays</div>
+                            <x-queue-track-button :track="$play->track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                             <span class="shrink-0 text-xs text-gray-400">{{ $play->created_at->diffForHumans() }}</span>
                         </li>
                     @endif

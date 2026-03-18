@@ -278,6 +278,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                     ${{ number_format($track->donation_amount, 2) }}
                                 </span>
                             @endif
+                            <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                             @livewire('like-button', ['trackId' => $track->id], key('like-'.$track->id))
                         </div>
                     @endforeach
@@ -384,6 +385,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                     <div class="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-gray-400">
                                         <span>{{ number_format($track->play_count) }} plays</span>
                                         <span>{{ number_format($track->downloads_count) }} downloads</span>
+                                    </div>
+                                    <div class="mt-3">
+                                        <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
                                     </div>
                                 </div>
                             </div>

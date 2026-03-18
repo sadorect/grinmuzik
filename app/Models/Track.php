@@ -51,6 +51,7 @@ class Track extends Model implements HasMedia
         'title',
         'slug',
         'description',
+        'lyrics',
         'mood',
         'duration',
         'audio_file_path',
@@ -58,6 +59,7 @@ class Track extends Model implements HasMedia
         'is_published',
         'is_featured',
         'is_free',
+        'requires_donation',
         'donation_amount',
         'play_count',
         'downloads_count',
@@ -81,7 +83,11 @@ class Track extends Model implements HasMedia
      */
     public function getRequiresDonationAttribute(): bool
     {
-        return !($this->is_free ?? true);
+        if (! SiteSetting::paymentsEnabled()) {
+            return false;
+        }
+
+        return ! ($this->is_free ?? true);
     }
 
     public function setRequiresDonationAttribute(bool $value): void
