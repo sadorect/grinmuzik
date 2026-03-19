@@ -591,7 +591,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
     @endif
 
     @if($trending->count())
-        <section class="overflow-hidden bg-gray-50/80 py-10">
+        <section class="overflow-hidden bg-gray-50/80 py-10 dark:bg-slate-950/70">
             <div class="mx-auto mb-5 flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <h2 class="text-2xl font-bold text-gray-800">Trending Now</h2>
                 <a href="{{ route('browse', ['sort' => 'popular']) }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
@@ -600,8 +600,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
                  x-data="{ paused: false }"
                  @mouseenter="paused = true"
                  @mouseleave="paused = false">
-                <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent"></div>
-                <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent"></div>
+                <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
+                <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
                 <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
                     @foreach([$trending, $trending] as $loopSet)
@@ -638,7 +638,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
     @endif
 
     @if($latest->count())
-        <section class="overflow-hidden bg-gray-50/80 py-10">
+        <section class="overflow-hidden bg-gray-50/80 py-10 dark:bg-slate-950/70">
             <div class="mx-auto mb-5 flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">New Releases</h2>
@@ -650,8 +650,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
                  x-data="{ paused: false }"
                  @mouseenter="paused = true"
                  @mouseleave="paused = false">
-                <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent"></div>
-                <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent"></div>
+                <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
+                <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
                 <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
                     @foreach([$latest, $latest] as $loopSet)
