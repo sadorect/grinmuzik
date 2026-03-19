@@ -17,6 +17,7 @@ class SiteSetting extends Model
     protected static ?bool $supportsUploadLimitsCache = null;
     protected static ?bool $supportsMonetizationControlsCache = null;
     protected static ?bool $supportsThemeCustomizationCache = null;
+    protected static ?bool $supportsPublicThemeToggleControlCache = null;
     protected static ?bool $supportsAutoPlaylistControlsCache = null;
     protected static ?bool $paymentsEnabledCache = null;
     protected static ?bool $autoPlaylistEnabledCache = null;
@@ -51,6 +52,7 @@ class SiteSetting extends Model
         'payments_enabled',
         'primary_color',
         'secondary_color',
+        'show_public_theme_toggle',
         'auto_playlist_enabled',
     ];
 
@@ -71,6 +73,7 @@ class SiteSetting extends Model
         'show_search_trending_tracks' => 'boolean',
         'show_search_popular_artists' => 'boolean',
         'payments_enabled' => 'boolean',
+        'show_public_theme_toggle' => 'boolean',
         'auto_playlist_enabled' => 'boolean',
     ];
 
@@ -168,6 +171,23 @@ class SiteSetting extends Model
                 && Schema::hasColumn('site_settings', 'secondary_color');
         } catch (Throwable) {
             return static::$supportsThemeCustomizationCache = false;
+        }
+    }
+
+    public static function supportsPublicThemeToggleControl(): bool
+    {
+        if (static::$supportsPublicThemeToggleControlCache !== null) {
+            return static::$supportsPublicThemeToggleControlCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsPublicThemeToggleControlCache = false;
+            }
+
+            return static::$supportsPublicThemeToggleControlCache = Schema::hasColumn('site_settings', 'show_public_theme_toggle');
+        } catch (Throwable) {
+            return static::$supportsPublicThemeToggleControlCache = false;
         }
     }
 
@@ -313,6 +333,15 @@ class SiteSetting extends Model
         return (bool) ($this->auto_playlist_enabled ?? true);
     }
 
+    public function getEffectiveShowPublicThemeToggleAttribute(): bool
+    {
+        if (! static::supportsPublicThemeToggleControl()) {
+            return true;
+        }
+
+        return (bool) ($this->show_public_theme_toggle ?? true);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -394,6 +423,7 @@ class SiteSetting extends Model
         static::$supportsUploadLimitsCache = null;
         static::$supportsMonetizationControlsCache = null;
         static::$supportsThemeCustomizationCache = null;
+        static::$supportsPublicThemeToggleControlCache = null;
         static::$supportsAutoPlaylistControlsCache = null;
         static::$paymentsEnabledCache = null;
         static::$autoPlaylistEnabledCache = null;

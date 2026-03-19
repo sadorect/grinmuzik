@@ -47,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 $routeName = request()->route()?->getName();
                 $themeCssVariables = $siteSettings?->theme_css_variables ?? ThemePalette::cssVariables();
                 $themePrimaryColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+                $showPublicThemeToggle = $siteSettings?->effective_show_public_theme_toggle ?? true;
                 $paymentsEnabled = $siteSettings?->effective_payments_enabled ?? ! SiteSetting::supportsMonetizationControls();
 
                 $defaultDescription = 'Discover independent music, explore fresh releases, support artists, and build playlists on GrinMuzik.';
@@ -206,6 +207,7 @@ class AppServiceProvider extends ServiceProvider
                     'siteTitle' => $siteTitle,
                     'themeCssVariables' => $themeCssVariables,
                     'themePrimaryColor' => $themePrimaryColor,
+                    'showPublicThemeToggle' => $showPublicThemeToggle,
                     'paymentsEnabled' => $paymentsEnabled,
                     'socialLinks' => $siteSettings?->social_links ?? [],
                     'defaultSeo' => [

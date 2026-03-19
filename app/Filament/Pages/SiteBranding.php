@@ -76,6 +76,15 @@ class SiteBranding extends Page implements HasForms
                     ])
                     ->columns(2)
                     ->visible(fn (): bool => SiteSetting::supportsThemeCustomization()),
+                Section::make('Theme Controls')
+                    ->description('Choose whether visitors can switch between light and dark mode on public pages.')
+                    ->schema([
+                        Forms\Components\Toggle::make('show_public_theme_toggle')
+                            ->label('Show public dark mode toggle')
+                            ->helperText('When off, the public-facing theme switcher is hidden from navigation and auth pages.')
+                            ->default(true),
+                    ])
+                    ->visible(fn (): bool => SiteSetting::supportsPublicThemeToggleControl()),
                 Section::make('Social Profiles')
                     ->description('Add social media handles or full profile URLs. Only configured profiles will appear in the footer and shared branding areas.')
                     ->schema([
@@ -282,6 +291,12 @@ class SiteBranding extends Page implements HasForms
             ]));
         }
 
+        if (SiteSetting::supportsPublicThemeToggleControl()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'show_public_theme_toggle',
+            ]));
+        }
+
         if (SiteSetting::supportsUploadLimits()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'audio_upload_limit_kb',
@@ -382,6 +397,10 @@ class SiteBranding extends Page implements HasForms
                 'primary_color',
                 'secondary_color',
             ]);
+        }
+
+        if (SiteSetting::supportsPublicThemeToggleControl()) {
+            $keys[] = 'show_public_theme_toggle';
         }
 
         if (SiteSetting::supportsUploadLimits()) {
