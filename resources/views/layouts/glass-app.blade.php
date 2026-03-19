@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    @include('partials.theme-head')
     @include('partials.seo-head', ['pageTitle' => $title ?? null])
     @php($appIconUrl = route('pwa.icon'))
     <link rel="icon" href="{{ $appIconUrl }}">
@@ -28,7 +29,7 @@
     @stack('head')
     @stack('styles')
 </head>
-<body class="glass-gradient-light min-h-screen antialiased"
+<body class="glass-gradient-light min-h-screen antialiased transition-colors duration-300"
       x-data="{ showBackToTop: false }"
       x-on:scroll.window.throttle.150ms="showBackToTop = window.scrollY > 500">
 <div id="app" class="min-h-screen">
@@ -50,6 +51,7 @@
                     <a href="{{ route('charts') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Charts</a>
                     <a href="{{ route('new-releases') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>New Releases</a>
                     <a href="{{ route('playlists.public') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Playlists</a>
+                    @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'px-3 py-1.5'])
 
                     @auth
                         <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Dashboard</a>
@@ -99,9 +101,12 @@
                 </div>
 
                 {{-- Mobile hamburger --}}
-                <button x-data x-on:click="$dispatch('toggle-mobile-nav')" class="md:hidden glass-btn glass-btn-hover p-2 rounded-lg">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
+                <div class="flex items-center gap-2 md:hidden">
+                    @include('partials.theme-toggle', ['class' => 'px-2.5 py-2'])
+                    <button x-data x-on:click="$dispatch('toggle-mobile-nav')" class="glass-btn glass-btn-hover p-2 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -115,12 +120,15 @@
                     <x-application-logo class="h-7 w-auto object-contain" />
                     <span class="font-bold text-lg">{{ $siteName }}</span>
                 </a>
-                <button @click="open = false" class="rounded-full border border-white/50 bg-white/70 p-2 text-gray-500">
-                    <span class="sr-only">Close menu</span>
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'px-3 py-2'])
+                    <button @click="open = false" class="rounded-full border border-white/50 bg-white/70 p-2 text-gray-500">
+                        <span class="sr-only">Close menu</span>
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    @include('partials.theme-head')
     @include('partials.seo-head', ['pageTitle' => $title ?? null])
     @php($appIconUrl = route('pwa.icon'))
     <link rel="icon" href="{{ $appIconUrl }}">
@@ -27,15 +28,18 @@
     @stack('head')
     @stack('styles')
 </head>
-<body class="glass-gradient-light min-h-screen antialiased">
+<body class="glass-gradient-light min-h-screen antialiased transition-colors duration-300">
 
     {{-- Decorative background blobs --}}
     <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary-200/30 blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-secondary-100/45 blur-3xl"></div>
+        <div class="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary-200/30 blur-3xl dark:bg-primary-500/15"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-secondary-100/45 blur-3xl dark:bg-secondary-500/10"></div>
     </div>
 
     <div class="relative min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <div class="absolute right-4 top-4 sm:right-6 sm:top-6">
+            @include('partials.theme-toggle', ['showLabel' => true])
+        </div>
 
         {{-- Logo --}}
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2 mb-8 group">

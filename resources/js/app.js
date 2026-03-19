@@ -19,6 +19,93 @@ if (!window.GrinPlayer) {
     window.GrinPlayer.audio.preload = "metadata";
 }
 
+const THEME_STORAGE_KEY = "grinmuzik-theme";
+const THEME_DARK = "dark";
+const THEME_LIGHT = "light";
+const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+const getStoredTheme = () => {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+    return storedTheme === THEME_DARK || storedTheme === THEME_LIGHT
+        ? storedTheme
+        : null;
+};
+
+const resolveTheme = () =>
+    getStoredTheme() ?? (themeMediaQuery.matches ? THEME_DARK : THEME_LIGHT);
+
+const syncThemeToggleUi = (theme) => {
+    document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+        const label = button.querySelector("[data-theme-label]");
+        const moonIcon = button.querySelector('[data-theme-icon="moon"]');
+        const sunIcon = button.querySelector('[data-theme-icon="sun"]');
+        const toggleToLight = theme === THEME_DARK;
+
+        button.setAttribute(
+            "aria-label",
+            toggleToLight ? "Switch to light mode" : "Switch to dark mode",
+        );
+
+        if (label) {
+            label.textContent = toggleToLight ? "Light mode" : "Dark mode";
+        }
+
+        moonIcon?.classList.toggle("hidden", toggleToLight);
+        sunIcon?.classList.toggle("hidden", !toggleToLight);
+    });
+};
+
+const applyTheme = (theme = resolveTheme()) => {
+    const isDark = theme === THEME_DARK;
+
+    document.documentElement.classList.toggle("dark", isDark);
+    document.documentElement.dataset.theme = isDark ? THEME_DARK : THEME_LIGHT;
+    document.documentElement.style.colorScheme = isDark
+        ? THEME_DARK
+        : THEME_LIGHT;
+
+    syncThemeToggleUi(theme);
+
+    window.dispatchEvent(
+        new CustomEvent("grin-theme-changed", {
+            detail: { theme },
+        }),
+    );
+
+    return theme;
+};
+
+window.GrinTheme = window.GrinTheme || {
+    apply: () => applyTheme(resolveTheme()),
+    set: (theme) => {
+        if (theme !== THEME_DARK && theme !== THEME_LIGHT) {
+            return;
+        }
+
+        window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+        applyTheme(theme);
+    },
+    toggle: () => {
+        const nextTheme = document.documentElement.classList.contains("dark")
+            ? THEME_LIGHT
+            : THEME_DARK;
+
+        window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+        applyTheme(nextTheme);
+    },
+    clear: () => {
+        window.localStorage.removeItem(THEME_STORAGE_KEY);
+        applyTheme(resolveTheme());
+    },
+};
+
+themeMediaQuery.addEventListener?.("change", () => {
+    if (!getStoredTheme()) {
+        applyTheme(resolveTheme());
+    }
+});
+
 const INSTALL_VISIT_THRESHOLD = 3;
 const INSTALL_DISMISS_DAYS = 14;
 const INSTALL_VISIT_STORAGE_KEY = "grinmuzik-install-visits";
@@ -163,10 +250,15 @@ window.addEventListener("appinstalled", () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+    window.GrinTheme?.apply();
     recordInstallVisit();
     publishInstallState();
 
     if ("serviceWorker" in navigator && window.isSecureContext) {
         navigator.serviceWorker.register("/service-worker.js").catch(() => {});
     }
+});
+
+document.addEventListener("livewire:navigated", () => {
+    window.GrinTheme?.apply();
 });
