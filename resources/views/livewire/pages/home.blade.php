@@ -466,7 +466,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             }, { threshold: 0.3 });
             observer.observe($el);
          ">
-        <div class="mx-auto grid max-w-5xl grid-cols-2 divide-x divide-y divide-white/20 text-center text-white sm:grid-cols-4 sm:divide-y-0">
+        <div class="mx-auto grid max-w-5xl grid-cols-2 text-center text-white sm:grid-cols-4">
             @foreach([
                 ['n' => $stats['tracks'], 'label' => 'Published Tracks'],
                 ['n' => $stats['artists'], 'label' => 'Artists'],

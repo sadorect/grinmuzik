@@ -32,10 +32,82 @@
 <body class="glass-gradient-light min-h-screen antialiased transition-colors duration-300"
       x-data="{ showBackToTop: false }"
       x-on:scroll.window.throttle.150ms="showBackToTop = window.scrollY > 500">
-<div id="app" class="min-h-screen">
+@php($currentRouteName = request()->route()?->getName())
+@php($publicShell = $publicShell ?? ($currentRouteName === 'search' ? 'search-sidebar' : 'default'))
+@php($useSearchSidebar = $publicShell === 'search-sidebar')
+@php($primaryNavItems = [
+    ['label' => 'Browse', 'route' => 'home'],
+    ['label' => 'Search', 'route' => 'search'],
+    ['label' => 'Charts', 'route' => 'charts'],
+    ['label' => 'New Releases', 'route' => 'new-releases'],
+    ['label' => 'Playlists', 'route' => 'playlists.public'],
+])
+<div id="app" class="min-h-screen" data-public-shell="{{ $publicShell }}">
+
+    @if($useSearchSidebar)
+        <aside aria-label="Search page sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-white/10 bg-slate-950/78 px-5 py-6 text-slate-100 backdrop-blur-2xl md:flex">
+            <a href="{{ route('home') }}" class="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/5" wire:navigate>
+                <x-application-logo class="h-8 w-auto object-contain" />
+                <div>
+                    <p class="text-lg font-black tracking-tight">{{ $siteName }}</p>
+                    <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400">Search</p>
+                </div>
+            </a>
+
+            <div class="mt-8 rounded-[1.8rem] border border-white/10 bg-white/5 p-4 shadow-lg">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-300">Navigate</p>
+                <div class="mt-3 space-y-1.5">
+                    @foreach($primaryNavItems as $item)
+                        @php($isActive = $currentRouteName === $item['route'])
+                        <a
+                            href="{{ route($item['route']) }}"
+                            wire:navigate
+                            class="flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold transition {{ $isActive ? 'bg-primary text-white shadow-sm' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}"
+                        >
+                            <span>{{ $item['label'] }}</span>
+                            @if($isActive)
+                                <span class="h-2.5 w-2.5 rounded-full bg-white/90"></span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="mt-4">
+                @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'])
+            </div>
+
+            <div class="mt-auto rounded-[1.8rem] border border-white/10 bg-white/5 p-4">
+                @auth
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Account</p>
+                    <div class="mt-3 space-y-1.5">
+                        <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Dashboard</a>
+                        <a href="{{ route('profile') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Account Settings</a>
+                        @if(Auth::user()->isArtist())
+                            <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Artist Profile</a>
+                            <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">My Music</a>
+                        @endif
+                        @if(Auth::user()->isSuperAdmin())
+                            <a href="{{ url('/musicdirector') }}" class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Admin Panel</a>
+                        @endif
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Log Out</button>
+                        </form>
+                    </div>
+                @else
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Join In</p>
+                    <div class="mt-3 space-y-2.5">
+                        <a href="{{ route('register') }}" wire:navigate class="block rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">Sign Up Free</a>
+                        <a href="{{ route('login') }}" wire:navigate class="block rounded-2xl border border-white/10 px-4 py-3 text-center text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Log In</a>
+                    </div>
+                @endauth
+            </div>
+        </aside>
+    @endif
 
     {{-- â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
-    <nav class="glass-nav sticky top-0 z-50">
+    <nav class="glass-nav sticky top-0 z-50 {{ $useSearchSidebar ? 'md:hidden' : '' }}">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 {{-- Logo --}}
@@ -172,10 +244,11 @@
     </div>
 
     {{-- â”€â”€ Page Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
-    <main class="pb-6">
-        {{ $slot ?? '' }}
-        @yield('content')
-    </main>
+    <div class="{{ $useSearchSidebar ? 'md:pl-72' : '' }}">
+        <main class="pb-6">
+            {{ $slot ?? '' }}
+            @yield('content')
+        </main>
 
     {{-- â”€â”€ Site Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
     <footer class="bg-gray-900 text-gray-400 pb-32 pt-14">
@@ -280,18 +353,19 @@
         </div>
     </footer>
 
-    <button
-        x-show="showBackToTop"
-        x-transition.opacity.scale
-        @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
-        class="fixed bottom-36 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-gray-900/90 text-white shadow-xl backdrop-blur-md transition hover:bg-primary md:bottom-40"
-        style="display:none"
-        aria-label="Back to top"
-    >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
-        </svg>
-    </button>
+        <button
+            x-show="showBackToTop"
+            x-transition.opacity.scale
+            @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+            class="fixed bottom-36 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-gray-900/90 text-white shadow-xl backdrop-blur-md transition hover:bg-primary md:bottom-40"
+            style="display:none"
+            aria-label="Back to top"
+        >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+            </svg>
+        </button>
+    </div>
 
     {{-- â”€â”€ Persistent Mini Player â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
     @livewire('mini-player')
