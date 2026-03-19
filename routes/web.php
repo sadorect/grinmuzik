@@ -8,11 +8,14 @@ use App\Models\Track;
 use App\Support\ThemePalette;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Livewire\Volt\Volt;
 
 Volt::route('/', 'pages.home')->name('home');
 
-Route::get('/manifest.webmanifest', function () {
+Route::get('/pwa-icon.svg', function () {
+    $installAppName = 'GrinMuzik';
+
     try {
         $siteSettings = Schema::hasTable('site_settings')
             ? SiteSetting::current()
@@ -21,8 +24,68 @@ Route::get('/manifest.webmanifest', function () {
         $siteSettings = null;
     }
 
-    $siteName = $siteSettings?->effective_site_name ?? 'GrinMuzik';
+    if ($siteSettings?->favicon_url) {
+        return redirect()->to($siteSettings->favicon_url);
+    }
+
+    if ($siteSettings?->site_logo_url) {
+        return redirect()->to($siteSettings->site_logo_url);
+    }
+
+    $siteName = $installAppName;
     $themeColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+    $accentColor = $siteSettings?->effective_secondary_color ?? ThemePalette::DEFAULT_SECONDARY;
+    $initials = collect(preg_split('/(?=[A-Z])|[^A-Za-z0-9]+/', $siteName))
+        ->filter()
+        ->map(fn (string $part): string => Str::upper(Str::substr($part, 0, 1)))
+        ->take(2)
+        ->implode('');
+
+    if ($initials === '') {
+        $initials = Str::upper(Str::substr(preg_replace('/[^A-Za-z0-9]/', '', $siteName) ?: 'GM', 0, 2));
+    }
+
+    $fontSize = Str::length($initials) > 1 ? 172 : 212;
+    $siteName = e($siteName);
+    $initials = e($initials);
+
+    $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">{$siteName} app icon</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="{$themeColor}" />
+      <stop offset="100%" stop-color="{$accentColor}" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)" />
+  <circle cx="400" cy="112" r="48" fill="#FFFFFF" opacity="0.14" />
+  <text x="256" y="308" text-anchor="middle" font-family="Arial, sans-serif" font-size="{$fontSize}" font-weight="700" fill="#FFFFFF">{$initials}</text>
+</svg>
+SVG;
+
+    return response($svg, 200, [
+        'Content-Type' => 'image/svg+xml; charset=UTF-8',
+        'Cache-Control' => 'public, max-age=3600',
+    ]);
+})->name('pwa.icon');
+
+Route::get('/manifest.webmanifest', function () {
+    $installAppName = 'GrinMuzik';
+
+    try {
+        $siteSettings = Schema::hasTable('site_settings')
+            ? SiteSetting::current()
+            : null;
+    } catch (\Throwable) {
+        $siteSettings = null;
+    }
+
+    $siteName = $installAppName;
+    $themeColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+    $installIconUrl = $siteSettings?->favicon_url
+        ?? $siteSettings?->site_logo_url
+        ?? route('pwa.icon');
     $manifest = [
         'id' => route('home'),
         'name' => $siteName,
@@ -35,10 +98,9 @@ Route::get('/manifest.webmanifest', function () {
         'theme_color' => $themeColor,
         'icons' => [
             [
-                'src' => asset('pwa-icon.svg'),
+                'src' => $installIconUrl,
                 'sizes' => 'any',
-                'type' => 'image/svg+xml',
-                'purpose' => 'any maskable',
+                'purpose' => 'any',
             ],
         ],
     ];

@@ -1,3 +1,6 @@
+@php($installAppName = 'GrinMuzik')
+@php($installPromptLogo = $siteSettings?->site_logo_url ?? route('pwa.icon'))
+
 <div
     x-data="pwaInstallPrompt()"
     x-init="init()"
@@ -21,34 +24,23 @@
         </button>
 
         <div class="mb-5 flex items-start gap-4 pr-10">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary">
-                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16V4m0 0l-4 4m4-4l4 4M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4" />
-                </svg>
+            <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary-100 bg-white shadow-sm">
+                <img src="{{ $installPromptLogo }}" alt="{{ $installAppName }} logo" class="h-full w-full object-contain p-2" />
             </div>
 
             <div>
                 <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-primary-500">Install App</p>
-                <h2 class="text-xl font-bold text-gray-900">Install {{ $siteName }}</h2>
-                <p class="mt-2 text-sm leading-relaxed text-gray-500">
-                    Add {{ $siteName }} to your desktop or home screen so it opens like an app without needing a browser tab each time.
-                </p>
-            </div>
-        </div>
+                <h2 class="text-xl font-bold text-gray-900">Install {{ $installAppName }}</h2>
+                <div class="mt-2 text-sm text-gray-500">
+                    <template x-if="installAvailable">
+                        <p>Install {{ $installAppName }} on this device.</p>
+                    </template>
 
-        <div class="rounded-2xl border border-primary-100 bg-primary-50/70 p-4 text-sm text-gray-600">
-            <template x-if="installAvailable">
-                <p>
-                    You can install {{ $siteName }} right now for a cleaner, faster launch experience with its own app icon.
-                </p>
-            </template>
-
-            <template x-if="!installAvailable && showIosInstructions">
-                <div class="space-y-2">
-                    <p>On iPhone or iPad, tap the Share button in Safari and choose <span class="font-semibold text-gray-800">Add to Home Screen</span>.</p>
-                    <p>Once added, {{ $siteName }} will launch from your home screen like an app.</p>
+                    <template x-if="!installAvailable && showIosInstructions">
+                        <p>In Safari, tap Share, then Add to Home Screen.</p>
+                    </template>
                 </div>
-            </template>
+            </div>
         </div>
 
         <div class="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -77,7 +69,7 @@
                 class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600"
                 style="display:none"
             >
-                Okay
+                Close
             </button>
         </div>
     </div>

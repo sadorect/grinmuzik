@@ -6,11 +6,10 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         @include('partials.seo-head', ['pageTitle' => $title ?? null])
-        @if($siteSettings?->favicon_url)
-            <link rel="icon" href="{{ $siteSettings->favicon_url }}">
-            <link rel="shortcut icon" href="{{ $siteSettings->favicon_url }}">
-            <link rel="apple-touch-icon" href="{{ $siteSettings->favicon_url }}">
-        @endif
+        @php($appIconUrl = route('pwa.icon'))
+        <link rel="icon" href="{{ $appIconUrl }}">
+        <link rel="shortcut icon" href="{{ $appIconUrl }}">
+        <link rel="apple-touch-icon" href="{{ $appIconUrl }}">
         <style>
             :root {
 @foreach($themeCssVariables as $name => $value)

@@ -6,11 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @include('partials.seo-head', ['pageTitle' => $title ?? null])
-    @if($siteSettings?->favicon_url)
-        <link rel="icon" href="{{ $siteSettings->favicon_url }}">
-        <link rel="shortcut icon" href="{{ $siteSettings->favicon_url }}">
-        <link rel="apple-touch-icon" href="{{ $siteSettings->favicon_url }}">
-    @endif
+    @php($appIconUrl = route('pwa.icon'))
+    <link rel="icon" href="{{ $appIconUrl }}">
+    <link rel="shortcut icon" href="{{ $appIconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $appIconUrl }}">
     <style>
         :root {
 @foreach($themeCssVariables as $name => $value)
@@ -255,14 +254,8 @@
                 <p>&copy; {{ date('Y') }} {{ $siteName }}. All rights reserved.</p>
 
                 {{-- Site visit counter --}}
-                @php
-                    $footerViews = cache()->remember('footer_page_views', 300, fn () =>
-                        \App\Models\PageView::count()
-                    );
-                    $footerToday = cache()->remember('footer_page_views_today', 60, fn () =>
-                        \App\Models\PageView::today()->count()
-                    );
-                @endphp
+                @php($footerViews = cache()->remember('footer_page_views', 300, static fn (): int => \App\Models\PageView::count()))
+                @php($footerToday = cache()->remember('footer_page_views_today', 60, static fn (): int => \App\Models\PageView::today()->count()))
                 <p class="flex items-center gap-1.5">
                     <svg class="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
