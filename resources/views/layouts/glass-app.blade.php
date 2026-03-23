@@ -174,7 +174,21 @@
 
                 {{-- Mobile hamburger --}}
                 <div class="flex items-center gap-2 md:hidden">
-                    @include('partials.theme-toggle', ['class' => 'px-2.5 py-2'])
+                    @auth
+                        @if(Auth::user()->isArtist())
+                            <a
+                                href="{{ route('artist.upload-track') }}"
+                                wire:navigate
+                                class="glass-btn-primary glass-btn-primary-hover inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold shadow-sm"
+                                aria-label="Upload track"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V7m0 0-3.5 3.5M12 7l3.5 3.5M5 17.5A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5" />
+                                </svg>
+                                <span>Upload</span>
+                            </a>
+                        @endif
+                    @endauth
                     <button x-data x-on:click="$dispatch('toggle-mobile-nav')" class="glass-btn glass-btn-hover p-2 rounded-lg">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
@@ -192,19 +206,17 @@
                     <x-application-logo class="h-7 w-auto object-contain" />
                     <span class="font-bold text-lg">{{ $siteName }}</span>
                 </a>
-                <div class="flex items-center gap-2">
-                    @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'px-3 py-2'])
-                    <button @click="open = false" class="rounded-full border border-white/50 bg-white/70 p-2 text-gray-500">
-                        <span class="sr-only">Close menu</span>
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
+                <button @click="open = false" class="rounded-full border border-white/50 bg-white/70 p-2 text-gray-500">
+                    <span class="sr-only">Close menu</span>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
 
             <div class="space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
                 <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Discover</p>
+                @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600'])
                 <a href="{{ route('home') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Browse</a>
                 <a href="{{ route('search') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Search</a>
                 <a href="{{ route('charts') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Charts</a>

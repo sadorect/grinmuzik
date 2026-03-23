@@ -144,34 +144,49 @@ new #[Layout('layouts.glass-app')] class extends Component
         </div>
     @else
         <section class="glass-card rounded-[2rem] p-6 sm:p-8">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Artist Dashboard</p>
                     <h1 class="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">{{ $profile->display_name }}</h1>
                     <p class="mt-2 max-w-2xl text-sm text-gray-500 sm:text-base">Your performance snapshot now includes audience momentum, top tracks, support activity, and genre footprint.</p>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
-                    <a href="{{ route('artist.edit-profile') }}" wire:navigate
-                       class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
-                        Edit Artist Profile
-                    </a>
-                    <a href="{{ route('profile') }}" wire:navigate
-                       class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
-                        Account Settings
-                    </a>
-                    <a href="{{ route('artist.tracks') }}" wire:navigate
-                       class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
-                        Manage Tracks
-                    </a>
-                    <a href="{{ route('artist.upload-track') }}" wire:navigate
-                       class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
-                        Upload Track
-                    </a>
-                    <a href="{{ route('artist.create-album') }}" wire:navigate
-                       class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
-                        New Album
-                    </a>
+                <div class="flex flex-col gap-4 lg:items-end">
+                    <div class="flex items-center gap-4 self-start rounded-[1.6rem] border border-white/70 bg-white/75 px-4 py-3 shadow-sm lg:self-auto">
+                        <img
+                            src="{{ $profile->getAvatarUrl() }}"
+                            alt="{{ $profile->avatar_alt }}"
+                            class="h-14 w-14 rounded-[1.25rem] object-cover ring-2 ring-white/80 shadow-sm"
+                        >
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Artist Profile</p>
+                            <p class="mt-1 truncate text-sm font-semibold text-gray-900">{{ $profile->display_name }}</p>
+                            <p class="text-xs text-gray-500">{{ $profile->is_approved ? 'Approved artist profile' : 'Pending approval' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <a href="{{ route('artist.edit-profile') }}" wire:navigate
+                           class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                            Edit Artist Profile
+                        </a>
+                        <a href="{{ route('profile') }}" wire:navigate
+                           class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                            Account Settings
+                        </a>
+                        <a href="{{ route('artist.tracks') }}" wire:navigate
+                           class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
+                            Manage Tracks
+                        </a>
+                        <a href="{{ route('artist.upload-track') }}" wire:navigate
+                           class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
+                            Upload Track
+                        </a>
+                        <a href="{{ route('artist.create-album') }}" wire:navigate
+                           class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                            New Album
+                        </a>
+                    </div>
                 </div>
             </div>
         </section>

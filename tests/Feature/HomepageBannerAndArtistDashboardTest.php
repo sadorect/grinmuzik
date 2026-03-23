@@ -166,6 +166,32 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
     }
 
     #[Test]
+    public function glass_layout_gives_artists_a_mobile_upload_shortcut_and_keeps_theme_toggle_in_the_discover_menu(): void
+    {
+        $artist = User::factory()->create();
+        Role::findOrCreate('artist', 'web');
+        $artist->assignRole('artist');
+
+        $response = $this->actingAs($artist)->get(route('about'));
+
+        $response->assertOk()
+            ->assertSee('aria-label="Upload track"', false)
+            ->assertSee(route('artist.upload-track'), false);
+
+        $html = (string) $response->getContent();
+        $discoverStart = strpos($html, 'text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Discover</p>');
+        $accountStart = strpos($html, 'text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Account</p>');
+
+        $this->assertNotFalse($discoverStart);
+        $this->assertNotFalse($accountStart);
+
+        $discoverSection = substr($html, $discoverStart, $accountStart - $discoverStart);
+
+        $this->assertStringContainsString('data-theme-toggle', $discoverSection);
+        $this->assertStringContainsString('Dark mode', $discoverSection);
+    }
+
+    #[Test]
     public function artist_dashboard_shows_total_downloads_metric(): void
     {
         $user = User::factory()->create();
@@ -196,5 +222,27 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Total Downloads')
             ->assertSee('42');
+    }
+
+    #[Test]
+    public function artist_dashboard_shows_the_artist_profile_photo_in_the_header_card(): void
+    {
+        $user = User::factory()->create();
+        Role::findOrCreate('artist', 'web');
+        $user->assignRole('artist');
+
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Header Card Artist',
+            'slug' => 'header-card-artist',
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('artist.dashboard'))
+            ->assertOk()
+            ->assertSee(e($profile->getAvatarUrl()), false)
+            ->assertSee($profile->avatar_alt);
     }
 }
