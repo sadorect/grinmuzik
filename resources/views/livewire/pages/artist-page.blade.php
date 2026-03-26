@@ -3,6 +3,7 @@
 use App\Models\ArtistProfile;
 use App\Models\Follow;
 use App\Models\Track;
+use App\Support\ArtistActivityNotifier;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -166,6 +167,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
             ]);
             $this->profile->increment('followers_count');
             $this->isFollowing = true;
+
+            app(ArtistActivityNotifier::class)->sendFollowerMilestoneIfReached($this->profile->fresh('user'));
         }
     }
 };

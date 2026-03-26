@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Like;
 use App\Models\Track;
+use App\Support\ArtistActivityNotifier;
 use Livewire\Component;
 
 class LikeButton extends Component
@@ -33,6 +34,10 @@ class LikeButton extends Component
             Like::where('user_id', auth()->id())->where('track_id', $this->trackId)->delete();
         } else {
             Like::create(['user_id' => auth()->id(), 'track_id' => $this->trackId]);
+
+            if ($track = Track::find($this->trackId)) {
+                app(ArtistActivityNotifier::class)->sendTrackLikeMilestoneIfReached($track);
+            }
         }
 
         $this->refresh();

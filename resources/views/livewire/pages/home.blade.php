@@ -33,6 +33,33 @@ new #[Layout('layouts.glass-app')] class extends Component {
             ->take(8)
             ->get());
 
+        $weeklyTopTracks = Cache::remember('home.weekly-top.v1', now()->addMinutes(5), function () {
+            $tracks = Track::query()
+                ->with(['artistProfile.user'])
+                ->withCount([
+                    'playHistories as weekly_play_count' => fn ($query) => $query->where('created_at', '>=', now()->subDays(7)),
+                ])
+                ->where('is_published', true)
+                ->orderByDesc('weekly_play_count')
+                ->orderByDesc('play_count')
+                ->orderByDesc('downloads_count')
+                ->take(10)
+                ->get();
+
+            if ($tracks->where('weekly_play_count', '>', 0)->isNotEmpty()) {
+                return $tracks;
+            }
+
+            return Track::query()
+                ->with(['artistProfile.user'])
+                ->where('is_published', true)
+                ->orderByDesc('play_count')
+                ->orderByDesc('downloads_count')
+                ->take(10)
+                ->get()
+                ->each(fn (Track $track) => $track->setAttribute('weekly_play_count', $track->play_count));
+        });
+
         $editorPicks = $showHomeEditorPicks
             ? Cache::remember('home.editor-picks.v1', now()->addMinutes(5), fn () => Track::query()
                 ->with(['artistProfile.user', 'genre'])
@@ -153,6 +180,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
         return [
             'trending' => $trending,
             'latest' => $latest,
+            'weeklyTopTracks' => $weeklyTopTracks,
             'editorPicks' => $editorPicks,
             'featuredArtists' => $featuredArtists,
             'heroSlides' => $heroSlides,
@@ -590,11 +618,14 @@ new #[Layout('layouts.glass-app')] class extends Component {
         </section>
     @endif
 
-    @if($trending->count())
+    @if($latest->count())
         <section class="overflow-hidden bg-gray-50/80 py-10 dark:bg-slate-950/70">
             <div class="mx-auto mb-5 flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                <h2 class="text-2xl font-bold text-gray-800">Trending Now</h2>
-                <a href="{{ route('browse', ['sort' => 'popular']) }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">New Releases</h2>
+                    <p class="mt-1 text-sm text-gray-500">Fresh uploads moving through the latest stack.</p>
+                </div>
+                <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
             </div>
             <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
                  x-data="{ paused: false }"
@@ -604,11 +635,10 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
                 <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
-                    @foreach([$trending, $trending] as $loopSet)
+                    @foreach([$latest, $latest] as $loopSet)
                         @foreach($loopSet as $track)
                             <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
-                                
-                                <div class="relative h-40 w-40"  @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
                                     @if($track->getFirstMediaUrl('cover'))
                                         <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
                                     @else
@@ -637,14 +667,14 @@ new #[Layout('layouts.glass-app')] class extends Component {
         </section>
     @endif
 
-    @if($latest->count())
+    @if($weeklyTopTracks->count())
         <section class="overflow-hidden bg-gray-50/80 py-10 dark:bg-slate-950/70">
             <div class="mx-auto mb-5 flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800">New Releases</h2>
-                    <p class="mt-1 text-sm text-gray-500">Fresh uploads moving through the latest stack.</p>
+                    <h2 class="text-2xl font-bold text-gray-800">Weekly Top 10</h2>
+                    <p class="mt-1 text-sm text-gray-500">The biggest movers from the last 7 days.</p>
                 </div>
-                <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
+                <a href="{{ route('charts') }}" class="text-sm font-medium text-primary hover:text-primary-600">See charts &rarr;</a>
             </div>
             <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
                  x-data="{ paused: false }"
@@ -654,7 +684,58 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
                 <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
-                    @foreach([$latest, $latest] as $loopSet)
+                    @foreach([$weeklyTopTracks, $weeklyTopTracks] as $loopSet)
+                        @foreach($loopSet as $index => $track)
+                            <div class="group w-44 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
+                                <div class="relative h-44 w-44" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                    @if($track->getFirstMediaUrl('cover'))
+                                        <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                    @else
+                                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
+                                            <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                                        </div>
+                                    @endif
+                                    <div class="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/75 text-xs font-black text-white shadow-sm">
+                                        {{ $index + 1 }}
+                                    </div>
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                                        <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
+                                </div>
+                                <div class="space-y-1 p-3">
+                                    <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                    <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                                        <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                            {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
+                                        </a>
+                                        <span class="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 font-semibold text-primary-600">
+                                            {{ number_format($track->weekly_play_count ?? 0) }} plays
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
+    @if($trending->count())
+        <section class="overflow-hidden bg-gray-50/80 py-10 dark:bg-slate-950/70">
+            <div class="mx-auto mb-5 flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-gray-800">Trending Now</h2>
+                <a href="{{ route('browse', ['sort' => 'popular']) }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
+            </div>
+            <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
+                 x-data="{ paused: false }"
+                 @mouseenter="paused = true"
+                 @mouseleave="paused = false">
+                <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
+                <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
+
+                <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
+                    @foreach([$trending, $trending] as $loopSet)
                         @foreach($loopSet as $track)
                             <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
                                 <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">

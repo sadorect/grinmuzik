@@ -4,6 +4,7 @@ use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
 use App\StagesLivewireUploads;
+use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use App\Models\SiteSetting;
 use Illuminate\Support\Str;
@@ -162,6 +163,8 @@ new #[Layout('layouts.glass-app')] class extends Component
 
             return;
         }
+
+        app(ArtistActivityNotifier::class)->sendTrackUpdated($this->track->fresh(['artistProfile.user', 'genre']));
 
         session()->flash('success', "\"{$this->track->title}\" updated successfully!");
         $this->redirect(route('artist.tracks'));

@@ -6,6 +6,7 @@ use App\Models\ArtistProfile;
 use App\Models\Donation;
 use App\Models\SiteSetting;
 use App\Models\Track;
+use App\Support\ArtistActivityNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -101,12 +102,20 @@ class DonationController extends Controller
             $intent = $event->data->object;
 
             $donation = Donation::where('stripe_payment_intent_id', $intent->id)->first();
-            if ($donation) {
+            if ($donation && $donation->status !== 'completed') {
                 $donation->update(['status' => 'completed']);
 
                 // Bump artist total_donations
-                ArtistProfile::where('id', $donation->artist_profile_id)
-                    ->increment('total_donations', $donation->amount);
+                $artist = ArtistProfile::where('id', $donation->artist_profile_id)->first();
+
+                if ($artist) {
+                    $artist->increment('total_donations', $donation->amount);
+                    $artist->refresh();
+
+                    $notifier = app(ArtistActivityNotifier::class);
+                    $notifier->sendDonationReceived($donation->fresh(['artist.user', 'track']));
+                    $notifier->sendDonationMilestoneIfReached($artist->fresh('user'));
+                }
             }
         }
 

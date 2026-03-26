@@ -123,9 +123,20 @@
                     <a href="{{ route('charts') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Charts</a>
                     <a href="{{ route('new-releases') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>New Releases</a>
                     <a href="{{ route('playlists.public') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Playlists</a>
-                    @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'px-3 py-1.5'])
 
                     @auth
+                        @if(Auth::user()->isArtist())
+                            <a
+                                href="{{ route('artist.upload-track') }}"
+                                wire:navigate
+                                class="glass-btn-primary glass-btn-primary-hover inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V7m0 0-3.5 3.5M12 7l3.5 3.5M5 17.5A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5" />
+                                </svg>
+                                <span>Upload</span>
+                            </a>
+                        @endif
                         <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Dashboard</a>
                         <div x-data="{ open: false }" class="relative">
                             <button @click="open = !open" class="flex items-center gap-2 glass-btn glass-btn-hover py-1.5 px-3 text-sm">

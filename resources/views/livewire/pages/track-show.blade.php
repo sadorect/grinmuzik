@@ -172,7 +172,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             $this->dispatch('open-modal', 'login-required');
             return;
         }
-        $this->track->increment('downloads_count');
+        $this->track->incrementDownloadsCount();
         $this->track->refresh();
         $this->dispatch('start-download', url: $this->track->getAudioUrl(), filename: $this->track->title . '.mp3');
     }

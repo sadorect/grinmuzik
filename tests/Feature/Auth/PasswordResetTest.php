@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\Auth\BrandedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
@@ -28,11 +28,15 @@ class PasswordResetTest extends TestCase
 
         $user = User::factory()->create();
 
-        Volt::test('pages.auth.forgot-password')
+        $component = Volt::test('pages.auth.forgot-password')
             ->set('email', $user->email)
-            ->call('sendPasswordResetLink');
+            ->set('captcha', '4');
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        session(['captcha_answer' => 4]);
+
+        $component->call('sendPasswordResetLink');
+
+        Notification::assertSentTo($user, BrandedResetPassword::class);
     }
 
     public function test_reset_password_screen_can_be_rendered(): void
@@ -40,12 +44,15 @@ class PasswordResetTest extends TestCase
         Notification::fake();
 
         $user = User::factory()->create();
-
-        Volt::test('pages.auth.forgot-password')
+        $component = Volt::test('pages.auth.forgot-password')
             ->set('email', $user->email)
-            ->call('sendPasswordResetLink');
+            ->set('captcha', '4');
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
+        session(['captcha_answer' => 4]);
+
+        $component->call('sendPasswordResetLink');
+
+        Notification::assertSentTo($user, BrandedResetPassword::class, function ($notification) {
             $response = $this->get('/reset-password/'.$notification->token);
 
             $response
@@ -61,16 +68,22 @@ class PasswordResetTest extends TestCase
         Notification::fake();
 
         $user = User::factory()->create();
-
-        Volt::test('pages.auth.forgot-password')
+        $forgotPassword = Volt::test('pages.auth.forgot-password')
             ->set('email', $user->email)
-            ->call('sendPasswordResetLink');
+            ->set('captcha', '4');
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+        session(['captcha_answer' => 4]);
+
+        $forgotPassword->call('sendPasswordResetLink');
+
+        Notification::assertSentTo($user, BrandedResetPassword::class, function ($notification) use ($user) {
             $component = Volt::test('pages.auth.reset-password', ['token' => $notification->token])
                 ->set('email', $user->email)
                 ->set('password', 'password')
-                ->set('password_confirmation', 'password');
+                ->set('password_confirmation', 'password')
+                ->set('captcha', '5');
+
+            session(['captcha_answer' => 5]);
 
             $component->call('resetPassword');
 

@@ -7,6 +7,7 @@ use App\Rules\CaptchaAnswer;
 use App\StagesLivewireUploads;
 use App\Support\UploadLimits;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
+use Spatie\Permission\Models\Role;
 
 new #[Layout('layouts.guest')] class extends Component
 {
@@ -85,6 +87,7 @@ new #[Layout('layouts.guest')] class extends Component
                     'password' => Hash::make($this->password),
                 ]);
 
+                Role::findOrCreate($this->role, 'web');
                 $user->assignRole($this->role);
 
                 if ($this->role === 'artist') {
@@ -124,7 +127,13 @@ new #[Layout('layouts.guest')] class extends Component
         event(new Registered($user));
         Auth::login($user);
 
-        $this->redirect(route('dashboard', absolute: false), navigate: true);
+        if ($user instanceof MustVerifyEmailContract) {
+            $this->redirectRoute('verification.notice', navigate: true);
+
+            return;
+        }
+
+        $this->redirectRoute('dashboard', navigate: true);
     }
 }; ?>
 

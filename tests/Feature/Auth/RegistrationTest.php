@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Notifications\Auth\BrandedVerifyEmail;
 use App\Support\UploadLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -23,19 +25,23 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        Notification::fake();
+
         $component = Volt::test('pages.auth.register')
             ->set('name', 'Test User')
             ->set('email', 'test@example.com')
             ->set('password', 'password')
-            ->set('password_confirmation', 'password');
+            ->set('password_confirmation', 'password')
+            ->set('captcha', '7');
 
-        $component->set('captcha', (string) session('captcha_answer'));
+        session(['captcha_answer' => 7]);
 
         $component->call('register');
 
-        $component->assertRedirect(route('dashboard', absolute: false));
+        $component->assertRedirect(route('verification.notice', absolute: false));
 
         $this->assertAuthenticated();
+        Notification::assertSentTo(auth()->user(), BrandedVerifyEmail::class);
     }
 
     public function test_artist_avatar_must_be_two_megabytes_or_smaller(): void
@@ -46,10 +52,12 @@ class RegistrationTest extends TestCase
             ->set('email', 'artist@example.com')
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
-            ->set('stage_name', 'Artist User');
+            ->set('stage_name', 'Artist User')
+            ->set('captcha', '9');
+
+        session(['captcha_answer' => 9]);
 
         $component
-            ->set('captcha', (string) session('captcha_answer'))
             ->set('avatar', UploadedFile::fake()->image('avatar.jpg')->size(UploadLimits::DEFAULT_IMAGE_KB + 1))
             ->call('register')
             ->assertHasErrors(['avatar' => 'max']);

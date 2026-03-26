@@ -54,7 +54,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                 <div class="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                     @foreach([
                         ['label' => 'Listeners', 'value' => 'Free'],
-                        ['label' => 'Platform Cut', 'value' => '$0'],
+                        ['label' => 'Platform Cut', 'value' => '25%'],
                         ['label' => 'Support Model', 'value' => 'Donations'],
                     ] as $metric)
                         <div class="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm">
@@ -97,11 +97,11 @@ new #[Layout('layouts.glass-app')] class extends Component
                     For Artists
                 </div>
                 <div class="mt-4 flex items-center gap-3">
-                    <p class="text-4xl font-black tracking-tight text-gray-900">$0</p>
-                    <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-700">No GrinMuzik commission</span>
+                    <p class="text-4xl font-black tracking-tight text-gray-900">25%</p>
+                    <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-700"> GrinMuzik commission</span>
                 </div>
                 <p class="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
-                    Artists keep control over how their music is shared and monetized. Stripe processing fees still apply to donations, but GrinMuzik does not take a platform cut.
+                    Artists keep control over how their music is shared and monetized. Stripe processing fees still apply to donations, and GrinMuzik takes a 25% platform cut.
                 </p>
                 <ul class="mt-5 space-y-3 text-sm text-gray-600">
                     @foreach($artistPoints as $point)

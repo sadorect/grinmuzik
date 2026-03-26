@@ -6,6 +6,7 @@ use App\Models\Like;
 use App\Models\PlayHistory;
 use App\Models\SiteSetting;
 use App\Models\Track;
+use App\Support\ArtistActivityNotifier;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -86,6 +87,10 @@ class MiniPlayer extends Component
                 'user_id' => Auth::id(),
                 'track_id' => $this->trackId,
             ]);
+
+            if ($track = Track::find($this->trackId)) {
+                app(ArtistActivityNotifier::class)->sendTrackLikeMilestoneIfReached($track);
+            }
         }
 
         $this->refreshLikeState();
@@ -105,7 +110,7 @@ class MiniPlayer extends Component
             return;
         }
 
-        $track->increment('downloads_count');
+        $track->incrementDownloadsCount();
 
         $this->dispatch(
             'start-download',

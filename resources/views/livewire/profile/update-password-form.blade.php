@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\ArtistActivityNotifier;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -31,6 +32,8 @@ new class extends Component
         Auth::user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        app(ArtistActivityNotifier::class)->sendPasswordChanged(Auth::user(), 'settings');
 
         $this->reset('current_password', 'password', 'password_confirmation');
 

@@ -176,7 +176,8 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
 
         $response->assertOk()
             ->assertSee('aria-label="Upload track"', false)
-            ->assertSee(route('artist.upload-track'), false);
+            ->assertSee(route('artist.upload-track'), false)
+            ->assertSee('>Upload<', false);
 
         $html = (string) $response->getContent();
         $discoverStart = strpos($html, 'text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Discover</p>');
@@ -189,6 +190,57 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
 
         $this->assertStringContainsString('data-theme-toggle', $discoverSection);
         $this->assertStringContainsString('Dark mode', $discoverSection);
+    }
+
+    #[Test]
+    public function homepage_renders_new_releases_then_weekly_top_then_trending_before_genres(): void
+    {
+        Cache::flush();
+
+        $genre = \App\Models\Genre::create([
+            'name' => 'House',
+            'slug' => 'house',
+            'is_active' => true,
+        ]);
+
+        $artist = User::factory()->create();
+
+        $profile = ArtistProfile::create([
+            'user_id' => $artist->id,
+            'stage_name' => 'Weekly Artist',
+            'slug' => 'weekly-artist',
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $track = Track::create([
+            'user_id' => $artist->id,
+            'artist_profile_id' => $profile->id,
+            'genre_id' => $genre->id,
+            'title' => 'Weekly Winner',
+            'slug' => 'weekly-winner',
+            'is_published' => true,
+            'is_free' => true,
+            'play_count' => 120,
+        ]);
+
+        \App\Models\PlayHistory::create([
+            'user_id' => $artist->id,
+            'track_id' => $track->id,
+            'ip_address' => '127.0.0.1',
+            'source' => 'web',
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDays(2),
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'New Releases',
+                'Weekly Top 10',
+                'Trending Now',
+                'Browse by Genre',
+            ]);
     }
 
     #[Test]

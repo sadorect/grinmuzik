@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -363,5 +364,16 @@ class Track extends Model implements HasMedia
     {
         $this->increment('play_count');
         $this->artist?->increment('total_plays');
+        $this->refresh();
+
+        app(ArtistActivityNotifier::class)->sendTrackPlayMilestoneIfReached($this);
+    }
+
+    public function incrementDownloadsCount(): void
+    {
+        $this->increment('downloads_count');
+        $this->refresh();
+
+        app(ArtistActivityNotifier::class)->sendTrackDownloadMilestoneIfReached($this);
     }
 }

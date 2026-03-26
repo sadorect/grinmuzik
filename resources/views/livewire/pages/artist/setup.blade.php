@@ -2,6 +2,7 @@
 
 use App\Models\ArtistProfile;
 use App\Models\Genre;
+use App\Support\ArtistActivityNotifier;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -77,6 +78,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
         if (!empty($this->selectedGenres)) {
             $profile->genres()->sync($this->selectedGenres);
         }
+
+        app(ArtistActivityNotifier::class)->sendArtistProfileCreated($profile);
 
         $this->redirect(route('artist.dashboard'), navigate: true);
     }

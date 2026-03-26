@@ -1,6 +1,7 @@
 <?php
 
 use App\StagesLivewireUploads;
+use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -142,6 +143,8 @@ new #[Layout('layouts.glass-app')] class extends Component
         $this->reset('avatar', 'banner');
         $this->removeExistingAvatar = false;
         $this->removeExistingBanner = false;
+
+        app(ArtistActivityNotifier::class)->sendArtistProfileUpdated($profile->fresh(['user', 'genres']));
 
         $this->dispatch('artist-profile-saved');
     }

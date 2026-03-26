@@ -4,6 +4,7 @@ use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
 use App\StagesLivewireUploads;
+use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use App\Models\SiteSetting;
 use Illuminate\Support\Facades\DB;
@@ -156,6 +157,8 @@ new #[Layout('layouts.glass-app')] class extends Component
 
             return;
         }
+
+        app(ArtistActivityNotifier::class)->sendTrackUploaded($track->fresh(['artistProfile.user', 'genre', 'album']));
 
         session()->flash('success', "Track \"{$track->title}\" uploaded successfully!");
         $this->redirect(route('artist.tracks'));
@@ -349,6 +352,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                     </div>
                 @endif
             @else
+                <div class="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-gray-600">
+                    Downloads are currently free across the platform. New uploads will stay free until payments are enabled again.
+                </div>
             @endif
         </div>
 

@@ -2,6 +2,7 @@
 
 use App\StagesLivewireUploads;
 use App\Support\UploadLimits;
+use App\Support\ArtistActivityNotifier;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -55,7 +56,9 @@ new class extends Component
             'email' => $validated['email'],
         ]);
 
-        if ($user->isDirty('email')) {
+        $emailChanged = $user->isDirty('email');
+
+        if ($emailChanged) {
             $user->email_verified_at = null;
         }
 
@@ -77,6 +80,8 @@ new class extends Component
 
         $this->reset('avatar');
         $this->removeExistingAvatar = false;
+
+        app(ArtistActivityNotifier::class)->sendAccountUpdated($user, $emailChanged);
 
         $this->dispatch('profile-updated', name: $user->name);
     }
