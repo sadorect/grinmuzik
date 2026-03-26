@@ -3,13 +3,10 @@
 namespace App\Providers;
 
 use App\Models\SiteSetting;
-use App\Notifications\Auth\WelcomeAfterVerification;
 use App\Support\ThemePalette;
 use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Auth\Events\Verified;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -33,11 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Event::listen(Verified::class, function (Verified $event): void {
-            $event->user->notify(new WelcomeAfterVerification());
-        });
-
-        Event::listen(PasswordReset::class, function (PasswordReset $event): void {
+        \Illuminate\Support\Facades\Event::listen(PasswordReset::class, function (PasswordReset $event): void {
             app(ArtistActivityNotifier::class)->sendPasswordChanged($event->user, 'reset');
         });
 

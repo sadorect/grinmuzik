@@ -220,12 +220,12 @@ Route::get('dashboard', function () {
         return redirect()->route('artist.dashboard');
     }
     return redirect()->route('listener.dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth'])->name('dashboard');
 
 Route::view('profile', 'profile')->middleware(['auth'])->name('profile');
 
 // ── Artist area ────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified'])->prefix('artist')->name('artist.')->group(function () {
+Route::middleware(['auth'])->prefix('artist')->name('artist.')->group(function () {
     Volt::route('/setup', 'pages.artist.setup')->name('setup');
     Volt::route('/', 'pages.artist.dashboard')->name('dashboard');
     Volt::route('/profile', 'pages.artist.edit-profile')->name('edit-profile');
@@ -240,7 +240,7 @@ Route::middleware(['auth', 'verified'])->prefix('artist')->name('artist.')->grou
 Volt::route('/artist/{profile:slug}', 'pages.artist-page')->name('artist.page');
 
 // ── Listener area ──────────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified'])->prefix('me')->name('listener.')->group(function () {
+Route::middleware(['auth'])->prefix('me')->name('listener.')->group(function () {
     Volt::route('/', 'pages.listener.dashboard')->name('dashboard');
     Volt::route('/playlists', 'pages.listener.playlists')->name('playlists');
     Volt::route('/liked', 'pages.listener.liked')->name('liked');

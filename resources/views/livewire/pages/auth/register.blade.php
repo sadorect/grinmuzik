@@ -6,8 +6,6 @@ use App\Models\User;
 use App\Rules\CaptchaAnswer;
 use App\StagesLivewireUploads;
 use App\Support\UploadLimits;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -87,6 +85,10 @@ new #[Layout('layouts.guest')] class extends Component
                     'password' => Hash::make($this->password),
                 ]);
 
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                ])->save();
+
                 Role::findOrCreate($this->role, 'web');
                 $user->assignRole($this->role);
 
@@ -124,14 +126,7 @@ new #[Layout('layouts.guest')] class extends Component
             return;
         }
 
-        event(new Registered($user));
         Auth::login($user);
-
-        if ($user instanceof MustVerifyEmailContract) {
-            $this->redirectRoute('verification.notice', navigate: true);
-
-            return;
-        }
 
         $this->redirectRoute('dashboard', navigate: true);
     }

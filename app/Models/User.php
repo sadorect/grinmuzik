@@ -5,13 +5,10 @@ namespace App\Models;
 use App\Support\UploadLimits;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
-use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\Auth\BrandedResetPassword;
-use App\Notifications\Auth\BrandedVerifyEmail;
 use Laravel\Cashier\Billable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -19,10 +16,10 @@ use Spatie\MediaLibrary\MediaCollections\File;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements HasMedia, FilamentUser, MustVerifyEmailContract
+class User extends Authenticatable implements HasMedia, FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, Billable, InteractsWithMedia, MustVerifyEmailTrait;
+    use HasFactory, Notifiable, HasRoles, Billable, InteractsWithMedia;
 
     /**
      * The attributes that are mass assignable.
@@ -154,11 +151,6 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
     {
         return $this->getAvatarMediaUrl($conversion)
             ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=ef4444&color=fff&size=200';
-    }
-
-    public function sendEmailVerificationNotification(): void
-    {
-        $this->notify(new BrandedVerifyEmail());
     }
 
     public function sendPasswordResetNotification($token): void

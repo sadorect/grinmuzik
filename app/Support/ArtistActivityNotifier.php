@@ -22,13 +22,13 @@ class ArtistActivityNotifier
                 intro: 'We are sending this confirmation so you always know when details tied to your artist account have been updated.',
                 messageLines: array_values(array_filter([
                     $emailChanged
-                        ? 'Your email address changed during this update, so verification has been reset until you confirm the new address.'
+                        ? 'Your email address changed during this update, and the new address is now active on your account.'
                         : 'Your account details were saved successfully.',
                 ])),
                 highlights: array_values(array_filter([
                     ['label' => 'Name', 'value' => $user->name],
                     ['label' => 'Email', 'value' => $user->email],
-                    $emailChanged ? ['label' => 'Verification status', 'value' => 'Re-confirmation required'] : null,
+                    $emailChanged ? ['label' => 'Email status', 'value' => 'Updated'] : null,
                 ])),
                 ctaLabel: 'Review Account',
                 ctaUrl: route('profile'),

@@ -2,11 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Notifications\Auth\BrandedVerifyEmail;
 use App\Support\UploadLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -25,8 +23,6 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
-        Notification::fake();
-
         $component = Volt::test('pages.auth.register')
             ->set('name', 'Test User')
             ->set('email', 'test@example.com')
@@ -38,10 +34,10 @@ class RegistrationTest extends TestCase
 
         $component->call('register');
 
-        $component->assertRedirect(route('verification.notice', absolute: false));
+        $component->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertAuthenticated();
-        Notification::assertSentTo(auth()->user(), BrandedVerifyEmail::class);
+        $this->assertNotNull(auth()->user()->email_verified_at);
     }
 
     public function test_artist_avatar_must_be_two_megabytes_or_smaller(): void
