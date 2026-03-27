@@ -110,12 +110,21 @@ class MiniPlayer extends Component
             return;
         }
 
-        $track->incrementDownloadsCount();
+        if (! $track->canBeDownloadedBy(Auth::user())) {
+            $this->dispatch(
+                'download-unavailable',
+                message: $track->requires_donation
+                    ? 'Unlock this track before downloading it.'
+                    : 'This track is not available for download right now.'
+            );
+
+            return;
+        }
 
         $this->dispatch(
             'start-download',
-            url: $track->getAudioUrl(),
-            filename: $track->title . '.mp3'
+            url: route('track.download', $track),
+            filename: $track->getDownloadFilename(),
         );
     }
 
@@ -257,6 +266,7 @@ class MiniPlayer extends Component
             'duration' => $model->duration ?? 0,
             'requires_donation' => $model->requires_donation,
             'donation_amount' => $model->donation_amount,
+            'download_allowed' => $model->canBeDownloadedBy(Auth::user()),
             'auto_queue_tracks' => $includeAutoQueue
                 ? $this->buildAutoQueueTracks($model)
                 : [],

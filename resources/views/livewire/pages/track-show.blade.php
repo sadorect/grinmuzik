@@ -172,9 +172,23 @@ new #[Layout('layouts.glass-app')] class extends Component {
             $this->dispatch('open-modal', 'login-required');
             return;
         }
-        $this->track->incrementDownloadsCount();
-        $this->track->refresh();
-        $this->dispatch('start-download', url: $this->track->getAudioUrl(), filename: $this->track->title . '.mp3');
+
+        if (! $this->track->canBeDownloadedBy(auth()->user())) {
+            $this->dispatch(
+                'download-unavailable',
+                message: $this->track->requires_donation
+                    ? 'Unlock this track before downloading it.'
+                    : 'This track is not available for download right now.'
+            );
+
+            return;
+        }
+
+        $this->dispatch(
+            'start-download',
+            url: route('track.download', $this->track),
+            filename: $this->track->getDownloadFilename(),
+        );
     }
 
     public function submitComment(): void
@@ -220,12 +234,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
              window.prompt('Copy this track link:', this.shareUrl);
          }
      }"
-     @start-download.window="
-         const a = document.createElement('a');
-         a.href = $event.detail.url;
-         a.download = $event.detail.filename || 'track';
-         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-     ">
+    >
     <div class="max-w-4xl mx-auto">
 
         {{-- Hero section --}}

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\LikeButton;
 use App\Livewire\MiniPlayer;
 use App\Models\ArtistProfile;
+use App\Models\Donation;
 use App\Models\Like;
 use App\Models\PlayHistory;
 use App\Models\SiteSetting;
@@ -276,18 +277,102 @@ class MediaActionsTest extends TestCase
     }
 
     #[Test]
-    public function mini_player_download_increments_downloads_count(): void
+    public function mini_player_download_dispatches_start_download_for_allowed_user(): void
     {
         [$user, , $track] = $this->createArtistWithTrack();
-        $this->assertEquals(0, (int) $track->downloads_count);
 
         Livewire::actingAs($user)
             ->test(MiniPlayer::class)
             ->set('trackId', $track->id)
             ->call('downloadTrack')
             ->assertDispatched('start-download');
+    }
+
+    #[Test]
+    public function mini_player_download_for_locked_track_dispatches_download_unavailable(): void
+    {
+        SiteSetting::current()->update([
+            'payments_enabled' => true,
+        ]);
+
+        [$user, , $track] = $this->createArtistWithTrack([
+            'is_free' => false,
+            'donation_amount' => 5,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MiniPlayer::class)
+            ->set('trackId', $track->id)
+            ->call('downloadTrack')
+            ->assertDispatched('download-unavailable');
+    }
+
+    #[Test]
+    public function authenticated_user_can_download_track_from_route_and_counter_increments(): void
+    {
+        config()->set('media-storage.private_disk', 'local');
+        config()->set('media-storage.public_disk', 'public');
+
+        Storage::fake('local');
+
+        [$user, , $track] = $this->createArtistWithTrack([
+            'audio_file_path' => 'tracks/test-track.mp3',
+        ]);
+
+        Storage::disk('local')->put('tracks/test-track.mp3', 'audio-bytes');
+
+        $response = $this->actingAs($user)
+            ->get(route('track.download', $track))
+            ->assertOk();
+
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('test-track.mp3', (string) $response->headers->get('content-disposition'));
 
         $this->assertEquals(1, (int) $track->fresh()->downloads_count);
+    }
+
+    #[Test]
+    public function locked_track_download_route_requires_completed_unlock(): void
+    {
+        config()->set('media-storage.private_disk', 'local');
+        config()->set('media-storage.public_disk', 'public');
+
+        Storage::fake('local');
+
+        SiteSetting::current()->update([
+            'payments_enabled' => true,
+        ]);
+
+        [$user, $profile, $track] = $this->createArtistWithTrack([
+            'title' => 'Locked Track',
+            'slug' => 'locked-track',
+            'is_free' => false,
+            'donation_amount' => 5,
+            'audio_file_path' => 'tracks/locked-track.mp3',
+        ]);
+
+        Storage::disk('local')->put('tracks/locked-track.mp3', 'audio-bytes');
+
+        $this->actingAs($user)
+            ->get(route('track.download', $track))
+            ->assertForbidden();
+
+        Donation::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'track_id' => $track->id,
+            'amount' => 5,
+            'stripe_payment_intent_id' => 'pi_test_unlock',
+            'type' => 'unlock',
+            'status' => 'completed',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('track.download', $track))
+            ->assertOk();
+
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('locked-track.mp3', (string) $response->headers->get('content-disposition'));
     }
 
     // ── Track show page ───────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DonationController;
+use App\Http\Controllers\TrackDownloadController;
 use App\Models\ArtistProfile;
 use App\Models\Playlist;
 use App\Models\SiteSetting;
@@ -210,6 +211,7 @@ Volt::route('/contact', 'pages.contact')->name('contact');
 // ── Donation / unlock ──────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::post('/stripe/intent/{track}', [DonationController::class, 'createIntent'])->name('donation.intent');
+    Route::get('/track/{track:slug}/download', TrackDownloadController::class)->name('track.download');
 });
 Route::post('/stripe/webhook', [DonationController::class, 'webhook'])->name('donation.webhook');
 

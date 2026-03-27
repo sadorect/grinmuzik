@@ -9,11 +9,19 @@
     @destroyed="destroy()"
     x-on:player-track-loaded.window="onTrackLoaded($event.detail)"
     x-on:player-queue-add.window="onQueueAdd($event.detail)"
+    @download-unavailable.window="showStatusToast($event.detail.message || 'Download unavailable.')"
     @start-download.window="
-        const a = document.createElement('a');
-        a.href = $event.detail.url;
-        a.download = $event.detail.filename || 'track.mp3';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        if (!$event.detail?.url) return;
+        if (!window.GrinDownloadFrame) {
+            const frame = document.createElement('iframe');
+            frame.style.display = 'none';
+            frame.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(frame);
+            window.GrinDownloadFrame = frame;
+        }
+        const url = new URL($event.detail.url, window.location.origin);
+        url.searchParams.set('_dl', Date.now().toString());
+        window.GrinDownloadFrame.src = url.toString();
     "
     class="fixed bottom-0 left-0 right-0 z-50"
 >
@@ -111,6 +119,19 @@
     >
         Added to queue
     </div>
+
+    <div
+        x-show="statusToastMessage"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none"
+        style="display:none"
+        x-text="statusToastMessage"
+    ></div>
 
     <div
         x-show="track"
@@ -280,8 +301,10 @@ function miniPlayer() {
         queueIndex:  P.queueIndex,
         showQueue:   false,
         queueToast:  false,
+        statusToastMessage: '',
         shareCopied: false,
         _toastTimer: null,
+        _statusToastTimer: null,
         _shareTimer: null,
         _handlers:   {},
 
@@ -495,6 +518,16 @@ function miniPlayer() {
                 clearTimeout(this._shareTimer);
                 this._shareTimer = setTimeout(() => { this.shareCopied = false; }, 2000);
             }
+        },
+
+        showStatusToast(message) {
+            if (!message) return;
+
+            this.statusToastMessage = message;
+            clearTimeout(this._statusToastTimer);
+            this._statusToastTimer = setTimeout(() => {
+                this.statusToastMessage = '';
+            }, 2500);
         },
 
         togglePlay() {

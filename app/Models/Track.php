@@ -322,6 +322,85 @@ class Track extends Model implements HasMedia
         return '';
     }
 
+    public function getAudioDownloadSource(): ?array
+    {
+        $audio = $this->getFirstMedia('audio');
+
+        if ($audio) {
+            return [
+                'disk' => $audio->disk,
+                'path' => $audio->getPathRelativeToRoot(),
+            ];
+        }
+
+        if ($this->audio_file_path) {
+            $candidateDisks = array_values(array_unique(array_filter([
+                config('media-storage.private_disk', 'local'),
+                config('media-storage.public_disk', config('media-library.disk_name')),
+                'public',
+            ])));
+
+            foreach ($candidateDisks as $disk) {
+                try {
+                    if (Storage::disk($disk)->exists($this->audio_file_path)) {
+                        return [
+                            'disk' => $disk,
+                            'path' => $this->audio_file_path,
+                        ];
+                    }
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function getDownloadFilename(): string
+    {
+        $extension = null;
+        $audio = $this->getFirstMedia('audio');
+
+        if ($audio) {
+            $extension = pathinfo($audio->file_name, PATHINFO_EXTENSION);
+        } elseif ($this->audio_file_path) {
+            $extension = pathinfo($this->audio_file_path, PATHINFO_EXTENSION);
+        }
+
+        $extension = Str::of($extension ?: 'mp3')->lower()->value();
+        $baseName = Str::slug($this->title) ?: 'track-' . $this->getKey();
+
+        return "{$baseName}.{$extension}";
+    }
+
+    public function isUnlockedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (! $this->requires_donation) {
+            return true;
+        }
+
+        return Donation::query()
+            ->where('user_id', $user->id)
+            ->where('track_id', $this->id)
+            ->unlocks()
+            ->completed()
+            ->exists();
+    }
+
+    public function canBeDownloadedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return ! $this->requires_donation || $this->isUnlockedBy($user);
+    }
+
     public function suggestMood(): ?string
     {
         return self::suggestedMoodSlugForGenre($this->genre?->slug);
