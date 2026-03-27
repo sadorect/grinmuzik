@@ -194,7 +194,6 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 'title' => 'Independent Music Streaming',
                 'description' => 'Stream independent music, discover new releases, explore charts, and support artists directly on GrinMuzik.',
                 'canonical' => route('home'),
-                'image' => $heroSlides->first()?->background_url,
                 'json_ld' => [
                     [
                         '@context' => 'https://schema.org',

@@ -35,6 +35,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
     {
         $description = $this->profile->bio
             ?: 'Explore music, albums, and artist updates from ' . ($this->profile->stage_name ?? $this->profile->user->name) . ' on GrinMuzik.';
+        $shareImage = $this->profile->getAvatarMediaUrl();
         $genreNames = $this->profile->genres->pluck('name')->filter();
         $relatedArtistsSummary = $genreNames->isNotEmpty()
             ? 'Listeners who stay in '.$genreNames->take(2)->join(' and ').' also end up exploring these artists.'
@@ -128,7 +129,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 'description' => Str::limit(strip_tags($description), 160),
                 'canonical' => route('artist.page', $this->profile),
                 'type' => 'website',
-                'image' => $this->profile->getAvatarMediaUrl() ?: $this->profile->getBannerUrl(),
+                'image' => $shareImage,
                 'json_ld' => [
                     [
                         '@context' => 'https://schema.org',
@@ -136,7 +137,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                         'name' => $this->profile->stage_name ?? $this->profile->user->name,
                         'description' => Str::limit(strip_tags($description), 160),
                         'url' => route('artist.page', $this->profile),
-                        'image' => $this->profile->getAvatarMediaUrl() ?: $this->profile->getBannerUrl() ?: null,
+                        'image' => $shareImage ?: null,
                     ],
                 ],
             ],

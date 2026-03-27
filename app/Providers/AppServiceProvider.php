@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\ArtistProfile;
+use App\Models\Playlist;
 use App\Models\SiteSetting;
+use App\Models\Track;
 use App\Support\ThemePalette;
 use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -35,9 +39,17 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('*', function ($view): void {
-            static $shared = null;
+            static $sharedCache = [];
 
-            if ($shared === null) {
+            $routeName = request()->route()?->getName();
+            $cacheKey = implode('|', [
+                request()->method(),
+                request()->fullUrl(),
+                (string) ($routeName ?? ''),
+                (string) (auth()->id() ?? 'guest'),
+            ]);
+
+            if (! array_key_exists($cacheKey, $sharedCache)) {
                 try {
                     $siteSettings = Schema::hasTable('site_settings')
                         ? SiteSetting::current()
@@ -50,7 +62,6 @@ class AppServiceProvider extends ServiceProvider
                 $siteTitle = $siteSettings?->effective_site_title ?? $siteName;
                 $siteUrl = url('/');
                 $siteLogo = $siteSettings?->site_logo_url;
-                $routeName = request()->route()?->getName();
                 $themeCssVariables = $siteSettings?->theme_css_variables ?? ThemePalette::cssVariables();
                 $themePrimaryColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
                 $showPublicThemeToggle = $siteSettings?->effective_show_public_theme_toggle ?? true;
@@ -207,7 +218,64 @@ class AppServiceProvider extends ServiceProvider
                     ],
                 ];
 
-                $shared = [
+                $activeRouteSeo = $routeSeo[$routeName] ?? [];
+
+                if ($routeName === 'artist.page') {
+                    $profile = request()->route('profile');
+
+                    if ($profile instanceof ArtistProfile) {
+                        $profile->loadMissing('user', 'genres');
+
+                        $description = $profile->bio
+                            ?: 'Explore music, albums, and artist updates from ' . ($profile->stage_name ?? $profile->user?->name ?? 'this artist') . ' on GrinMuzik.';
+                        $shareImage = $profile->getAvatarMediaUrl();
+
+                        $activeRouteSeo = array_merge($activeRouteSeo, [
+                            'title' => $profile->stage_name ?? $profile->user?->name ?? 'Artist',
+                            'description' => Str::limit(strip_tags($description), 160),
+                            'canonical' => route('artist.page', $profile),
+                            'type' => 'website',
+                            'image' => $shareImage,
+                        ]);
+                    }
+                } elseif ($routeName === 'track.show') {
+                    $track = request()->route('track');
+
+                    if ($track instanceof Track) {
+                        $track->loadMissing(['artistProfile.user', 'genre', 'album']);
+
+                        $description = $track->description
+                            ?: 'Listen to ' . $track->title . ' by ' . ($track->artistProfile?->stage_name ?? $track->artistProfile?->user?->name ?? 'Unknown artist') . ' on GrinMuzik.';
+
+                        $activeRouteSeo = array_merge($activeRouteSeo, [
+                            'title' => $track->title,
+                            'description' => Str::limit(strip_tags($description), 160),
+                            'canonical' => route('track.show', $track),
+                            'type' => 'website',
+                            'image' => $track->getCoverUrl(),
+                        ]);
+                    }
+                } elseif ($routeName === 'playlist.show') {
+                    $playlist = request()->route('playlist');
+
+                    if ($playlist instanceof Playlist) {
+                        $playlist->loadMissing('user');
+
+                        $description = $playlist->description
+                            ?: 'A curated playlist on GrinMuzik featuring tracks selected for a shared listening mood.';
+
+                        $activeRouteSeo = array_merge($activeRouteSeo, [
+                            'title' => $playlist->name . ' Playlist',
+                            'description' => Str::limit(strip_tags($description), 160),
+                            'canonical' => route('playlist.show', $playlist),
+                            'type' => 'website',
+                            'image' => $playlist->getCoverUrl(),
+                            'robots' => $playlist->is_public ? 'index,follow' : 'noindex,nofollow',
+                        ]);
+                    }
+                }
+
+                $sharedCache[$cacheKey] = [
                     'siteSettings' => $siteSettings,
                     'siteName' => $siteName,
                     'siteTitle' => $siteTitle,
@@ -225,13 +293,13 @@ class AppServiceProvider extends ServiceProvider
                         'image' => $siteLogo,
                         'site_name' => $siteName,
                     ],
-                    'routeSeo' => $routeSeo[$routeName] ?? [],
+                    'routeSeo' => $activeRouteSeo,
                     'organizationSchema' => $organizationSchema,
                     'websiteSchema' => $websiteSchema,
                 ];
             }
 
-            $view->with($shared);
+            $view->with($sharedCache[$cacheKey]);
         });
     }
 }

@@ -276,7 +276,6 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     'mood' => $showBrowseMoodFilters ? $this->mood : null,
                     'sort' => $this->sort !== 'latest' ? $this->sort : null,
                 ])),
-                'image' => $heroTrack?->getCoverUrl(),
             ],
         ];
     }

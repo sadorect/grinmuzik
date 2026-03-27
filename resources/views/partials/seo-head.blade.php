@@ -1,5 +1,49 @@
 @php
-    $mergedSeo = array_merge($defaultSeo ?? [], $routeSeo ?? [], $seo ?? []);
+    $defaultSeo = isset($defaultSeo) && is_array($defaultSeo) ? $defaultSeo : [];
+    $routeSeo = isset($routeSeo) && is_array($routeSeo) ? $routeSeo : [];
+    $seo = isset($seo) && is_array($seo) ? $seo : [];
+
+    $toAbsoluteUrl = function ($value): ?string {
+        $value = is_string($value) ? trim($value) : '';
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (\Illuminate\Support\Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+
+        if (\Illuminate\Support\Str::startsWith($value, '//')) {
+            return request()->getScheme() . ':' . $value;
+        }
+
+        return url($value);
+    };
+
+    $normalizeSchemaMedia = function ($value, ?string $key = null) use (&$normalizeSchemaMedia, $toAbsoluteUrl) {
+        if (is_array($value)) {
+            if (in_array($key, ['image', 'logo', 'thumbnailUrl'], true)) {
+                return array_values(array_filter(array_map(function ($item) use ($normalizeSchemaMedia, $toAbsoluteUrl) {
+                    if (is_string($item)) {
+                        return $toAbsoluteUrl($item);
+                    }
+
+                    return $normalizeSchemaMedia($item);
+                }, $value)));
+            }
+
+            foreach ($value as $childKey => $childValue) {
+                $value[$childKey] = $normalizeSchemaMedia($childValue, is_string($childKey) ? $childKey : null);
+            }
+        } elseif (is_string($value) && in_array($key, ['image', 'logo', 'thumbnailUrl'], true)) {
+            return $toAbsoluteUrl($value);
+        }
+
+        return $value;
+    };
+
+    $mergedSeo = array_merge($defaultSeo, $routeSeo, $seo);
     $pageTitle = $pageTitle ?? ($mergedSeo['title'] ?? ($siteTitle ?? 'GrinMuzik'));
     $siteMetaTitle = $siteTitle ?? 'GrinMuzik';
 
@@ -14,7 +58,21 @@
     $ogTitle = $mergedSeo['og_title'] ?? $pageTitle;
     $ogDescription = $mergedSeo['og_description'] ?? $metaDescription;
     $ogUrl = $mergedSeo['og_url'] ?? $canonicalUrl;
-    $ogImage = $mergedSeo['image'] ?? null;
+    $ogImage = null;
+
+    foreach ([
+        $seo['image'] ?? null,
+        $routeSeo['image'] ?? null,
+        $defaultSeo['image'] ?? null,
+    ] as $candidateImage) {
+        $resolvedImage = $toAbsoluteUrl($candidateImage);
+
+        if ($resolvedImage) {
+            $ogImage = $resolvedImage;
+            break;
+        }
+    }
+
     $twitterCard = $mergedSeo['twitter_card'] ?? ($ogImage ? 'summary_large_image' : 'summary');
     $siteNameTag = $mergedSeo['site_name'] ?? ($siteName ?? 'GrinMuzik');
 
@@ -28,6 +86,7 @@
         [$organizationSchema ?? null, $websiteSchema ?? null],
         is_array($jsonLd) ? $jsonLd : []
     )));
+    $schemaBlocks = array_map(fn ($schema) => $normalizeSchemaMedia($schema), $schemaBlocks);
 @endphp
 
 <title>{{ $pageTitle }}</title>
