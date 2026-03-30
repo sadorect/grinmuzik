@@ -7,6 +7,7 @@ use App\Models\Donation;
 use App\Models\PageView;
 use App\Models\Track;
 use App\Models\User;
+use App\Support\AdminPanelAccess;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -16,10 +17,20 @@ class AdminStatsOverview extends StatsOverviewWidget
 
     protected int | string | array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        return AdminPanelAccess::allows('view analytics');
+    }
+
     protected function getStats(): array
     {
         $totalUsers     = User::count();
         $totalArtists   = ArtistProfile::where('is_active', true)->count();
+        $onlineUsers    = User::query()->online()->count();
+        $onlineArtists  = ArtistProfile::query()
+            ->where('is_active', true)
+            ->whereHas('user', fn ($query) => $query->online())
+            ->count();
         $totalTracks    = Track::where('is_published', true)->count();
         $totalPlays     = Track::sum('play_count');
         $totalDonations = Donation::sum('amount');
@@ -34,6 +45,14 @@ class AdminStatsOverview extends StatsOverviewWidget
                 ->icon('heroicon-o-users'),
 
             Stat::make('Active Artists', number_format($totalArtists))
+                ->icon('heroicon-o-microphone'),
+
+            Stat::make('Users Online', number_format($onlineUsers))
+                ->description('Active in the last 5 minutes')
+                ->icon('heroicon-o-users'),
+
+            Stat::make('Artists Online', number_format($onlineArtists))
+                ->description('Active in the last 5 minutes')
                 ->icon('heroicon-o-microphone'),
 
             Stat::make('Published Tracks', number_format($totalTracks))

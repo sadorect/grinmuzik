@@ -30,6 +30,7 @@ class User extends Authenticatable implements HasMedia, FilamentUser
         'name',
         'email',
         'password',
+        'last_seen_at',
     ];
 
     /**
@@ -51,8 +52,14 @@ class User extends Authenticatable implements HasMedia, FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_seen_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public static function onlineThreshold(): \Illuminate\Support\Carbon
+    {
+        return now()->subMinutes(5);
     }
 
     /**
@@ -60,7 +67,7 @@ class User extends Authenticatable implements HasMedia, FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->isAdmin();
     }
 
     /**
@@ -188,5 +195,22 @@ class User extends Authenticatable implements HasMedia, FilamentUser
     public function isSuperAdmin()
     {
         return $this->hasRole('super_admin');
+    }
+
+    public function scopeOnline($query)
+    {
+        return $query
+            ->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', static::onlineThreshold());
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at?->gte(static::onlineThreshold()) ?? false;
+    }
+
+    public function getIsOnlineAttribute(): bool
+    {
+        return $this->isOnline();
     }
 }

@@ -22,7 +22,7 @@ class EnsureSuperAdmin
 
         $user = Auth::user();
 
-        if (!$user || !$user->hasRole('super_admin')) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 

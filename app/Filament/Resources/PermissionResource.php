@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\PermissionResource\Pages;
 use Filament\Forms;
 use Filament\Resources\Resource;
@@ -14,11 +15,15 @@ use Spatie\Permission\Models\Permission;
 
 class PermissionResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Permission::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-key';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Administration';
+
+    protected static bool $superAdminOnly = true;
 
     public static function form(Schema $schema): Schema
     {

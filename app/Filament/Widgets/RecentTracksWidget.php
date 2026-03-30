@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Track;
+use App\Support\AdminPanelAccess;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -14,6 +15,16 @@ class RecentTracksWidget extends BaseWidget
     protected int | string | array $columnSpan = 'full';
 
     protected static ?string $heading = 'Recently Uploaded Tracks';
+
+    public static function canView(): bool
+    {
+        return AdminPanelAccess::allows([
+            'view tracks',
+            'approve tracks',
+            'reject tracks',
+            'manage tracks',
+        ]);
+    }
 
     public function table(Table $table): Table
     {

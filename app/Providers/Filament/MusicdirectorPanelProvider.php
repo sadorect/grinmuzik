@@ -18,6 +18,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\TrackUserActivity;
 use App\Filament\Pages\Auth\Login as FilamentLogin;
 
 class MusicdirectorPanelProvider extends PanelProvider
@@ -51,6 +52,7 @@ class MusicdirectorPanelProvider extends PanelProvider
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
+                TrackUserActivity::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\AlbumResource\Pages;
 use App\Models\Album;
 use Filament\Forms;
@@ -14,11 +15,29 @@ use Filament\Tables\Table;
 
 class AlbumResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Album::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Music Catalog';
+
+    protected static array|string|null $viewAnyPermissions = [
+        'view albums',
+        'manage albums',
+    ];
+
+    protected static array|string|null $viewPermissions = [
+        'view albums',
+        'manage albums',
+    ];
+
+    protected static array|string|null $createPermissions = 'manage albums';
+
+    protected static array|string|null $editPermissions = 'manage albums';
+
+    protected static array|string|null $deletePermissions = 'manage albums';
 
     public static function form(Schema $schema): Schema
     {

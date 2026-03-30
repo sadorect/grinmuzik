@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\DonationResource\Pages;
 use App\Models\Donation;
 use Filament\Forms;
@@ -14,11 +15,25 @@ use Filament\Tables\Table;
 
 class DonationResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Donation::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-currency-dollar';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Finance';
+
+    protected static array|string|null $viewAnyPermissions = [
+        'view donations',
+        'manage donations',
+    ];
+
+    protected static array|string|null $viewPermissions = [
+        'view donations',
+        'manage donations',
+    ];
+
+    protected static array|string|null $editPermissions = 'manage donations';
 
     public static function canCreate(): bool
     {

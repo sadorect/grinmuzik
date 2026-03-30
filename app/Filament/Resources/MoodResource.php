@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\MoodResource\Pages;
 use App\Models\Mood;
 use Filament\Actions;
@@ -14,6 +15,8 @@ use Filament\Tables\Table;
 
 class MoodResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Mood::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-sparkles';
@@ -21,6 +24,16 @@ class MoodResource extends Resource
     protected static \UnitEnum|string|null $navigationGroup = 'Music Catalog';
 
     protected static ?string $navigationLabel = 'Moods';
+
+    protected static array|string|null $viewAnyPermissions = 'manage settings';
+
+    protected static array|string|null $viewPermissions = 'manage settings';
+
+    protected static array|string|null $createPermissions = 'manage settings';
+
+    protected static array|string|null $editPermissions = 'manage settings';
+
+    protected static array|string|null $deletePermissions = 'manage settings';
 
     public static function form(Schema $schema): Schema
     {

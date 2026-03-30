@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\HomepageBannerSlideResource\Pages;
 use App\Models\HomepageBannerSlide;
 use App\Rules\UrlOrInternalPath;
+use App\Support\AdminPanelAccess;
 use App\Support\UploadLimits;
 use Filament\Actions;
 use Filament\Forms;
@@ -16,6 +18,8 @@ use Filament\Tables\Table;
 
 class HomepageBannerSlideResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = HomepageBannerSlide::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-photo';
@@ -23,6 +27,16 @@ class HomepageBannerSlideResource extends Resource
     protected static \UnitEnum|string|null $navigationGroup = 'Site Content';
 
     protected static ?string $navigationLabel = 'Homepage Banner';
+
+    protected static array|string|null $viewAnyPermissions = 'manage settings';
+
+    protected static array|string|null $viewPermissions = 'manage settings';
+
+    protected static array|string|null $createPermissions = 'manage settings';
+
+    protected static array|string|null $editPermissions = 'manage settings';
+
+    protected static array|string|null $deletePermissions = 'manage settings';
 
     protected static function internalPageOptions(): array
     {
@@ -142,10 +156,12 @@ class HomepageBannerSlideResource extends Resource
                     Actions\BulkAction::make('activateSelected')
                         ->label('Activate selected')
                         ->icon('heroicon-o-check-circle')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage settings'))
                         ->action(fn ($records) => $records->each->update(['is_active' => true])),
                     Actions\BulkAction::make('deactivateSelected')
                         ->label('Deactivate selected')
                         ->icon('heroicon-o-pause-circle')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage settings'))
                         ->action(fn ($records) => $records->each->update(['is_active' => false])),
                     Actions\DeleteBulkAction::make(),
                 ]),

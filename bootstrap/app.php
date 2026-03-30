@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Track page views for analytics
         $middleware->web(append: [
+            \App\Http\Middleware\TrackUserActivity::class,
             \App\Http\Middleware\TrackPageView::class,
         ]);
     })

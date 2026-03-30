@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\TrackResource\Pages;
 use App\Models\SiteSetting;
 use App\Models\Track;
+use App\Support\AdminPanelAccess;
 use App\Support\UploadLimits;
 use Filament\Forms;
 use Filament\Resources\Resource;
@@ -18,11 +20,33 @@ use Filament\Tables\Table;
 
 class TrackResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Track::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-musical-note';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Music Catalog';
+
+    protected static array|string|null $viewAnyPermissions = [
+        'view tracks',
+        'approve tracks',
+        'reject tracks',
+        'manage tracks',
+    ];
+
+    protected static array|string|null $viewPermissions = [
+        'view tracks',
+        'approve tracks',
+        'reject tracks',
+        'manage tracks',
+    ];
+
+    protected static array|string|null $createPermissions = 'manage tracks';
+
+    protected static array|string|null $editPermissions = 'manage tracks';
+
+    protected static array|string|null $deletePermissions = 'manage tracks';
 
     public static function form(Schema $schema): Schema
     {
@@ -131,29 +155,48 @@ class TrackResource extends Resource
                         blank: fn ($query) => $query,
                     ),
             ])
-            ->actions([Actions\EditAction::make()])
+            ->actions([
+                Actions\EditAction::make(),
+                Actions\Action::make('publishNow')
+                    ->label('Publish')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->visible(fn (Track $record): bool => ! $record->is_published && AdminPanelAccess::allows(['approve tracks', 'manage tracks']))
+                    ->action(fn (Track $record) => $record->update(['is_published' => true])),
+                Actions\Action::make('unpublishNow')
+                    ->label('Unpublish')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn (Track $record): bool => $record->is_published && AdminPanelAccess::allows(['reject tracks', 'manage tracks']))
+                    ->action(fn (Track $record) => $record->update(['is_published' => false])),
+            ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
                     Actions\DeleteBulkAction::make(),
                     Actions\BulkAction::make('feature')
                         ->label('Feature selected')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage tracks'))
                         ->action(fn ($records) => $records->each->update(['is_featured' => true]))
                         ->icon('heroicon-o-star'),
                     Actions\BulkAction::make('unfeature')
                         ->label('Remove feature')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage tracks'))
                         ->action(fn ($records) => $records->each->update(['is_featured' => false]))
                         ->icon('heroicon-o-star'),
                     Actions\BulkAction::make('publish')
                         ->label('Publish selected')
+                        ->visible(fn (): bool => AdminPanelAccess::allows(['approve tracks', 'manage tracks']))
                         ->action(fn ($records) => $records->each->update(['is_published' => true]))
                         ->icon('heroicon-o-check'),
                     Actions\BulkAction::make('unpublish')
                         ->label('Unpublish selected')
+                        ->visible(fn (): bool => AdminPanelAccess::allows(['reject tracks', 'manage tracks']))
                         ->action(fn ($records) => $records->each->update(['is_published' => false]))
                         ->icon('heroicon-o-x-mark'),
                     Actions\BulkAction::make('backfillMood')
                         ->label('Auto-assign mood')
                         ->icon('heroicon-o-sparkles')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage tracks'))
                         ->requiresConfirmation()
                         ->modalHeading('Auto-assign mood for selected tracks')
                         ->modalDescription('Only tracks without a mood will be updated. The suggestion is based on each track genre.')

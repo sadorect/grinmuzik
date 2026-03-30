@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\PlaylistResource\Pages;
 use App\Models\Playlist;
+use App\Support\AdminPanelAccess;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
@@ -14,6 +16,8 @@ use Filament\Tables\Table;
 
 class PlaylistResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Playlist::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-queue-list';
@@ -21,6 +25,20 @@ class PlaylistResource extends Resource
     protected static \UnitEnum|string|null $navigationGroup = 'Community';
 
     protected static ?string $navigationLabel = 'Playlists';
+
+    protected static array|string|null $viewAnyPermissions = [
+        'view playlists',
+        'manage playlists',
+    ];
+
+    protected static array|string|null $viewPermissions = [
+        'view playlists',
+        'manage playlists',
+    ];
+
+    protected static array|string|null $editPermissions = 'manage playlists';
+
+    protected static array|string|null $deletePermissions = 'manage playlists';
 
     public static function form(Schema $schema): Schema
     {
@@ -96,10 +114,12 @@ class PlaylistResource extends Resource
                     Actions\BulkAction::make('makePublic')
                         ->label('Make public')
                         ->icon('heroicon-o-eye')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage playlists'))
                         ->action(fn ($records) => $records->each->update(['is_public' => true])),
                     Actions\BulkAction::make('makePrivate')
                         ->label('Make private')
                         ->icon('heroicon-o-eye-slash')
+                        ->visible(fn (): bool => AdminPanelAccess::allows('manage playlists'))
                         ->action(fn ($records) => $records->each->update(['is_public' => false])),
                     Actions\DeleteBulkAction::make(),
                 ]),

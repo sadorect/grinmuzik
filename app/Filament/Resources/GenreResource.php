@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\GenreResource\Pages;
 use App\Models\Genre;
 use Filament\Forms;
@@ -15,11 +16,23 @@ use Illuminate\Support\Str;
 
 class GenreResource extends Resource
 {
+    use HasAdminResourcePermissions;
+
     protected static ?string $model = Genre::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-tag';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Music Catalog';
+
+    protected static array|string|null $viewAnyPermissions = 'manage settings';
+
+    protected static array|string|null $viewPermissions = 'manage settings';
+
+    protected static array|string|null $createPermissions = 'manage settings';
+
+    protected static array|string|null $editPermissions = 'manage settings';
+
+    protected static array|string|null $deletePermissions = 'manage settings';
 
     public static function form(Schema $schema): Schema
     {

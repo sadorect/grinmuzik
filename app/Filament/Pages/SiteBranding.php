@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\SiteSetting;
+use App\Support\AdminPanelAccess;
 use App\Support\MediaStorage\OrganizedStorageMigrator;
 use App\Support\UploadLimits;
 use Filament\Forms;
@@ -32,6 +33,16 @@ class SiteBranding extends Page implements HasForms
     protected ?SiteSetting $settings = null;
 
     public ?array $data = [];
+
+    public static function canAccess(): bool
+    {
+        return AdminPanelAccess::allows('manage settings');
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public function mount(): void
     {

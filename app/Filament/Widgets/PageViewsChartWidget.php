@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\PageView;
+use App\Support\AdminPanelAccess;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
 
@@ -15,6 +16,11 @@ class PageViewsChartWidget extends ChartWidget
     protected int | string | array $columnSpan = 'full';
 
     protected ?string $maxHeight = '280px';
+
+    public static function canView(): bool
+    {
+        return AdminPanelAccess::allows('view analytics');
+    }
 
     protected function getData(): array
     {

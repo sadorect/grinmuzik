@@ -87,7 +87,7 @@
                             <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Artist Profile</a>
                             <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">My Music</a>
                         @endif
-                        @if(Auth::user()->isSuperAdmin())
+                        @if(Auth::user()->isAdmin())
                             <a href="{{ url('/musicdirector') }}" class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Admin Panel</a>
                         @endif
                         <form method="POST" action="{{ route('logout') }}">
@@ -156,7 +156,7 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                     Account Settings
                                 </a>
-                                @if(Auth::user()->isSuperAdmin())
+                                @if(Auth::user()->isAdmin())
                                 <a href="{{ url('/musicdirector') }}" class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7.5l9-4 9 4m-18 0v9l9 4 9-4v-9m-18 0l9 4m0 9v-9m9-4l-9 4"/></svg>
                                     Admin Panel
@@ -243,7 +243,7 @@
                         <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
                     @endif
                     <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Account Settings</a>
-                    @if(Auth::user()->isSuperAdmin())
+                    @if(Auth::user()->isAdmin())
                         <a href="{{ url('/musicdirector') }}" class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Admin Panel</a>
                     @endif
                     @if(Auth::user()->isListener())
