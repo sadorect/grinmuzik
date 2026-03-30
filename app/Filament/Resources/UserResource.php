@@ -114,6 +114,17 @@ class UserResource extends Resource
         return AdminPanelAccess::allows(static::$deletePermissions);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (! (auth()->user()?->isSuperAdmin() ?? false)) {
+            $query->whereDoesntHave('roles', fn (Builder $roleQuery): Builder => $roleQuery->where('name', 'super_admin'));
+        }
+
+        return $query;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
