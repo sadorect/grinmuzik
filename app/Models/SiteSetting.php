@@ -19,6 +19,7 @@ class SiteSetting extends Model
     protected static ?bool $supportsThemeCustomizationCache = null;
     protected static ?bool $supportsPublicThemeToggleControlCache = null;
     protected static ?bool $supportsAutoPlaylistControlsCache = null;
+    protected static ?bool $supportsRegistrationRoleGuideControlCache = null;
     protected static ?bool $paymentsEnabledCache = null;
     protected static ?bool $autoPlaylistEnabledCache = null;
 
@@ -54,6 +55,7 @@ class SiteSetting extends Model
         'secondary_color',
         'show_public_theme_toggle',
         'auto_playlist_enabled',
+        'show_registration_role_guide',
     ];
 
     protected $casts = [
@@ -75,6 +77,7 @@ class SiteSetting extends Model
         'payments_enabled' => 'boolean',
         'show_public_theme_toggle' => 'boolean',
         'auto_playlist_enabled' => 'boolean',
+        'show_registration_role_guide' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -205,6 +208,23 @@ class SiteSetting extends Model
             return static::$supportsAutoPlaylistControlsCache = Schema::hasColumn('site_settings', 'auto_playlist_enabled');
         } catch (Throwable) {
             return static::$supportsAutoPlaylistControlsCache = false;
+        }
+    }
+
+    public static function supportsRegistrationRoleGuideControl(): bool
+    {
+        if (static::$supportsRegistrationRoleGuideControlCache !== null) {
+            return static::$supportsRegistrationRoleGuideControlCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsRegistrationRoleGuideControlCache = false;
+            }
+
+            return static::$supportsRegistrationRoleGuideControlCache = Schema::hasColumn('site_settings', 'show_registration_role_guide');
+        } catch (Throwable) {
+            return static::$supportsRegistrationRoleGuideControlCache = false;
         }
     }
 
@@ -342,6 +362,15 @@ class SiteSetting extends Model
         return (bool) ($this->show_public_theme_toggle ?? true);
     }
 
+    public function getEffectiveShowRegistrationRoleGuideAttribute(): bool
+    {
+        if (! static::supportsRegistrationRoleGuideControl()) {
+            return true;
+        }
+
+        return (bool) ($this->show_registration_role_guide ?? true);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -425,6 +454,7 @@ class SiteSetting extends Model
         static::$supportsThemeCustomizationCache = null;
         static::$supportsPublicThemeToggleControlCache = null;
         static::$supportsAutoPlaylistControlsCache = null;
+        static::$supportsRegistrationRoleGuideControlCache = null;
         static::$paymentsEnabledCache = null;
         static::$autoPlaylistEnabledCache = null;
 

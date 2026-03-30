@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\SiteSetting;
 use App\Support\UploadLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -18,12 +19,33 @@ class RegistrationTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSeeVolt('pages.auth.register');
+            ->assertSeeVolt('pages.auth.register')
+            ->assertSee('Choose the tab that matches your reason for joining')
+            ->assertSee('Release my music')
+            ->assertSee('Listen to music');
+    }
+
+    public function test_registration_screen_hides_role_guide_when_disabled_in_site_settings(): void
+    {
+        SiteSetting::current()->update([
+            'show_registration_role_guide' => false,
+        ]);
+
+        $this->get('/register')
+            ->assertOk()
+            ->assertDontSee('Choose the tab that matches your reason for joining');
+    }
+
+    public function test_registration_defaults_to_artist_role(): void
+    {
+        Volt::test('pages.auth.register')
+            ->assertSet('role', 'artist');
     }
 
     public function test_new_users_can_register(): void
     {
         $component = Volt::test('pages.auth.register')
+            ->set('role', 'listener')
             ->set('name', 'Test User')
             ->set('email', 'test@example.com')
             ->set('password', 'password')

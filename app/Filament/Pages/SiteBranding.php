@@ -85,6 +85,15 @@ class SiteBranding extends Page implements HasForms
                             ->default(true),
                     ])
                     ->visible(fn (): bool => SiteSetting::supportsPublicThemeToggleControl()),
+                Section::make('Registration')
+                    ->description('Control whether the account-type helper modal appears on the public registration page.')
+                    ->schema([
+                        Forms\Components\Toggle::make('show_registration_role_guide')
+                            ->label('Show registration role guide modal')
+                            ->helperText('When on, new visitors see a quick prompt explaining when to choose artist versus listener before filling the sign-up form.')
+                            ->default(true),
+                    ])
+                    ->visible(fn (): bool => SiteSetting::supportsRegistrationRoleGuideControl()),
                 Section::make('Social Profiles')
                     ->description('Add social media handles or full profile URLs. Only configured profiles will appear in the footer and shared branding areas.')
                     ->schema([
@@ -297,6 +306,12 @@ class SiteBranding extends Page implements HasForms
             ]));
         }
 
+        if (SiteSetting::supportsRegistrationRoleGuideControl()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'show_registration_role_guide',
+            ]));
+        }
+
         if (SiteSetting::supportsUploadLimits()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'audio_upload_limit_kb',
@@ -401,6 +416,10 @@ class SiteBranding extends Page implements HasForms
 
         if (SiteSetting::supportsPublicThemeToggleControl()) {
             $keys[] = 'show_public_theme_toggle';
+        }
+
+        if (SiteSetting::supportsRegistrationRoleGuideControl()) {
+            $keys[] = 'show_registration_role_guide';
         }
 
         if (SiteSetting::supportsUploadLimits()) {

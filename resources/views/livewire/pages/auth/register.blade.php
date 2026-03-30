@@ -25,7 +25,7 @@ new #[Layout('layouts.guest')] class extends Component
     public string $email       = '';
     public string $password    = '';
     public string $password_confirmation = '';
-    public string $role        = 'listener'; // 'listener' | 'artist'
+    public string $role        = 'artist'; // 'listener' | 'artist'
     public string $captcha     = '';
 
     // Artist-only fields
@@ -132,7 +132,121 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }; ?>
 
-<div>
+<div x-data="{ showRoleGuide: @js($showRegistrationRoleGuide ?? true) }" x-on:keydown.escape.window="showRoleGuide = false">
+    @if($showRegistrationRoleGuide ?? true)
+    <div
+        x-show="showRoleGuide"
+        x-transition.opacity
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        style="display:none"
+        aria-labelledby="register-role-guide-title"
+        role="dialog"
+        aria-modal="true"
+    >
+        <div class="absolute inset-0 bg-slate-950/45 backdrop-blur-sm" @click="showRoleGuide = false"></div>
+
+        <div
+            x-show="showRoleGuide"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            class="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-2xl"
+            @click.stop
+        >
+            <div class="absolute inset-x-0 top-0 h-44 bg-gradient-to-r from-primary-500 via-primary-400 to-secondary-400 opacity-95"></div>
+            <div class="absolute -left-12 top-8 h-32 w-32 rounded-full bg-white/15 blur-3xl"></div>
+            <div class="absolute -right-10 top-4 h-28 w-28 rounded-full bg-white/20 blur-3xl"></div>
+
+            <button
+                type="button"
+                class="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/60 bg-white/85 text-gray-600 shadow-sm transition hover:bg-white hover:text-gray-900"
+                @click.stop="showRoleGuide = false"
+                aria-label="Close quick guide"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <div class="relative z-10 px-6 pt-8 sm:px-8 sm:pt-10">
+                <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80">Quick Guide</p>
+                <h2 id="register-role-guide-title" class="max-w-lg text-2xl font-bold text-white sm:text-[2rem]">
+                    Choose the tab that matches your reason for joining
+                </h2>
+            </div>
+
+            <div class="relative z-10 px-6 pb-6 pt-6 sm:px-8 sm:pb-8">
+                <div class="rounded-[1.7rem] border border-white/80 bg-white/92 p-5 shadow-lg shadow-slate-900/5 backdrop-blur">
+                    <p class="text-sm leading-6 text-gray-600">
+                        Artists should stay on <span class="font-semibold text-gray-900">Release my music</span>, while listeners can switch to
+                        <span class="font-semibold text-gray-900">Listen to music</span> to keep the form short and simple.
+                    </p>
+                </div>
+
+                <div class="mt-4 grid gap-4 md:grid-cols-2">
+                    <button
+                        type="button"
+                        @click="$wire.set('role', 'artist'); showRoleGuide = false"
+                        class="group rounded-[1.6rem] border border-primary-100 bg-gradient-to-br from-primary-50 via-white to-primary-50 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                        <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-gray-900">Release my music</h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-600">
+                            Best for artists, labels, and creators. Keep this tab selected, then complete the artist details before creating your account.
+                        </p>
+                        <span class="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition group-hover:bg-primary-500">
+                            Continue as artist
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="$wire.set('role', 'listener'); showRoleGuide = false"
+                        class="group rounded-[1.6rem] border border-gray-200 bg-gradient-to-br from-white via-slate-50 to-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                        <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-gray-900">Listen to music</h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-600">
+                            Best for fans and listeners. Switch to this tab and the artist-only fields disappear, so you can register with just the basics.
+                        </p>
+                        <span class="mt-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition group-hover:border-primary-200 group-hover:text-primary-600">
+                            Switch to listener
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+
+                <div class="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-5 text-sm text-gray-500">
+                    <p>Pick your path now, or close this guide and choose a tab manually above the form.</p>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-full border border-gray-200 bg-white px-4 py-2 font-semibold text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
+                        @click="showRoleGuide = false"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="mb-6 text-center">
         <h1 class="text-2xl font-bold text-gray-800">Create your account</h1>
         <p class="text-sm text-gray-500 mt-1">Join {{ $siteName }} today — it's free</p>
