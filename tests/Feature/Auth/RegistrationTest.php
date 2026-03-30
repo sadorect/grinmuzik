@@ -50,7 +50,8 @@ class RegistrationTest extends TestCase
             ->set('email', 'test@example.com')
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
-            ->set('captcha', '7');
+            ->set('captcha', '7')
+            ->set('hasAcceptedPolicies', true);
 
         session(['captcha_answer' => 7]);
 
@@ -71,7 +72,8 @@ class RegistrationTest extends TestCase
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
             ->set('stage_name', 'Artist User')
-            ->set('captcha', '9');
+            ->set('captcha', '9')
+            ->set('hasAcceptedPolicies', true);
 
         session(['captcha_answer' => 9]);
 
@@ -79,5 +81,21 @@ class RegistrationTest extends TestCase
             ->set('avatar', UploadedFile::fake()->image('avatar.jpg')->size(UploadLimits::DEFAULT_IMAGE_KB + 1))
             ->call('register')
             ->assertHasErrors(['avatar' => 'max']);
+    }
+
+    public function test_registration_requires_policy_acceptance(): void
+    {
+        session(['captcha_answer' => 7]);
+
+        Volt::test('pages.auth.register')
+            ->set('role', 'listener')
+            ->set('name', 'Test User')
+            ->set('email', 'test@example.com')
+            ->set('password', 'password')
+            ->set('password_confirmation', 'password')
+            ->set('captcha', '7')
+            ->set('hasAcceptedPolicies', false)
+            ->call('register')
+            ->assertHasErrors(['hasAcceptedPolicies' => 'accepted']);
     }
 }

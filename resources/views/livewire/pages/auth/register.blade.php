@@ -27,6 +27,7 @@ new #[Layout('layouts.guest')] class extends Component
     public string $password_confirmation = '';
     public string $role        = 'artist'; // 'listener' | 'artist'
     public string $captcha     = '';
+    public bool $hasAcceptedPolicies = false;
 
     // Artist-only fields
     public string $stage_name = '';
@@ -49,6 +50,7 @@ new #[Layout('layouts.guest')] class extends Component
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
             'role'     => ['required', 'in:listener,artist'],
             'captcha'  => ['required', 'integer', new CaptchaAnswer],
+            'hasAcceptedPolicies' => ['accepted'],
         ];
 
         if ($this->role === 'artist') {
@@ -372,6 +374,22 @@ new #[Layout('layouts.guest')] class extends Component
 
         {{-- ── Captcha + Submit ─────────────────────────────────────── --}}
         <x-math-captcha wire:model="captcha" error-bag="captcha" />
+
+        <div class="rounded-2xl border border-gray-200 bg-white/75 p-4 shadow-sm">
+            <label for="hasAcceptedPolicies" class="flex items-start gap-3 cursor-pointer">
+                <input
+                    wire:model.live="hasAcceptedPolicies"
+                    id="hasAcceptedPolicies"
+                    type="checkbox"
+                    class="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary-400"
+                >
+                <span class="text-sm leading-6 text-gray-600">
+                    I have read and agree to the GrinMuzik
+                    <a href="{{ route('terms') }}" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:text-primary-600 hover:underline">Terms of Service</a>.
+                </span>
+            </label>
+            <x-input-error :messages="$errors->get('hasAcceptedPolicies')" class="mt-3" />
+        </div>
 
         <div class="pt-2">
             <x-primary-button class="w-full justify-center">

@@ -252,7 +252,6 @@ class ArtistTrackUploadTest extends TestCase
         $this->actingAs($user);
 
         Volt::test('pages.artist.upload-track')
-            ->assertSee('Downloads are currently free across the platform.')
             ->assertDontSee('Require donation to unlock full track')
             ->set('title', 'Always Free Track')
             ->set('requires_donation', true)

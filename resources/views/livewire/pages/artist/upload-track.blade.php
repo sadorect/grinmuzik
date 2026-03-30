@@ -351,10 +351,6 @@ new #[Layout('layouts.glass-app')] class extends Component
                         <x-input-error :messages="$errors->get('donation_amount')" class="mt-1" />
                     </div>
                 @endif
-            @else
-                <div class="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-gray-600">
-                    Downloads are currently free across the platform. New uploads will stay free until payments are enabled again.
-                </div>
             @endif
         </div>
 
