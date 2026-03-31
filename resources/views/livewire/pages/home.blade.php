@@ -317,11 +317,19 @@ if (! window.homeLoopScroller) {
         lastTime: null,
         offset: 0,
         halfWidth: 0,
+        // Touch / swipe state
+        touching: false,
+        touchStartX: 0,
+        touchStartOffset: 0,
+        touchLastX: 0,
+        touchVelocity: 0,
+        touchLastTime: 0,
         init() {
             this.$nextTick(() => {
                 this.measure();
                 this.offset = this.reverse ? -this.halfWidth : 0;
                 this.paint();
+                this.bindTouch();
                 this.start();
             });
         },
@@ -372,7 +380,7 @@ if (! window.homeLoopScroller) {
             if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
         },
         resume() {
-            if (this.hovering) return;
+            if (this.hovering || this.touching) return;
             if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
             this.paused = false;
         },
@@ -399,6 +407,80 @@ if (! window.homeLoopScroller) {
             };
 
             requestAnimationFrame(anim);
+        },
+        // Touch handling for mobile swipe
+        bindTouch() {
+            const el = this.$refs.viewport;
+            if (! el) return;
+
+            el.addEventListener('touchstart', (e) => {
+                this.touching = true;
+                this.pause();
+                this.touchStartX = e.touches[0].clientX;
+                this.touchStartOffset = this.offset;
+                this.touchLastX = this.touchStartX;
+                this.touchVelocity = 0;
+                this.touchLastTime = performance.now();
+            }, { passive: true });
+
+            el.addEventListener('touchmove', (e) => {
+                if (! this.touching) return;
+                const x = e.touches[0].clientX;
+                const now = performance.now();
+                const elapsed = now - this.touchLastTime;
+
+                if (elapsed > 0) {
+                    this.touchVelocity = (x - this.touchLastX) / elapsed;
+                }
+
+                this.touchLastX = x;
+                this.touchLastTime = now;
+
+                const dx = x - this.touchStartX;
+                this.offset = this.touchStartOffset + dx;
+                this.wrap();
+                this.paint();
+            }, { passive: true });
+
+            const onEnd = () => {
+                if (! this.touching) return;
+                this.touching = false;
+
+                // Momentum flick: coast based on release velocity
+                const v = this.touchVelocity;  // px/ms
+                if (Math.abs(v) > 0.15) {
+                    const from = this.offset;
+                    const dist = v * 300;  // momentum distance
+                    const to = from + dist;
+                    const t0 = performance.now();
+                    const dur = Math.min(Math.abs(dist) * 1.5, 800);
+
+                    const coast = (now) => {
+                        const p = Math.min((now - t0) / dur, 1);
+                        const ease = 1 - Math.pow(1 - p, 3);  // ease-out cubic
+                        this.offset = from + (to - from) * ease;
+                        this.wrap();
+                        this.paint();
+
+                        if (p < 1) {
+                            requestAnimationFrame(coast);
+                        } else {
+                            this.scheduleResume();
+                        }
+                    };
+
+                    requestAnimationFrame(coast);
+                } else {
+                    this.scheduleResume();
+                }
+            };
+
+            el.addEventListener('touchend', onEnd, { passive: true });
+            el.addEventListener('touchcancel', onEnd, { passive: true });
+        },
+        scheduleResume() {
+            if (this.resumeTimer) clearTimeout(this.resumeTimer);
+            this.resumeTimer = setTimeout(() => this.resume(), 1500);
         },
     });
 }
