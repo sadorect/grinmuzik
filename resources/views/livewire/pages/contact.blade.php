@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\ContactFormMail;
+use App\Models\ContactMessage;
 use App\Rules\CaptchaAnswer;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Layout;
@@ -50,12 +51,24 @@ new #[Layout('layouts.glass-app')] class extends Component
             'captcha' => ['required', 'integer', new CaptchaAnswer],
         ]);
 
+        $contactMessage = ContactMessage::create([
+            'user_id' => auth()->id(),
+            'name' => $this->name,
+            'email' => $this->email,
+            'subject' => $this->subject,
+            'message' => $this->message,
+            'source' => 'contact_form',
+            'ip_address' => request()->ip(),
+            'user_agent' => (string) request()->userAgent(),
+        ]);
+
         Mail::to(config('mail.from.address'))
             ->send(new ContactFormMail(
                 senderName: $this->name,
                 senderEmail: $this->email,
-                subject: $this->subject,
+                messageSubject: $this->subject,
                 body: $this->message,
+                messageId: $contactMessage->id,
             ));
 
         $this->reset('name', 'email', 'subject', 'message', 'captcha');

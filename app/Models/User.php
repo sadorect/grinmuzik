@@ -119,6 +119,21 @@ class User extends Authenticatable implements HasMedia, FilamentUser
         return $this->hasMany(Donation::class);
     }
 
+    public function contactMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ContactMessage::class);
+    }
+
+    public function assignedContactMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ContactMessage::class, 'assigned_admin_id');
+    }
+
+    public function contactMessageReplies(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ContactMessageReply::class);
+    }
+
     // ─── MediaLibrary ────────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {

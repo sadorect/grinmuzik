@@ -16,14 +16,15 @@ class ContactFormMail extends Mailable
     public function __construct(
         public readonly string $senderName,
         public readonly string $senderEmail,
-        public readonly string $subject,
+        public readonly string $messageSubject,
         public readonly string $body,
+        public readonly ?int $messageId = null,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[GrinMuzik Contact] ' . $this->subject,
+            subject: '[GrinMuzik Contact] ' . $this->messageSubject,
             replyTo: [
                 new Address($this->senderEmail, $this->senderName),
             ],

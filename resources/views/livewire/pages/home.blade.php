@@ -211,27 +211,14 @@ new #[Layout('layouts.glass-app')] class extends Component {
 
 @push('styles')
 <style>
-@keyframes ticker {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-
 .ticker-track {
     display: flex;
     width: max-content;
-    animation: ticker 35s linear infinite;
+    will-change: transform;
 }
 
-.ticker-track.paused {
-    animation-play-state: paused;
-}
-
-.ticker-track-slow {
-    animation-duration: 42s;
-}
-
-.ticker-track-reverse {
-    animation-direction: reverse;
+.ticker-viewport {
+    overflow: hidden;
 }
 
 @keyframes verticalMarquee {
@@ -314,6 +301,108 @@ new #[Layout('layouts.glass-app')] class extends Component {
 .note-2 { animation: noteBounce 3.5s ease-in-out infinite 0.5s; }
 .note-3 { animation: noteBounce 4s ease-in-out infinite 1s; }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+if (! window.homeLoopScroller) {
+    window.homeLoopScroller = ({ speed = 0.5, step = 320, reverse = false } = {}) => ({
+        paused: false,
+        hovering: false,
+        reverse,
+        speed,
+        step,
+        raf: null,
+        resumeTimer: null,
+        lastTime: null,
+        offset: 0,
+        halfWidth: 0,
+        init() {
+            this.$nextTick(() => {
+                this.measure();
+                this.offset = this.reverse ? -this.halfWidth : 0;
+                this.paint();
+                this.start();
+            });
+        },
+        measure() {
+            const track = this.$refs.track;
+            if (track) this.halfWidth = track.scrollWidth / 2;
+        },
+        paint() {
+            const track = this.$refs.track;
+            if (track) track.style.transform = 'translate3d(' + this.offset + 'px,0,0)';
+        },
+        wrap() {
+            if (this.halfWidth <= 0) return;
+            if (this.offset <= -this.halfWidth) this.offset += this.halfWidth;
+            if (this.offset > 0) this.offset -= this.halfWidth;
+        },
+        start() {
+            if (this.raf) return;
+            this.lastTime = null;
+
+            const loop = (now) => {
+                const track = this.$refs.track;
+                if (! track || ! track.isConnected) { this.stop(true); return; }
+
+                if (this.lastTime === null) this.lastTime = now;
+                const dt = Math.min((now - this.lastTime) / (1000 / 60), 3);
+                this.lastTime = now;
+
+                if (! this.paused && this.halfWidth > 0) {
+                    this.offset += this.reverse ? (this.speed * dt) : -(this.speed * dt);
+                    this.wrap();
+                    this.paint();
+                }
+
+                this.raf = requestAnimationFrame(loop);
+            };
+
+            this.raf = requestAnimationFrame(loop);
+        },
+        stop(clearPause = false) {
+            if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
+            this.lastTime = null;
+            if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
+            if (clearPause) { this.paused = false; this.hovering = false; }
+        },
+        pause() {
+            this.paused = true;
+            if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
+        },
+        resume() {
+            if (this.hovering) return;
+            if (this.resumeTimer) { clearTimeout(this.resumeTimer); this.resumeTimer = null; }
+            this.paused = false;
+        },
+        nudge(direction = 1) {
+            this.pause();
+            const from = this.offset;
+            const to = this.offset - (direction * this.step);
+            const t0 = performance.now();
+            const dur = 400;
+
+            const anim = (now) => {
+                const p = Math.min((now - t0) / dur, 1);
+                const ease = p * (2 - p);
+                this.offset = from + (to - from) * ease;
+                this.wrap();
+                this.paint();
+
+                if (p < 1) {
+                    requestAnimationFrame(anim);
+                } else {
+                    if (this.resumeTimer) clearTimeout(this.resumeTimer);
+                    this.resumeTimer = setTimeout(() => this.resume(), 1200);
+                }
+            };
+
+            requestAnimationFrame(anim);
+        },
+    });
+}
+</script>
 @endpush
 
 <div class="min-h-screen overflow-x-hidden">
@@ -626,41 +715,61 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 </div>
                 <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
             </div>
-            <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
-                 x-data="{ paused: false }"
-                 @mouseenter="paused = true"
-                 @mouseleave="paused = false">
+            <div class="group/rail relative select-none overflow-hidden"
+                 x-data="window.homeLoopScroller({ speed: 0.46, step: 288 })"
+                 @mouseenter="hovering = true; pause()"
+                 @mouseleave="hovering = false; resume()">
                 <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
                 <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
-                <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
-                    @foreach([$latest, $latest] as $loopSet)
-                        @foreach($loopSet as $track)
-                            <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
-                                <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                    @if($track->getFirstMediaUrl('cover'))
-                                        <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                    @else
-                                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
-                                            <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                <button type="button"
+                        class="pointer-events-none absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                        @click.prevent="nudge(-1)">
+                    <span class="sr-only">Scroll new releases left</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+
+                <button type="button"
+                        class="pointer-events-none absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                        @click.prevent="nudge(1)">
+                    <span class="sr-only">Scroll new releases right</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+
+                <div x-ref="viewport" class="ticker-viewport px-4">
+                    <div x-ref="track" class="ticker-track gap-4">
+                        @foreach([$latest, $latest] as $loopSet)
+                            @foreach($loopSet as $track)
+                                <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
+                                    <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                        @if($track->getFirstMediaUrl('cover'))
+                                            <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                        @else
+                                            <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
+                                                <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                                            </div>
+                                        @endif
+                                        <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                                            <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                         </div>
-                                    @endif
-                                    <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
-                                        <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
+                                    <div class="space-y-1 p-3">
+                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                        <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                                {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
+                                            </a>
+                                            <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="space-y-1 p-3">
-                                    <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
-                                    <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
-                                        <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
-                                            {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
-                                        </a>
-                                        <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
-                                    </div>
-                                </div>
-                            </div>
+                            @endforeach
                         @endforeach
-                    @endforeach
+                    </div>
                 </div>
             </div>
         </section>
@@ -675,46 +784,66 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 </div>
                 <a href="{{ route('charts') }}" class="text-sm font-medium text-primary hover:text-primary-600">See charts &rarr;</a>
             </div>
-            <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
-                 x-data="{ paused: false }"
-                 @mouseenter="paused = true"
-                 @mouseleave="paused = false">
+            <div class="group/rail relative select-none overflow-hidden"
+                 x-data="window.homeLoopScroller({ speed: 0.42, step: 320 })"
+                 @mouseenter="hovering = true; pause()"
+                 @mouseleave="hovering = false; resume()">
                 <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
                 <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
-                <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
-                    @foreach([$weeklyTopTracks, $weeklyTopTracks] as $loopSet)
-                        @foreach($loopSet as $index => $track)
-                            <div class="group w-44 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
-                                <div class="relative h-44 w-44" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                    @if($track->getFirstMediaUrl('cover'))
-                                        <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                    @else
-                                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
-                                            <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                <button type="button"
+                        class="pointer-events-none absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                        @click.prevent="nudge(-1)">
+                    <span class="sr-only">Scroll weekly top tracks left</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+
+                <button type="button"
+                        class="pointer-events-none absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                        @click.prevent="nudge(1)">
+                    <span class="sr-only">Scroll weekly top tracks right</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+
+                <div x-ref="viewport" class="ticker-viewport px-4">
+                    <div x-ref="track" class="ticker-track gap-4">
+                        @foreach([$weeklyTopTracks, $weeklyTopTracks] as $loopSet)
+                            @foreach($loopSet as $index => $track)
+                                <div class="group w-44 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
+                                    <div class="relative h-44 w-44" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                        @if($track->getFirstMediaUrl('cover'))
+                                            <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                        @else
+                                            <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
+                                                <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                                            </div>
+                                        @endif
+                                        <div class="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/75 text-xs font-black text-white shadow-sm">
+                                            {{ $index + 1 }}
                                         </div>
-                                    @endif
-                                    <div class="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/75 text-xs font-black text-white shadow-sm">
-                                        {{ $index + 1 }}
+                                        <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                                            <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        </div>
                                     </div>
-                                    <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
-                                        <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                                    </div>
-                                </div>
-                                <div class="space-y-1 p-3">
-                                    <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
-                                    <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
-                                        <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
-                                            {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
-                                        </a>
-                                        <span class="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 font-semibold text-primary-600">
-                                            {{ number_format($track->weekly_play_count ?? 0) }} plays
-                                        </span>
+                                    <div class="space-y-1 p-3">
+                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                        <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                                {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
+                                            </a>
+                                            <span class="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 font-semibold text-primary-600">
+                                                {{ number_format($track->weekly_play_count ?? 0) }} plays
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            @endforeach
                         @endforeach
-                    @endforeach
+                    </div>
                 </div>
             </div>
         </section>
@@ -726,41 +855,61 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 <h2 class="text-2xl font-bold text-gray-800">Trending Now</h2>
                 <a href="{{ route('browse', ['sort' => 'popular']) }}" class="text-sm font-medium text-primary hover:text-primary-600">See all &rarr;</a>
             </div>
-            <div class="relative select-none overflow-hidden cursor-grab active:cursor-grabbing"
-                 x-data="{ paused: false }"
-                 @mouseenter="paused = true"
-                 @mouseleave="paused = false">
+            <div class="group/rail relative select-none overflow-hidden"
+                 x-data="window.homeLoopScroller({ speed: 0.48, step: 288 })"
+                 @mouseenter="hovering = true; pause()"
+                 @mouseleave="hovering = false; resume()">
                 <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
                 <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-gray-50/80 to-transparent dark:from-slate-950/80"></div>
 
-                <div class="ticker-track gap-4 px-4" :class="{ 'paused': paused }">
-                    @foreach([$trending, $trending] as $loopSet)
-                        @foreach($loopSet as $track)
-                            <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
-                                <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                    @if($track->getFirstMediaUrl('cover'))
-                                        <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                    @else
-                                        <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
-                                            <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                <button type="button"
+                        class="pointer-events-none absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                        @click.prevent="nudge(-1)">
+                    <span class="sr-only">Scroll trending tracks left</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+
+                <button type="button"
+                        class="pointer-events-none absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                        @click.prevent="nudge(1)">
+                    <span class="sr-only">Scroll trending tracks right</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+
+                <div x-ref="viewport" class="ticker-viewport px-4">
+                    <div x-ref="track" class="ticker-track gap-4">
+                        @foreach([$trending, $trending] as $loopSet)
+                            @foreach($loopSet as $track)
+                                <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
+                                    <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
+                                        @if($track->getFirstMediaUrl('cover'))
+                                            <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                        @else
+                                            <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
+                                                <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
+                                            </div>
+                                        @endif
+                                        <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                                            <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                         </div>
-                                    @endif
-                                    <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
-                                        <svg class="h-10 w-10 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
+                                    <div class="space-y-1 p-3">
+                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                        <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                                {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
+                                            </a>
+                                            <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="space-y-1 p-3">
-                                    <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
-                                    <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
-                                        <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
-                                            {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
-                                        </a>
-                                        <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
-                                    </div>
-                                </div>
-                            </div>
+                            @endforeach
                         @endforeach
-                    @endforeach
+                    </div>
                 </div>
             </div>
         </section>
@@ -798,39 +947,59 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">Discover artists &rarr;</a>
                 </div>
 
-                <div class="relative select-none overflow-hidden"
-                     x-data="{ paused: false }"
-                     @mouseenter="paused = true"
-                     @mouseleave="paused = false">
+                <div class="group/rail relative select-none overflow-hidden"
+                     x-data="window.homeLoopScroller({ speed: 0.38, step: 240, reverse: true })"
+                     @mouseenter="hovering = true; pause()"
+                     @mouseleave="hovering = false; resume()">
                     <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-white/90 to-transparent"></div>
                     <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-white/90 to-transparent"></div>
 
-                    <div class="ticker-track ticker-track-reverse ticker-track-slow gap-4 px-1" :class="{ 'paused': paused }">
-                        @foreach([$featuredArtists, $featuredArtists] as $loopSet)
-                            @foreach($loopSet as $artist)
-                                <a href="{{ route('artist.page', $artist) }}"
-                                   class="group flex w-40 shrink-0 flex-col items-center gap-3 rounded-[1.5rem] p-4 text-center transition glass-card glass-card-hover hover:-translate-y-1">
-                                    <div class="h-20 w-20 overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-200 ring-2 ring-white shadow-sm transition duration-300 group-hover:scale-[1.04]">
-                                        @php
-                                            $avatarUrl = $artist->getAvatarMediaUrl();
-                                        @endphp
-                                        @if($avatarUrl)
-                                            <img src="{{ $avatarUrl }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
-                                        @else
-                                            <div class="flex h-full w-full items-center justify-center text-2xl font-black text-primary-400">
-                                                {{ strtoupper(substr($artist->stage_name ?? $artist->user->name, 0, 1)) }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <div class="space-y-1">
-                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $artist->stage_name ?? $artist->user->name }}</p>
-                                        <p class="text-[10px] font-medium uppercase tracking-[0.18em] {{ $artist->is_featured ? 'text-amber-600' : ($artist->is_verified ? 'text-primary' : 'text-gray-400') }}">
-                                            {{ $artist->is_featured ? "Editor's Pick" : ($artist->is_verified ? 'Verified' : 'Artist') }}
-                                        </p>
-                                    </div>
-                                </a>
+                    <button type="button"
+                            class="pointer-events-none absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                            @click.prevent="nudge(-1)">
+                        <span class="sr-only">Scroll featured artists left</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    <button type="button"
+                            class="pointer-events-none absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                            @click.prevent="nudge(1)">
+                        <span class="sr-only">Scroll featured artists right</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <div x-ref="viewport" class="ticker-viewport px-1">
+                        <div x-ref="track" class="ticker-track gap-4">
+                            @foreach([$featuredArtists, $featuredArtists] as $loopSet)
+                                @foreach($loopSet as $artist)
+                                    <a href="{{ route('artist.page', $artist) }}"
+                                       class="group flex w-40 shrink-0 flex-col items-center gap-3 rounded-[1.5rem] p-4 text-center transition glass-card glass-card-hover hover:-translate-y-1">
+                                        <div class="h-20 w-20 overflow-hidden rounded-full bg-gradient-to-br from-primary-100 to-primary-200 ring-2 ring-white shadow-sm transition duration-300 group-hover:scale-[1.04]">
+                                            @php
+                                                $avatarUrl = $artist->getAvatarMediaUrl();
+                                            @endphp
+                                            @if($avatarUrl)
+                                                <img src="{{ $avatarUrl }}" alt="{{ $artist->avatar_alt }}" class="h-full w-full object-cover">
+                                            @else
+                                                <div class="flex h-full w-full items-center justify-center text-2xl font-black text-primary-400">
+                                                    {{ strtoupper(substr($artist->stage_name ?? $artist->user->name, 0, 1)) }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="truncate text-sm font-semibold text-gray-800">{{ $artist->stage_name ?? $artist->user->name }}</p>
+                                            <p class="text-[10px] font-medium uppercase tracking-[0.18em] {{ $artist->is_featured ? 'text-amber-600' : ($artist->is_verified ? 'text-primary' : 'text-gray-400') }}">
+                                                {{ $artist->is_featured ? "Editor's Pick" : ($artist->is_verified ? 'Verified' : 'Artist') }}
+                                            </p>
+                                        </div>
+                                    </a>
+                                @endforeach
                             @endforeach
-                        @endforeach
+                        </div>
                     </div>
                 </div>
             </section>

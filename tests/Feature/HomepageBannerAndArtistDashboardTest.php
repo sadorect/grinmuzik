@@ -166,6 +166,41 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
     }
 
     #[Test]
+    public function homepage_renders_manual_scroll_buttons_for_the_track_and_artist_rails(): void
+    {
+        Cache::flush();
+
+        $user = User::factory()->create();
+
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Scroller Artist',
+            'slug' => 'scroller-artist',
+            'is_approved' => true,
+            'is_active' => true,
+            'followers_count' => 888,
+        ]);
+
+        Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Scroller Track',
+            'slug' => 'scroller-track',
+            'is_published' => true,
+            'is_free' => true,
+            'play_count' => 180,
+            'downloads_count' => 12,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Scroll new releases left')
+            ->assertSee('Scroll weekly top tracks right')
+            ->assertSee('Scroll trending tracks left')
+            ->assertSee('Scroll featured artists right');
+    }
+
+    #[Test]
     public function glass_layout_gives_artists_a_mobile_upload_shortcut_and_keeps_theme_toggle_in_the_discover_menu(): void
     {
         $artist = User::factory()->create();

@@ -29,7 +29,12 @@
         <div class="field-value">{{ $senderName }} &lt;{{ $senderEmail }}&gt;</div>
 
         <div class="field-label">Subject</div>
-        <div class="field-value">{{ $subject }}</div>
+        <div class="field-value">{{ $messageSubject }}</div>
+
+        @if($messageId)
+            <div class="field-label">Inbox Reference</div>
+            <div class="field-value">#{{ $messageId }}</div>
+        @endif
 
         <div class="field-label">Message</div>
         <div class="message-box">{{ $body }}</div>
