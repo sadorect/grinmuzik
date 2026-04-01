@@ -134,7 +134,13 @@ new #[Layout('layouts.glass-app')] class extends Component
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Editorial Pick</p>
                                 <h2 class="mt-3 text-3xl font-black tracking-tight text-gray-900">{{ $leadTrack->title }}</h2>
-                                <p class="mt-2 text-sm text-gray-500">{{ $leadTrack->artistProfile?->stage_name ?? 'Unknown Artist' }} &middot; {{ $leadTrack->genre?->name ?? 'Open format' }}</p>
+                                <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
+                                    <a href="{{ route('artist.page', $leadTrack->artistProfile) }}" wire:navigate class="font-medium transition hover:text-primary">
+                                        {{ $leadTrack->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                    </a>
+                                    <span>&middot;</span>
+                                    <span>{{ $leadTrack->genre?->name ?? 'Open format' }}</span>
+                                </div>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $leadTrack->created_at->diffForHumans() }}</span>
                                     <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $leadTrack->formatted_duration }}</span>
@@ -149,7 +155,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                             <div class="flex flex-wrap gap-3">
                                 <button @click="Livewire.dispatch('play-track', { id: {{ $leadTrack->id }} })" class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600">Play Now</button>
                                 <button @click="Livewire.dispatch('queue-track', { id: {{ $leadTrack->id }} })" class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">Queue</button>
-                                <a href="{{ route('artist.page', $leadTrack->artistProfile) }}" class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
+                                <a href="{{ route('artist.page', $leadTrack->artistProfile) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
                             </div>
                         </div>
                     </div>
@@ -165,7 +171,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-base font-semibold text-gray-900">{{ $track->title }}</p>
-                                <p class="truncate text-sm text-gray-500">{{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}</p>
+                                <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="block truncate text-sm text-gray-500 transition hover:text-primary">
+                                    {{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                </a>
                                 <div class="mt-3 flex flex-wrap gap-2">
                                     <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ $track->created_at->diffForHumans() }}</span>
                                     @if($track->genre)
@@ -200,7 +208,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-semibold text-gray-900">{{ $track->title }}</p>
-                                    <p class="truncate text-sm text-gray-500">{{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}</p>
+                                    <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="block truncate text-sm text-gray-500 transition hover:text-primary">
+                                        {{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                    </a>
                                     <p class="mt-1 text-xs text-gray-400">{{ $track->created_at->diffForHumans() }}</p>
                                 </div>
                             </div>
@@ -255,7 +265,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                                             <div class="min-w-0">
                                                 <a href="{{ route('track.show', $track->slug) }}" wire:navigate class="block truncate text-base font-semibold text-gray-900 transition hover:text-primary">{{ $track->title }}</a>
                                                 <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
-                                                    <span class="truncate">{{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}</span>
+                                                    <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate transition hover:text-primary">
+                                                        {{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                                    </a>
                                                     @if($track->genre)
                                                         <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
                                                     @endif
@@ -316,7 +328,13 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     <div class="p-5">
                                         <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Album Spotlight</p>
                                         <h3 class="mt-3 text-2xl font-black tracking-tight text-gray-900">{{ $album->title }}</h3>
-                                        <p class="mt-2 text-sm text-gray-500">{{ $album->artist?->stage_name ?? 'Unknown Artist' }} &middot; {{ ucfirst($album->type) }}</p>
+                                        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
+                                            <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="font-medium transition hover:text-primary">
+                                                {{ $album->artist?->stage_name ?? 'Unknown Artist' }}
+                                            </a>
+                                            <span>&middot;</span>
+                                            <span>{{ ucfirst($album->type) }}</span>
+                                        </div>
                                         <div class="mt-4 flex flex-wrap gap-2">
                                             <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $album->tracks_count }} tracks</span>
                                             @if($album->genre)
@@ -325,7 +343,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                                             <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ optional($album->release_date ?? $album->created_at)->diffForHumans() }}</span>
                                         </div>
                                         <div class="mt-5">
-                                            <a href="{{ route('artist.page', $album->artist) }}" class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
+                                            <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
                                         </div>
                                     </div>
                                 </div>
@@ -351,7 +369,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     </div>
                                     <div class="mt-4">
                                         <h4 class="truncate text-base font-semibold text-gray-900">{{ $album->title }}</h4>
-                                        <p class="mt-1 truncate text-sm text-gray-500">{{ $album->artist?->stage_name ?? 'Unknown Artist' }}</p>
+                                        <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="mt-1 block truncate text-sm text-gray-500 transition hover:text-primary">
+                                            {{ $album->artist?->stage_name ?? 'Unknown Artist' }}
+                                        </a>
                                         <div class="mt-3 flex flex-wrap gap-2">
                                             <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ ucfirst($album->type) }}</span>
                                             <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ $album->tracks_count }} tracks</span>
@@ -361,7 +381,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                                         </div>
                                         <div class="mt-4 flex items-center justify-between">
                                             <span class="text-xs text-gray-400">{{ optional($album->release_date ?? $album->created_at)->diffForHumans() }}</span>
-                                            <a href="{{ route('artist.page', $album->artist) }}" class="text-xs font-semibold text-primary transition hover:text-primary-600">Artist page</a>
+                                            <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="text-xs font-semibold text-primary transition hover:text-primary-600">Artist page</a>
                                         </div>
                                     </div>
                                 </article>

@@ -263,6 +263,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     </div>
                     <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-1">{{ $track->title }}</h1>
                     <a href="{{ route('artist.page', $track->artistProfile) }}"
+                       wire:navigate
                        class="text-lg text-primary-500 hover:text-primary-600 transition">
                         {{ $track->artistProfile->stage_name ?? $track->artistProfile->user->name }}
                     </a>

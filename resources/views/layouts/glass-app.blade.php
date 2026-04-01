@@ -45,24 +45,24 @@
 <div id="app" class="min-h-screen" data-public-shell="{{ $publicShell }}">
 
     @if($useSearchSidebar)
-        <aside aria-label="Search page sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-white/10 bg-slate-950/78 px-5 py-6 text-slate-100 backdrop-blur-2xl md:flex">
-            <a href="{{ route('home') }}" class="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/5" wire:navigate>
+        <aside aria-label="Search page sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-slate-900/80 bg-slate-950/94 px-5 py-6 text-slate-100 shadow-[28px_0_60px_rgba(2,6,23,0.42)] backdrop-blur-2xl md:flex">
+            <a href="{{ route('home') }}" class="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 transition hover:bg-white/[0.06]" wire:navigate>
                 <x-application-logo class="h-8 w-auto object-contain" />
                 <div>
                     <p class="text-lg font-black tracking-tight">{{ $siteName }}</p>
-                    <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400">Search</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-200">Search</p>
                 </div>
             </a>
 
-            <div class="mt-8 rounded-[1.8rem] border border-white/10 bg-white/5 p-4 shadow-lg">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-300">Navigate</p>
+            <div class="mt-8 rounded-[1.8rem] border border-white/10 bg-black/25 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.25)]">
+                <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-primary-100">Navigate</p>
                 <div class="mt-3 space-y-1.5">
                     @foreach($primaryNavItems as $item)
                         @php($isActive = $currentRouteName === $item['route'])
                         <a
                             href="{{ route($item['route']) }}"
                             wire:navigate
-                            class="flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold transition {{ $isActive ? 'bg-primary text-white shadow-sm' : 'text-slate-300 hover:bg-white/8 hover:text-white' }}"
+                            class="flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-bold transition {{ $isActive ? 'border-primary/70 bg-primary text-white shadow-[0_14px_28px_rgba(79,70,229,0.28)]' : 'border-white/[0.08] bg-white/[0.06] text-slate-50 hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white' }}"
                         >
                             <span>{{ $item['label'] }}</span>
                             @if($isActive)
@@ -74,32 +74,32 @@
             </div>
 
             <div class="mt-4">
-                @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'])
+                @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between border-white/10 bg-black/25 text-sm font-semibold text-slate-50 shadow-[0_14px_30px_rgba(2,6,23,0.18)] hover:bg-white/[0.08]'])
             </div>
 
-            <div class="mt-auto rounded-[1.8rem] border border-white/10 bg-white/5 p-4">
+            <div class="mt-auto rounded-[1.8rem] border border-white/10 bg-black/25 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.25)]">
                 @auth
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Account</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-200">Account</p>
                     <div class="mt-3 space-y-1.5">
-                        <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Dashboard</a>
-                        <a href="{{ route('profile') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Account Settings</a>
+                        <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Dashboard</a>
+                        <a href="{{ route('profile') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Account Settings</a>
                         @if(Auth::user()->isArtist())
-                            <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Artist Profile</a>
-                            <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">My Music</a>
+                            <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Artist Profile</a>
+                            <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">My Music</a>
                         @endif
                         @if(Auth::user()->isAdmin())
-                            <a href="{{ url('/musicdirector') }}" class="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Admin Panel</a>
+                            <a href="{{ url('/musicdirector') }}" class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Admin Panel</a>
                         @endif
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="w-full rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Log Out</button>
+                            <button type="submit" class="w-full rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-left text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Log Out</button>
                         </form>
                     </div>
                 @else
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Join In</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-200">Join In</p>
                     <div class="mt-3 space-y-2.5">
                         <a href="{{ route('register') }}" wire:navigate class="block rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">Sign Up Free</a>
-                        <a href="{{ route('login') }}" wire:navigate class="block rounded-2xl border border-white/10 px-4 py-3 text-center text-sm font-semibold text-slate-200 transition hover:bg-white/8 hover:text-white">Log In</a>
+                        <a href="{{ route('login') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-center text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Log In</a>
                     </div>
                 @endauth
             </div>

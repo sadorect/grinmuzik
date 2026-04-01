@@ -840,9 +840,11 @@ if (! window.homeLoopScroller) {
                                         </div>
                                     </div>
                                     <div class="space-y-1 p-3">
-                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                        <a href="{{ route('track.show', $track) }}" wire:navigate class="block truncate text-sm font-semibold text-gray-900 hover:text-primary">
+                                            {{ $track->title }}
+                                        </a>
                                         <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
-                                            <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate hover:text-primary">
                                                 {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
                                             </a>
                                             <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />
@@ -912,9 +914,11 @@ if (! window.homeLoopScroller) {
                                         </div>
                                     </div>
                                     <div class="space-y-1 p-3">
-                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                        <a href="{{ route('track.show', $track) }}" wire:navigate class="block truncate text-sm font-semibold text-gray-900 hover:text-primary">
+                                            {{ $track->title }}
+                                        </a>
                                         <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
-                                            <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate hover:text-primary">
                                                 {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
                                             </a>
                                             <span class="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 font-semibold text-primary-600">
@@ -980,9 +984,11 @@ if (! window.homeLoopScroller) {
                                         </div>
                                     </div>
                                     <div class="space-y-1 p-3">
-                                        <p class="truncate text-sm font-semibold text-gray-800">{{ $track->title }}</p>
+                                        <a href="{{ route('track.show', $track) }}" wire:navigate class="block truncate text-sm font-semibold text-gray-900 hover:text-primary">
+                                            {{ $track->title }}
+                                        </a>
                                         <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
-                                            <a href="{{ route('artist.page', $track->artistProfile) }}" class="truncate hover:text-primary">
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate hover:text-primary">
                                                 {{ $track->artistProfile->stage_name ?? ($track->artistProfile->user->name ?? '') }}
                                             </a>
                                             <x-track-duration :track="$track" class="shrink-0 text-[11px] text-gray-400" :icon="false" />

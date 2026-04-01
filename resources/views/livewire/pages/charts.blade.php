@@ -133,9 +133,11 @@ new #[Layout('layouts.glass-app')] class extends Component
             ->when($this->genre, fn (Builder $query) => $query->whereHas('genre', fn (Builder $genreQuery) => $genreQuery->where('slug', $this->genre)));
 
         if ($start && $end) {
-            $query->withCount([
-                'playHistories as chart_plays' => fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]),
-            ])->having('chart_plays', '>', 0)->orderByDesc('chart_plays');
+            $query->whereHas('playHistories', fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]))
+                ->withCount([
+                    'playHistories as chart_plays' => fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]),
+                ])
+                ->orderByDesc('chart_plays');
         } else {
             $query->withCount('playHistories as chart_plays')->orderByDesc('play_count');
         }
@@ -231,7 +233,13 @@ new #[Layout('layouts.glass-app')] class extends Component
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Now Trending</p>
                                 <h2 class="mt-3 text-3xl font-black tracking-tight text-gray-900">{{ $heroTrack->title }}</h2>
-                                <p class="mt-2 text-sm text-gray-500">{{ $heroTrack->artistProfile?->stage_name ?? 'Unknown Artist' }} &middot; {{ $heroTrack->genre?->name ?? 'Open format' }}</p>
+                                <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
+                                    <a href="{{ route('artist.page', $heroTrack->artistProfile) }}" wire:navigate class="font-medium transition hover:text-primary">
+                                        {{ $heroTrack->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                    </a>
+                                    <span>&middot;</span>
+                                    <span>{{ $heroTrack->genre?->name ?? 'Open format' }}</span>
+                                </div>
 
                                 <div class="mt-5 flex flex-wrap gap-2">
                                     @php $heroMovement = $movementMap[$heroTrack->id] ?? null; @endphp
@@ -265,7 +273,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                             <div class="flex flex-wrap gap-3">
                                 <button @click="Livewire.dispatch('play-track', { id: {{ $heroTrack->id }} })" class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600">Play #1</button>
                                 <button @click="Livewire.dispatch('queue-track', { id: {{ $heroTrack->id }} })" class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">Queue It Up</button>
-                                <a href="{{ route('artist.page', $heroTrack->artistProfile) }}" class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
+                                <a href="{{ route('artist.page', $heroTrack->artistProfile) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
                             </div>
                         </div>
                     </div>
@@ -282,7 +290,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-base font-semibold text-gray-900">{{ $track->title }}</p>
-                                <p class="truncate text-sm text-gray-500">{{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}</p>
+                                <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="block truncate text-sm text-gray-500 transition hover:text-primary">
+                                    {{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                </a>
                                 <div class="mt-3 flex items-center gap-3 text-xs text-gray-400">
                                     <span>{{ number_format($timeframe === 'all' ? $track->play_count : $track->chart_plays) }} plays</span>
                                     <span>{{ number_format($track->likes_count) }} likes</span>
@@ -377,7 +387,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     <div class="min-w-0">
                                         <a href="{{ route('track.show', $track->slug) }}" wire:navigate class="block truncate text-base font-semibold text-gray-900 transition hover:text-primary">{{ $track->title }}</a>
                                         <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
-                                            <span class="truncate">{{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}</span>
+                                            <a href="{{ route('artist.page', $track->artistProfile) }}" wire:navigate class="truncate transition hover:text-primary">
+                                                {{ $track->artistProfile?->stage_name ?? 'Unknown Artist' }}
+                                            </a>
                                             @if($track->genre)
                                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $track->genre->name }}</span>
                                             @endif
