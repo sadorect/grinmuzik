@@ -24,9 +24,9 @@ class SecurityHeaders
         $csp = implode('; ', [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
-            "style-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
             "img-src 'self' data: blob: https:",
-            "font-src 'self' data:",
+            "font-src 'self' data: https://fonts.bunny.net",
             "connect-src 'self' https://api.stripe.com",
             "frame-src https://js.stripe.com https://hooks.stripe.com",
             "media-src 'self' blob: https:",
