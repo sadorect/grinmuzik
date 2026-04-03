@@ -39,6 +39,7 @@ class SeoMetadataTest extends TestCase
 
         $this->get(route('home'))
             ->assertOk()
+            ->assertSee('<meta property="og:site_name" content="GrinMuzik">', false)
             ->assertSee('<meta property="og:image" content="' . e($siteLogoUrl) . '">', false)
             ->assertSee('<meta name="twitter:image" content="' . e($siteLogoUrl) . '">', false);
     }
@@ -69,6 +70,9 @@ class SeoMetadataTest extends TestCase
         $this->get(route('artist.page', $profile))
             ->assertOk()
             ->assertSee('<meta property="og:image" content="' . e($avatarUrl) . '">', false)
+            ->assertSee('<meta property="og:image:type" content="image/jpeg">', false)
+            ->assertSee('<meta property="og:image:width" content="1200">', false)
+            ->assertSee('<meta property="og:image:height" content="1200">', false)
             ->assertSee('<meta name="twitter:image" content="' . e($avatarUrl) . '">', false);
     }
 
@@ -148,12 +152,29 @@ class SeoMetadataTest extends TestCase
         $this->get(route('track.show', $track))
             ->assertOk()
             ->assertSee('<meta property="og:image" content="' . e($trackCoverUrl) . '">', false)
+            ->assertSee('<meta property="og:image:type" content="image/jpeg">', false)
             ->assertSee('<meta name="twitter:image" content="' . e($trackCoverUrl) . '">', false);
 
         $this->get(route('playlist.show', $playlist))
             ->assertOk()
             ->assertSee('<meta property="og:image" content="' . e($playlistCoverUrl) . '">', false)
+            ->assertSee('<meta property="og:image:type" content="image/jpeg">', false)
             ->assertSee('<meta name="twitter:image" content="' . e($playlistCoverUrl) . '">', false);
+    }
+
+    public function test_blank_site_name_falls_back_to_grinmuzik_in_share_metadata(): void
+    {
+        Storage::fake('public');
+
+        SiteSetting::current()->update([
+            'site_name' => '   ',
+            'site_title' => '   ',
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('<meta property="og:site_name" content="GrinMuzik">', false)
+            ->assertSee('<meta name="application-name" content="GrinMuzik">', false);
     }
 
     public function test_png_uploads_use_jpg_share_images_for_artist_and_track_cards(): void

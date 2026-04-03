@@ -74,7 +74,12 @@
     }
 
     $twitterCard = $mergedSeo['twitter_card'] ?? ($ogImage ? 'summary_large_image' : 'summary');
-    $siteNameTag = $mergedSeo['site_name'] ?? ($siteName ?? 'GrinMuzik');
+    $siteNameTag = trim((string) ($mergedSeo['site_name'] ?? ($siteName ?? 'GrinMuzik')));
+    $siteNameTag = $siteNameTag !== '' ? $siteNameTag : 'GrinMuzik';
+    $ogImageType = $mergedSeo['image_type'] ?? null;
+    $ogImageWidth = $mergedSeo['image_width'] ?? null;
+    $ogImageHeight = $mergedSeo['image_height'] ?? null;
+    $ogImageAlt = $mergedSeo['image_alt'] ?? null;
 
     $jsonLd = $mergedSeo['json_ld'] ?? [];
 
@@ -109,6 +114,19 @@
 <meta property="og:site_name" content="{{ $siteNameTag }}">
 @if($ogImage)
     <meta property="og:image" content="{{ $ogImage }}">
+    <meta property="og:image:secure_url" content="{{ $ogImage }}">
+    @if($ogImageType)
+        <meta property="og:image:type" content="{{ $ogImageType }}">
+    @endif
+    @if($ogImageWidth)
+        <meta property="og:image:width" content="{{ $ogImageWidth }}">
+    @endif
+    @if($ogImageHeight)
+        <meta property="og:image:height" content="{{ $ogImageHeight }}">
+    @endif
+    @if($ogImageAlt)
+        <meta property="og:image:alt" content="{{ $ogImageAlt }}">
+    @endif
 @endif
 
 <meta name="twitter:card" content="{{ $twitterCard }}">
@@ -116,6 +134,9 @@
 <meta name="twitter:description" content="{{ $ogDescription }}">
 @if($ogImage)
     <meta name="twitter:image" content="{{ $ogImage }}">
+    @if($ogImageAlt)
+        <meta name="twitter:image:alt" content="{{ $ogImageAlt }}">
+    @endif
 @endif
 
 @foreach($schemaBlocks as $schema)

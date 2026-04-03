@@ -131,6 +131,11 @@ const canManuallyInstallOnIos = () =>
 const getStoredVisitCount = () =>
     Number(window.localStorage.getItem(INSTALL_VISIT_STORAGE_KEY) || "0");
 
+const getProjectedVisitCount = () =>
+    window.sessionStorage.getItem(INSTALL_SESSION_STORAGE_KEY) === "1"
+        ? getStoredVisitCount()
+        : getStoredVisitCount() + 1;
+
 const isInstallDismissed = () => {
     const dismissedAt = Number(
         window.localStorage.getItem(INSTALL_DISMISSED_AT_KEY) || "0",
@@ -170,6 +175,11 @@ const recordInstallVisit = () => {
 window.GrinInstall = window.GrinInstall || {
     deferredPrompt: null,
 };
+
+const shouldDeferInstallPrompt = (visitCount = getProjectedVisitCount()) =>
+    !isStandaloneApp() &&
+    !isInstallDismissed() &&
+    visitCount >= INSTALL_VISIT_THRESHOLD;
 
 window.pwaInstallPrompt = () => ({
     open: false,
@@ -237,6 +247,10 @@ window.pwaInstallPrompt = () => ({
 });
 
 window.addEventListener("beforeinstallprompt", (event) => {
+    if (!shouldDeferInstallPrompt()) {
+        return;
+    }
+
     event.preventDefault();
     window.GrinInstall.deferredPrompt = event;
     publishInstallState();

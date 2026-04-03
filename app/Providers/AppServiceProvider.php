@@ -10,8 +10,9 @@ use App\Support\ThemePalette;
 use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -34,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Vite::usePreloadTagAttributes(fn (string $src, string $url) => str_ends_with(strtok($url, '?') ?: $url, '.css') ? false : []);
+
         \Illuminate\Support\Facades\Event::listen(PasswordReset::class, function (PasswordReset $event): void {
             app(ArtistActivityNotifier::class)->sendPasswordChanged($event->user, 'reset');
         });
@@ -237,6 +240,10 @@ class AppServiceProvider extends ServiceProvider
                             'canonical' => route('artist.page', $profile),
                             'type' => 'website',
                             'image' => $shareImage,
+                            'image_type' => $shareImage !== '' ? 'image/jpeg' : null,
+                            'image_width' => $shareImage !== '' ? 1200 : null,
+                            'image_height' => $shareImage !== '' ? 1200 : null,
+                            'image_alt' => $profile->avatar_alt,
                         ]);
                     }
                 } elseif ($routeName === 'track.show') {
@@ -254,6 +261,10 @@ class AppServiceProvider extends ServiceProvider
                             'canonical' => route('track.show', $track),
                             'type' => 'website',
                             'image' => $track->getShareImageUrl(),
+                            'image_type' => $track->getShareImageUrl() !== '' ? 'image/jpeg' : null,
+                            'image_width' => $track->getShareImageUrl() !== '' ? 1200 : null,
+                            'image_height' => $track->getShareImageUrl() !== '' ? 1200 : null,
+                            'image_alt' => $track->cover_alt,
                         ]);
                     }
                 } elseif ($routeName === 'playlist.show') {
@@ -271,6 +282,10 @@ class AppServiceProvider extends ServiceProvider
                             'canonical' => route('playlist.show', $playlist),
                             'type' => 'website',
                             'image' => $playlist->getShareImageUrl(),
+                            'image_type' => $playlist->getShareImageUrl() !== '' ? 'image/jpeg' : null,
+                            'image_width' => $playlist->getShareImageUrl() !== '' ? 1200 : null,
+                            'image_height' => $playlist->getShareImageUrl() !== '' ? 1200 : null,
+                            'image_alt' => $playlist->cover_alt,
                             'robots' => $playlist->is_public ? 'index,follow' : 'noindex,nofollow',
                         ]);
                     }

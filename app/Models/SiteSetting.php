@@ -286,12 +286,16 @@ class SiteSetting extends Model
 
     public function getEffectiveSiteNameAttribute(): string
     {
-        return $this->site_name ?: 'GrinMuzik';
+        $siteName = trim((string) $this->site_name);
+
+        return $siteName !== '' ? $siteName : 'GrinMuzik';
     }
 
     public function getEffectiveSiteTitleAttribute(): string
     {
-        return $this->site_title ?: $this->effective_site_name;
+        $siteTitle = trim((string) $this->site_title);
+
+        return $siteTitle !== '' ? $siteTitle : $this->effective_site_name;
     }
 
     public function getEffectiveAudioUploadLimitKbAttribute(): int
