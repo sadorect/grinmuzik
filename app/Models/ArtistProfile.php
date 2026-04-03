@@ -30,13 +30,6 @@ class ArtistProfile extends Model implements HasMedia
         'instagram',
         'youtube',
         'spotify',
-        'is_verified',
-        'is_approved',
-        'is_active',
-        'is_featured',
-        'total_plays',
-        'followers_count',
-        'total_donations',
     ];
 
     protected $casts = [

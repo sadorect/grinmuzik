@@ -87,21 +87,21 @@ new #[Layout('layouts.guest')] class extends Component
                     'password' => Hash::make($this->password),
                 ]);
 
-                $user->forceFill([
-                    'email_verified_at' => now(),
-                ])->save();
+                $user->sendEmailVerificationNotification();
 
                 Role::findOrCreate($this->role, 'web');
                 $user->assignRole($this->role);
 
                 if ($this->role === 'artist') {
-                    $profile = ArtistProfile::create([
+                    $profile = new ArtistProfile([
                         'user_id'    => $user->id,
                         'stage_name' => $this->stage_name,
                         'bio'        => $this->bio,
+                    ]);
+                    $profile->forceFill([
                         'is_active'  => true,
                         'is_approved' => false,
-                    ]);
+                    ])->save();
 
                     if (!empty($this->selectedGenres)) {
                         $profile->genres()->sync($this->selectedGenres);
@@ -130,7 +130,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         Auth::login($user);
 
-        $this->redirectRoute('dashboard', navigate: true);
+        $this->redirectRoute('verification.notice', navigate: true);
     }
 }; ?>
 

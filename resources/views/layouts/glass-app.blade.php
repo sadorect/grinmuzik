@@ -283,7 +283,6 @@
                 <div class="col-span-2 sm:col-span-1">
                     <a href="{{ route('home') }}" class="flex items-center gap-2 text-white font-black text-xl mb-3">
                         <x-application-logo class="h-7 w-auto object-contain" />
-                        {{ $siteName }}
                     </a>
                     <p class="text-sm leading-relaxed mb-5">
                         Independent music. Real artists.<br>Support the creators you love.

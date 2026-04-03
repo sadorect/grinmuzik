@@ -210,7 +210,7 @@ Volt::route('/contact', 'pages.contact')->name('contact');
 
 // ── Donation / unlock ──────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
-    Route::post('/stripe/intent/{track}', [DonationController::class, 'createIntent'])->name('donation.intent');
+    Route::post('/stripe/intent/{track}', [DonationController::class, 'createIntent'])->middleware('throttle:20,1')->name('donation.intent');
     Route::get('/track/{track:slug}/download', TrackDownloadController::class)->name('track.download');
 });
 Route::post('/stripe/webhook', [DonationController::class, 'webhook'])->name('donation.webhook');
@@ -251,6 +251,8 @@ Route::middleware(['auth'])->prefix('me')->name('listener.')->group(function () 
 
 Route::post('logout', function () {
     auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
     return redirect()->route('home');
 })->name('logout');
 // Admin panel is served by Filament at /musicdirector
