@@ -64,7 +64,7 @@ class SeoMetadataTest extends TestCase
         $profile->addMedia(UploadedFile::fake()->image('artist-avatar.jpg'))
             ->toMediaCollection('avatar');
 
-        $avatarUrl = $this->absoluteUrl($profile->fresh()->getAvatarMediaUrl());
+        $avatarUrl = $this->absoluteUrl($profile->fresh()->getShareImageUrl());
 
         $this->get(route('artist.page', $profile))
             ->assertOk()
@@ -142,8 +142,8 @@ class SeoMetadataTest extends TestCase
         $playlist->addMedia(UploadedFile::fake()->image('playlist-cover.jpg'))
             ->toMediaCollection('cover');
 
-        $trackCoverUrl = $this->absoluteUrl($track->fresh()->getCoverUrl());
-        $playlistCoverUrl = $this->absoluteUrl($playlist->fresh()->getCoverUrl());
+        $trackCoverUrl = $this->absoluteUrl($track->fresh()->getShareImageUrl());
+        $playlistCoverUrl = $this->absoluteUrl($playlist->fresh()->getShareImageUrl());
 
         $this->get(route('track.show', $track))
             ->assertOk()
@@ -154,6 +154,56 @@ class SeoMetadataTest extends TestCase
             ->assertOk()
             ->assertSee('<meta property="og:image" content="' . e($playlistCoverUrl) . '">', false)
             ->assertSee('<meta name="twitter:image" content="' . e($playlistCoverUrl) . '">', false);
+    }
+
+    public function test_png_uploads_use_jpg_share_images_for_artist_and_track_cards(): void
+    {
+        Storage::fake('public');
+
+        SiteSetting::current()->update([
+            'site_logo' => 'branding/site-logo.png',
+        ]);
+
+        $user = User::factory()->create(['name' => 'PNG Artist']);
+
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'PNG Artist',
+            'slug' => 'png-artist',
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $profile->addMedia(UploadedFile::fake()->image('artist-avatar.png'))
+            ->toMediaCollection('avatar');
+
+        $track = Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'PNG Track',
+            'slug' => 'png-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
+
+        $track->addMedia(UploadedFile::fake()->image('track-cover.png'))
+            ->toMediaCollection('cover');
+
+        $artistShareImage = $this->absoluteUrl($profile->fresh()->getShareImageUrl());
+        $trackShareImage = $this->absoluteUrl($track->fresh()->getShareImageUrl());
+
+        $this->assertStringEndsWith('.jpg', strtok($artistShareImage ?? '', '?') ?: '');
+        $this->assertStringEndsWith('.jpg', strtok($trackShareImage ?? '', '?') ?: '');
+
+        $this->get(route('artist.page', $profile))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="' . e($artistShareImage) . '">', false)
+            ->assertSee('<meta name="twitter:image" content="' . e($artistShareImage) . '">', false);
+
+        $this->get(route('track.show', $track))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="' . e($trackShareImage) . '">', false)
+            ->assertSee('<meta name="twitter:image" content="' . e($trackShareImage) . '">', false);
     }
 
     protected function absoluteUrl(?string $value): ?string

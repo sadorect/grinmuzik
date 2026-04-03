@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\File;
@@ -145,6 +146,13 @@ class Track extends Model implements HasMedia
             ->height(300)
             ->format('webp')
             ->performOnCollections('cover');
+
+        $this->addMediaConversion('share')
+            ->fit(Fit::Contain, 1200, 1200, false, '#ffffff')
+            ->format('jpg')
+            ->quality(85)
+            ->performOnCollections('cover')
+            ->nonQueued();
     }
 
     // ─── Relationships ─────────────────────────────────────────────────────────
@@ -234,6 +242,12 @@ class Track extends Model implements HasMedia
     {
         return $this->getFirstMediaUrl('cover', $conversion)
             ?: ($this->album?->getCoverUrl($conversion) ?? '');
+    }
+
+    public function getShareImageUrl(): string
+    {
+        return $this->getFirstMediaUrl('cover', 'share')
+            ?: ($this->album?->getShareImageUrl() ?? '');
     }
 
     public function getCoverAltAttribute(): string

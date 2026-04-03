@@ -6,9 +6,11 @@ use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\File;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Playlist extends Model implements HasMedia
 {
@@ -61,6 +63,16 @@ class Playlist extends Model implements HasMedia
             ->acceptsFile(fn (File $file) => $file->size <= UploadLimits::imageBytes());
     }
 
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('share')
+            ->fit(Fit::Contain, 1200, 1200, false, '#ffffff')
+            ->format('jpg')
+            ->quality(85)
+            ->performOnCollections('cover')
+            ->nonQueued();
+    }
+
     // ─── Relationships ─────────────────────────────────────────────────────────
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -84,6 +96,11 @@ class Playlist extends Model implements HasMedia
     public function getCoverUrl(): string
     {
         return $this->getFirstMediaUrl('cover') ?: '';
+    }
+
+    public function getShareImageUrl(): string
+    {
+        return $this->getFirstMediaUrl('cover', 'share') ?: '';
     }
 
     public function getCoverAltAttribute(): string

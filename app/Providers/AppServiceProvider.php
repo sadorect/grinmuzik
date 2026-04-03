@@ -229,7 +229,7 @@ class AppServiceProvider extends ServiceProvider
 
                         $description = $profile->bio
                             ?: 'Explore music, albums, and artist updates from ' . ($profile->stage_name ?? $profile->user?->name ?? 'this artist') . ' on GrinMuzik.';
-                        $shareImage = $profile->getAvatarMediaUrl();
+                        $shareImage = $profile->getShareImageUrl();
 
                         $activeRouteSeo = array_merge($activeRouteSeo, [
                             'title' => $profile->stage_name ?? $profile->user?->name ?? 'Artist',
@@ -253,7 +253,7 @@ class AppServiceProvider extends ServiceProvider
                             'description' => Str::limit(strip_tags($description), 160),
                             'canonical' => route('track.show', $track),
                             'type' => 'website',
-                            'image' => $track->getCoverUrl(),
+                            'image' => $track->getShareImageUrl(),
                         ]);
                     }
                 } elseif ($routeName === 'playlist.show') {
@@ -270,7 +270,7 @@ class AppServiceProvider extends ServiceProvider
                             'description' => Str::limit(strip_tags($description), 160),
                             'canonical' => route('playlist.show', $playlist),
                             'type' => 'website',
-                            'image' => $playlist->getCoverUrl(),
+                            'image' => $playlist->getShareImageUrl(),
                             'robots' => $playlist->is_public ? 'index,follow' : 'noindex,nofollow',
                         ]);
                     }

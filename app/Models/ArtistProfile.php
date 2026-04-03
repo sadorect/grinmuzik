@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\File;
@@ -89,6 +90,13 @@ class ArtistProfile extends Model implements HasMedia
             ->height(400)
             ->format('webp')
             ->performOnCollections('banner');
+
+        $this->addMediaConversion('share')
+            ->fit(Fit::Contain, 1200, 1200, false, '#ffffff')
+            ->format('jpg')
+            ->quality(85)
+            ->performOnCollections('avatar')
+            ->nonQueued();
     }
 
     // ─── Relationships ─────────────────────────────────────────────────────────
@@ -165,6 +173,11 @@ class ArtistProfile extends Model implements HasMedia
         return $conversion !== ''
             ? $banner->getAvailableUrl([$conversion])
             : $banner->getUrl();
+    }
+
+    public function getShareImageUrl(): string
+    {
+        return $this->getAvatarMediaUrl('share');
     }
 
     public function getDisplayNameAttribute(): string

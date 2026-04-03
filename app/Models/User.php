@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Notifications\Auth\BrandedResetPassword;
 use Laravel\Cashier\Billable;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\File;
@@ -154,6 +155,13 @@ class User extends Authenticatable implements HasMedia, FilamentUser
             ->height(200)
             ->format('webp')
             ->performOnCollections('avatar');
+
+        $this->addMediaConversion('share')
+            ->fit(Fit::Contain, 1200, 1200, false, '#ffffff')
+            ->format('jpg')
+            ->quality(85)
+            ->performOnCollections('avatar')
+            ->nonQueued();
     }
 
     public function getAvatarMediaUrl(string $conversion = 'thumb'): string
@@ -173,6 +181,11 @@ class User extends Authenticatable implements HasMedia, FilamentUser
     {
         return $this->getAvatarMediaUrl($conversion)
             ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=ef4444&color=fff&size=200';
+    }
+
+    public function getShareImageUrl(): string
+    {
+        return $this->getAvatarMediaUrl('share');
     }
 
     public function sendPasswordResetNotification($token): void
