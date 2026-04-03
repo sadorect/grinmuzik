@@ -42,9 +42,8 @@
         </div>
 
         {{-- Logo --}}
-        <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2 mb-8 group">
+        <a href="{{ route('home') }}" wire:navigate class="mb-8 inline-flex items-center group">
             <x-application-logo class="h-8 w-auto object-contain transition-transform group-hover:scale-110" />
-            <span class="text-2xl font-bold text-gray-800 tracking-tight">{{ $siteName }}</span>
         </a>
 
         {{-- Card --}}

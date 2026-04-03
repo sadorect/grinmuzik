@@ -49,7 +49,6 @@
             <a href="{{ route('home') }}" class="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 transition hover:bg-white/[0.06]" wire:navigate>
                 <x-application-logo class="h-8 w-auto object-contain" />
                 <div>
-                    <p class="text-lg font-black tracking-tight">{{ $siteName }}</p>
                     <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-200">Search</p>
                 </div>
             </a>
@@ -111,9 +110,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 {{-- Logo --}}
-                <a href="{{ route('home') }}" class="flex items-center gap-2 text-xl font-bold text-gray-800 hover:text-primary-500 transition-colors" wire:navigate>
+                <a href="{{ route('home') }}" class="flex items-center text-xl font-bold text-gray-800 hover:text-primary-500 transition-colors" wire:navigate>
                     <x-application-logo class="h-7 w-auto object-contain" />
-                    <span>{{ $siteName }}</span>
                 </a>
 
                 {{-- Desktop links --}}
@@ -211,11 +209,10 @@
     {{-- â”€â”€ Mobile Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
     <div x-data="{ open: false }" x-on:toggle-mobile-nav.window="open = !open" class="md:hidden">
         <div x-show="open" x-transition @click="open = false" class="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm" style="display:none"></div>
-        <div x-show="open" x-transition class="fixed top-0 left-0 h-full w-[86vw] max-w-xs glass-panel z-50 shadow-xl p-6 flex flex-col text-sm" style="display:none">
+        <div x-show="open" x-transition class="fixed inset-y-0 left-0 flex h-[100dvh] w-[86vw] max-w-xs flex-col overflow-hidden glass-panel z-50 p-6 text-sm shadow-xl" style="display:none">
             <div class="mb-6 flex items-center justify-between gap-3">
-                <a href="{{ route('home') }}" class="flex items-center gap-2 text-gray-800" wire:navigate>
+                <a href="{{ route('home') }}" class="flex items-center text-gray-800" wire:navigate>
                     <x-application-logo class="h-7 w-auto object-contain" />
-                    <span class="font-bold text-lg">{{ $siteName }}</span>
                 </a>
                 <button @click="open = false" class="rounded-full border border-white/50 bg-white/70 p-2 text-gray-500">
                     <span class="sr-only">Close menu</span>
@@ -225,44 +222,46 @@
                 </button>
             </div>
 
-            <div class="space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
-                <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Discover</p>
-                @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600'])
-                <a href="{{ route('home') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Browse</a>
-                <a href="{{ route('search') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Search</a>
-                <a href="{{ route('charts') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Charts</a>
-                <a href="{{ route('new-releases') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">New Releases</a>
-                <a href="{{ route('playlists.public') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Public Playlists</a>
-            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div class="space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
+                    <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Discover</p>
+                    @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600'])
+                    <a href="{{ route('home') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Browse</a>
+                    <a href="{{ route('search') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Search</a>
+                    <a href="{{ route('charts') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Charts</a>
+                    <a href="{{ route('new-releases') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">New Releases</a>
+                    <a href="{{ route('playlists.public') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Public Playlists</a>
+                </div>
 
-            @auth
-                <div class="mt-4 space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
-                    <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Account</p>
-                    <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Dashboard</a>
-                    @if(Auth::user()->isArtist())
-                        <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
-                    @endif
-                    <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Account Settings</a>
-                    @if(Auth::user()->isAdmin())
-                        <a href="{{ url('/musicdirector') }}" class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Admin Panel</a>
-                    @endif
-                    @if(Auth::user()->isListener())
-                        <a href="{{ route('listener.playlists') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Playlists</a>
-                    @endif
-                    @if(Auth::user()->isArtist())
-                        <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Music</a>
-                    @endif
-                    <form method="POST" action="{{ route('logout') }}" class="pt-1">
-                        @csrf
-                        <button type="submit" class="w-full rounded-xl px-3 py-2.5 text-left text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Log Out</button>
-                    </form>
-                </div>
-            @else
-                <div class="mt-4 space-y-3">
-                    <a href="{{ route('register') }}" wire:navigate class="block rounded-xl bg-primary px-4 py-3 text-center font-semibold text-white shadow-sm">Sign Up Free</a>
-                    <a href="{{ route('login') }}" wire:navigate class="block rounded-xl border border-white/50 bg-white/70 px-4 py-3 text-center font-semibold text-gray-700">Log In</a>
-                </div>
-            @endauth
+                @auth
+                    <div class="mt-4 space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
+                        <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Account</p>
+                        <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Dashboard</a>
+                        @if(Auth::user()->isArtist())
+                            <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
+                        @endif
+                        <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Account Settings</a>
+                        @if(Auth::user()->isAdmin())
+                            <a href="{{ url('/musicdirector') }}" class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Admin Panel</a>
+                        @endif
+                        @if(Auth::user()->isListener())
+                            <a href="{{ route('listener.playlists') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Playlists</a>
+                        @endif
+                        @if(Auth::user()->isArtist())
+                            <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Music</a>
+                        @endif
+                        <form method="POST" action="{{ route('logout') }}" class="pt-1">
+                            @csrf
+                            <button type="submit" class="w-full rounded-xl px-3 py-2.5 text-left text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Log Out</button>
+                        </form>
+                    </div>
+                @else
+                    <div class="mt-4 space-y-3">
+                        <a href="{{ route('register') }}" wire:navigate class="block rounded-xl bg-primary px-4 py-3 text-center font-semibold text-white shadow-sm">Sign Up Free</a>
+                        <a href="{{ route('login') }}" wire:navigate class="block rounded-xl border border-white/50 bg-white/70 px-4 py-3 text-center font-semibold text-gray-700">Log In</a>
+                    </div>
+                @endauth
+            </div>
         </div>
     </div>
 
