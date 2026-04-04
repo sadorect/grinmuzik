@@ -129,7 +129,7 @@ class ArtistProfileResource extends Resource
                 Actions\EditAction::make(),
                 Actions\Action::make('verifyAndApprove')
                     ->label('Verify + Approve')
-                    ->icon('heroicon-o-badge-check')
+                    ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
                     ->visible(fn (ArtistProfile $record): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']) && (
@@ -167,7 +167,7 @@ class ArtistProfileResource extends Resource
                     Actions\DeleteBulkAction::make(),
                     Actions\BulkAction::make('verifyAndApproveSelected')
                         ->label('Verify + approve selected')
-                        ->icon('heroicon-o-badge-check')
+                        ->icon('heroicon-o-check-badge')
                         ->visible(fn (): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']))
                         ->action(fn ($records) => $records->each(function (ArtistProfile $record): void {
                             $record->loadMissing('user');
