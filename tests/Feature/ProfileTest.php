@@ -45,7 +45,7 @@ class ProfileTest extends TestCase
 
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
-        $this->assertNotNull($user->email_verified_at);
+        $this->assertNull($user->email_verified_at);
     }
 
     public function test_user_can_update_their_account_avatar(): void

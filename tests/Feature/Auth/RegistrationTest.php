@@ -57,10 +57,57 @@ class RegistrationTest extends TestCase
 
         $component->call('register');
 
-        $component->assertRedirect(route('dashboard', absolute: false));
+        $component->assertRedirect(route('verification.notice', absolute: false));
 
         $this->assertAuthenticated();
-        $this->assertNotNull(auth()->user()->email_verified_at);
+        $this->assertNull(auth()->user()->email_verified_at);
+    }
+
+    public function test_artist_registration_starts_pending_until_the_email_is_verified(): void
+    {
+        session(['captcha_answer' => 11]);
+
+        $component = Volt::test('pages.auth.register')
+            ->set('role', 'artist')
+            ->set('name', 'Artist User')
+            ->set('email', 'artist@example.com')
+            ->set('password', 'password')
+            ->set('password_confirmation', 'password')
+            ->set('stage_name', 'Artist User')
+            ->set('captcha', '11')
+            ->set('hasAcceptedPolicies', true);
+
+        $component->call('register');
+
+        $user = auth()->user()->load('artistProfile');
+
+        $this->assertAuthenticated();
+        $this->assertNotNull($user->artistProfile);
+        $this->assertFalse($user->artistProfile->is_verified);
+        $this->assertFalse($user->artistProfile->is_approved);
+    }
+
+    public function test_registration_still_succeeds_when_verification_email_cannot_be_sent(): void
+    {
+        config()->set('mail.default', 'missing-mailer');
+
+        $component = Volt::test('pages.auth.register')
+            ->set('role', 'listener')
+            ->set('name', 'No Mail User')
+            ->set('email', 'nomail@example.com')
+            ->set('password', 'password')
+            ->set('password_confirmation', 'password')
+            ->set('captcha', '13')
+            ->set('hasAcceptedPolicies', true);
+
+        session(['captcha_answer' => 13]);
+
+        $component->call('register');
+
+        $this->assertAuthenticated();
+        $this->assertNull(auth()->user()->email_verified_at);
+        $this->assertSame('verification-link-failed', session('status'));
+        $this->get(route('verification.notice'))->assertOk();
     }
 
     public function test_artist_avatar_must_be_two_megabytes_or_smaller(): void

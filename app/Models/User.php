@@ -59,6 +59,15 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function (User $user): void {
+            if ($user->wasChanged('email_verified_at')) {
+                $user->syncArtistVerificationState();
+            }
+        });
+    }
+
     public static function onlineThreshold(): \Illuminate\Support\Carbon
     {
         return now()->subMinutes(5);
@@ -241,5 +250,45 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
     public function getIsOnlineAttribute(): bool
     {
         return $this->isOnline();
+    }
+
+    public function syncArtistVerificationState(): void
+    {
+        if (! $this->isArtist()) {
+            return;
+        }
+
+        $profile = $this->relationLoaded('artistProfile')
+            ? $this->artistProfile
+            : $this->artistProfile()->first();
+
+        if (! $profile) {
+            return;
+        }
+
+        if ($this->hasVerifiedEmail()) {
+            $profile->markVerifiedAndApproved();
+
+            return;
+        }
+
+        $profile->markPendingEmailVerification();
+    }
+
+    public function manuallyVerifyAndApproveArtist(): void
+    {
+        if (! $this->hasVerifiedEmail()) {
+            $this->forceFill([
+                'email_verified_at' => now(),
+            ])->save();
+
+            return;
+        }
+
+        $profile = $this->relationLoaded('artistProfile')
+            ? $this->artistProfile
+            : $this->artistProfile()->first();
+
+        $profile?->markVerifiedAndApproved();
     }
 }

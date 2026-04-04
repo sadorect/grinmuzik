@@ -161,7 +161,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                         <div class="min-w-0">
                             <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Artist Profile</p>
                             <p class="mt-1 truncate text-sm font-semibold text-gray-900">{{ $profile->display_name }}</p>
-                            <p class="text-xs text-gray-500">{{ $profile->is_approved ? 'Approved artist profile' : 'Pending approval' }}</p>
+                            <p class="text-xs text-gray-500">{{ $profile->is_approved ? 'Approved artist profile' : ($profile->is_verified ? 'Verified, awaiting activation' : 'Email verification required') }}</p>
                         </div>
                     </div>
 
@@ -193,7 +193,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
         @if(!$profile->is_approved)
             <div class="glass-card rounded-2xl p-4 border border-yellow-200 bg-yellow-50/60">
-                <p class="text-sm text-yellow-700 font-medium">Your artist profile is pending admin approval. You can still upload tracks, but they will not be publicly visible until approved.</p>
+                <p class="text-sm text-yellow-700 font-medium">Your artist profile is not live yet. Verify your email to approve it automatically, or contact an admin if you need manual help.</p>
             </div>
         @endif
 

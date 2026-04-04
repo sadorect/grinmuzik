@@ -127,43 +127,69 @@ class ArtistProfileResource extends Resource
             ])
             ->actions([
                 Actions\EditAction::make(),
+                Actions\Action::make('verifyAndApprove')
+                    ->label('Verify + Approve')
+                    ->icon('heroicon-o-badge-check')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (ArtistProfile $record): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']) && (
+                        ! $record->is_verified ||
+                        ! $record->is_approved ||
+                        ! ($record->user?->hasVerifiedEmail() ?? false)
+                    ))
+                    ->action(function (ArtistProfile $record): void {
+                        $record->loadMissing('user');
+                        $record->user?->manuallyVerifyAndApproveArtist();
+                    }),
                 Actions\Action::make('approve')
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']))
-                    ->action(fn (ArtistProfile $record) => $record->update([
-                        'is_approved' => true,
-                        'is_active' => true,
-                    ])),
+                    ->visible(fn (ArtistProfile $record): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']) && (
+                        ($record->user?->hasVerifiedEmail() ?? false) || $record->is_verified
+                    ) && ! $record->is_approved)
+                    ->action(function (ArtistProfile $record): void {
+                        $record->forceFill([
+                            'is_verified' => $record->is_verified || ($record->user?->hasVerifiedEmail() ?? false),
+                            'is_approved' => true,
+                            'is_active' => true,
+                        ])->save();
+                    }),
                 Actions\Action::make('reject')
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (): bool => AdminPanelAccess::allows(['reject artists', 'manage artists']))
-                    ->action(fn (ArtistProfile $record) => $record->update([
-                        'is_approved' => false,
-                    ])),
+                    ->action(fn (ArtistProfile $record) => $record->rejectFromModeration()),
             ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
                     Actions\DeleteBulkAction::make(),
+                    Actions\BulkAction::make('verifyAndApproveSelected')
+                        ->label('Verify + approve selected')
+                        ->icon('heroicon-o-badge-check')
+                        ->visible(fn (): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']))
+                        ->action(fn ($records) => $records->each(function (ArtistProfile $record): void {
+                            $record->loadMissing('user');
+                            $record->user?->manuallyVerifyAndApproveArtist();
+                        })),
                     Actions\BulkAction::make('approveSelected')
                         ->label('Approve selected')
                         ->icon('heroicon-o-check-circle')
                         ->visible(fn (): bool => AdminPanelAccess::allows(['approve artists', 'manage artists']))
-                        ->action(fn ($records) => $records->each->update([
-                            'is_approved' => true,
-                            'is_active' => true,
-                        ])),
+                        ->action(fn ($records) => $records->each(function (ArtistProfile $record): void {
+                            $record->forceFill([
+                                'is_verified' => $record->is_verified || ($record->user?->hasVerifiedEmail() ?? false),
+                                'is_approved' => true,
+                                'is_active' => true,
+                            ])->save();
+                        })),
                     Actions\BulkAction::make('rejectSelected')
                         ->label('Reject selected')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->visible(fn (): bool => AdminPanelAccess::allows(['reject artists', 'manage artists']))
-                        ->action(fn ($records) => $records->each->update([
-                            'is_approved' => false,
-                        ])),
+                        ->action(fn ($records) => $records->each(fn (ArtistProfile $record) => $record->rejectFromModeration())),
                     ...(ArtistProfile::supportsFeaturedCuration()
                         ? [
                             Actions\BulkAction::make('feature')

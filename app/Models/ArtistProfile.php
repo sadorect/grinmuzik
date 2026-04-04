@@ -30,6 +30,10 @@ class ArtistProfile extends Model implements HasMedia
         'instagram',
         'youtube',
         'spotify',
+        'is_verified',
+        'is_approved',
+        'is_active',
+        'is_featured',
     ];
 
     protected $casts = [
@@ -48,6 +52,11 @@ class ArtistProfile extends Model implements HasMedia
             if (empty($profile->slug)) {
                 $profile->slug = Str::slug($profile->stage_name);
             }
+        });
+
+        static::created(function (ArtistProfile $profile): void {
+            $profile->loadMissing('user');
+            $profile->user?->syncArtistVerificationState();
         });
     }
 
@@ -244,6 +253,32 @@ class ArtistProfile extends Model implements HasMedia
         }
 
         return $query->where('is_featured', true);
+    }
+
+    public function markVerifiedAndApproved(): void
+    {
+        $this->forceFill([
+            'is_verified' => true,
+            'is_approved' => true,
+            'is_active' => true,
+        ])->save();
+    }
+
+    public function markPendingEmailVerification(): void
+    {
+        $this->forceFill([
+            'is_verified' => false,
+            'is_approved' => false,
+            'is_active' => true,
+        ])->save();
+    }
+
+    public function rejectFromModeration(): void
+    {
+        $this->forceFill([
+            'is_approved' => false,
+            'is_active' => true,
+        ])->save();
     }
 
     protected function normalizeExternalUrl(?string $value): ?string

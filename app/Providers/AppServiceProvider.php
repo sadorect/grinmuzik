@@ -6,9 +6,11 @@ use App\Models\ArtistProfile;
 use App\Models\Playlist;
 use App\Models\SiteSetting;
 use App\Models\Track;
+use App\Models\User;
 use App\Support\ThemePalette;
 use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -39,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
 
         \Illuminate\Support\Facades\Event::listen(PasswordReset::class, function (PasswordReset $event): void {
             app(ArtistActivityNotifier::class)->sendPasswordChanged($event->user, 'reset');
+        });
+
+        \Illuminate\Support\Facades\Event::listen(Verified::class, function (Verified $event): void {
+            if ($event->user instanceof User) {
+                $event->user->refresh()->syncArtistVerificationState();
+            }
         });
 
         View::composer('*', function ($view): void {

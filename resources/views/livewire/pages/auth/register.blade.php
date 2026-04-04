@@ -9,6 +9,7 @@ use App\Support\UploadLimits;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
@@ -72,7 +73,7 @@ new #[Layout('layouts.guest')] class extends Component
         $this->validateOnly('avatar');
     }
 
-    public function register(): void
+    public function register()
     {
         $this->resetErrorBag('register');
         $this->validate();
@@ -87,8 +88,6 @@ new #[Layout('layouts.guest')] class extends Component
                     'password' => Hash::make($this->password),
                 ]);
 
-                $user->sendEmailVerificationNotification();
-
                 Role::findOrCreate($this->role, 'web');
                 $user->assignRole($this->role);
 
@@ -97,11 +96,11 @@ new #[Layout('layouts.guest')] class extends Component
                         'user_id'    => $user->id,
                         'stage_name' => $this->stage_name,
                         'bio'        => $this->bio,
+                        'is_verified' => $user->hasVerifiedEmail(),
+                        'is_approved' => $user->hasVerifiedEmail(),
+                        'is_active' => true,
                     ]);
-                    $profile->forceFill([
-                        'is_active'  => true,
-                        'is_approved' => false,
-                    ])->save();
+                    $profile->save();
 
                     if (!empty($this->selectedGenres)) {
                         $profile->genres()->sync($this->selectedGenres);
@@ -129,8 +128,24 @@ new #[Layout('layouts.guest')] class extends Component
         }
 
         Auth::login($user);
+        Session::regenerate();
 
-        $this->redirectRoute('verification.notice', navigate: true);
+        session()->flash('status', $this->sendVerificationLink($user));
+
+        return $this->redirectRoute('verification.notice', navigate: true);
+    }
+
+    protected function sendVerificationLink(User $user): string
+    {
+        try {
+            $user->sendEmailVerificationNotification();
+
+            return 'verification-link-sent';
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return 'verification-link-failed';
+        }
     }
 }; ?>
 
@@ -145,7 +160,7 @@ new #[Layout('layouts.guest')] class extends Component
         role="dialog"
         aria-modal="true"
     >
-        <div class="absolute inset-0 bg-slate-950/45 backdrop-blur-sm" @click="showRoleGuide = false"></div>
+        <div class="absolute inset-0 bg-slate-950/45 backdrop-blur-sm" x-on:click="showRoleGuide = false"></div>
 
         <div
             x-show="showRoleGuide"
@@ -156,7 +171,7 @@ new #[Layout('layouts.guest')] class extends Component
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             class="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-2xl"
-            @click.stop
+            x-on:click.stop
         >
             <div class="absolute inset-x-0 top-0 h-44 bg-gradient-to-r from-primary-500 via-primary-400 to-secondary-400 opacity-95"></div>
             <div class="absolute -left-12 top-8 h-32 w-32 rounded-full bg-white/15 blur-3xl"></div>
@@ -165,7 +180,7 @@ new #[Layout('layouts.guest')] class extends Component
             <button
                 type="button"
                 class="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/60 bg-white/85 text-gray-600 shadow-sm transition hover:bg-white hover:text-gray-900"
-                @click.stop="showRoleGuide = false"
+                x-on:click.stop="showRoleGuide = false"
                 aria-label="Close quick guide"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -191,7 +206,7 @@ new #[Layout('layouts.guest')] class extends Component
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <button
                         type="button"
-                        @click="$wire.set('role', 'artist'); showRoleGuide = false"
+                        x-on:click="$wire.set('role', 'artist'); showRoleGuide = false"
                         class="group rounded-[1.6rem] border border-primary-100 bg-gradient-to-br from-primary-50 via-white to-primary-50 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
                         <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
@@ -213,7 +228,7 @@ new #[Layout('layouts.guest')] class extends Component
 
                     <button
                         type="button"
-                        @click="$wire.set('role', 'listener'); showRoleGuide = false"
+                        x-on:click="$wire.set('role', 'listener'); showRoleGuide = false"
                         class="group rounded-[1.6rem] border border-gray-200 bg-gradient-to-br from-white via-slate-50 to-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
                         <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
@@ -239,7 +254,7 @@ new #[Layout('layouts.guest')] class extends Component
                     <button
                         type="button"
                         class="shrink-0 rounded-full border border-gray-200 bg-white px-4 py-2 font-semibold text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
-                        @click="showRoleGuide = false"
+                        x-on:click="showRoleGuide = false"
                     >
                         Close
                     </button>

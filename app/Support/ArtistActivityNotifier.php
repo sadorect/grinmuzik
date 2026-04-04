@@ -80,13 +80,13 @@ class ArtistActivityNotifier
                 subject: 'Your artist profile has been created',
                 eyebrow: 'Artist Setup',
                 title: 'Your public artist profile is now in place.',
-                intro: 'You can keep refining your presence while the profile review process moves forward.',
+                intro: 'You can keep refining your presence while email verification and approval are completed.',
                 messageLines: [
-                    'Once approved, listeners will be able to discover your page, follow your profile, and explore your releases.',
+                    'Verify your email to approve the profile automatically, or contact an admin if you need manual help.',
                 ],
                 highlights: array_values(array_filter([
                     ['label' => 'Stage name', 'value' => $profile->display_name],
-                    ['label' => 'Status', 'value' => $profile->is_approved ? 'Approved' : 'Pending review'],
+                    ['label' => 'Status', 'value' => $profile->is_approved ? 'Approved' : ($profile->is_verified ? 'Verified, awaiting activation' : 'Email verification required')],
                     $profile->genres->isNotEmpty()
                         ? ['label' => 'Genres', 'value' => $profile->genres->pluck('name')->take(3)->implode(', ')]
                         : null,
@@ -119,7 +119,7 @@ class ArtistActivityNotifier
                     $profile->genres->isNotEmpty()
                         ? ['label' => 'Genres', 'value' => $profile->genres->pluck('name')->take(3)->implode(', ')]
                         : null,
-                    ['label' => 'Profile status', 'value' => $profile->is_approved ? 'Approved' : 'Pending review'],
+                    ['label' => 'Profile status', 'value' => $profile->is_approved ? 'Approved' : ($profile->is_verified ? 'Verified, awaiting activation' : 'Email verification required')],
                 ])),
                 ctaLabel: 'View Public Page',
                 ctaUrl: route('artist.page', $profile),

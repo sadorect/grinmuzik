@@ -71,7 +71,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
             'instagram'   => $this->instagram ?: null,
             'twitter'     => $this->twitter ?: null,
             'spotify'     => $this->spotify ?: null,
-            'is_approved' => false, // admin must approve
+            'is_verified' => $user->hasVerifiedEmail(),
+            'is_approved' => $user->hasVerifiedEmail(),
             'is_active'   => true,
         ]);
 
@@ -185,7 +186,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                         <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2Zm1 14h-2v-2h2v2Zm0-4h-2V7h2v5Z"/>
                     </svg>
                     <p class="text-yellow-700 text-xs leading-relaxed">
-                        Your profile will be reviewed before going public. You can still upload tracks while waiting for approval.
+                        Verify your email to activate and approve your public artist profile automatically. An admin can still step in manually if needed.
                     </p>
                 </div>
 

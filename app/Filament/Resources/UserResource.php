@@ -167,6 +167,17 @@ class UserResource extends Resource
                     ->query(fn (Builder $query): Builder => $query->online()),
             ])
             ->actions([
+                Actions\Action::make('verifyEmail')
+                    ->label('Verify Email')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (User $record): bool => AdminPanelAccess::allows(static::$editPermissions) && blank($record->email_verified_at))
+                    ->requiresConfirmation()
+                    ->action(function (User $record): void {
+                        $record->forceFill([
+                            'email_verified_at' => now(),
+                        ])->save();
+                    }),
                 Actions\EditAction::make(),
             ])
             ->bulkActions([

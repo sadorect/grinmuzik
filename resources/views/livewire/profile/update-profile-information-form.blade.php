@@ -58,10 +58,14 @@ new class extends Component
         $emailChanged = $user->isDirty('email');
 
         if ($emailChanged) {
-            $user->email_verified_at = now();
+            $user->email_verified_at = null;
         }
 
         $user->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         if ($this->removeExistingAvatar) {
             $user->clearMediaCollection('avatar');

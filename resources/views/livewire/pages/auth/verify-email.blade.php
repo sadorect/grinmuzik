@@ -13,9 +13,7 @@ new #[Layout('layouts.guest')] class extends Component
             return;
         }
 
-        Auth::user()->sendEmailVerificationNotification();
-
-        session()->flash('status', 'verification-link-sent');
+        session()->flash('status', $this->sendVerificationLink(Auth::user()));
     }
 
     public function logout(): void
@@ -24,6 +22,19 @@ new #[Layout('layouts.guest')] class extends Component
         request()->session()->invalidate();
         request()->session()->regenerateToken();
         $this->redirect(route('home'), navigate: true);
+    }
+
+    protected function sendVerificationLink($user): string
+    {
+        try {
+            $user->sendEmailVerificationNotification();
+
+            return 'verification-link-sent';
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return 'verification-link-failed';
+        }
     }
 }; ?>
 
@@ -35,6 +46,12 @@ new #[Layout('layouts.guest')] class extends Component
     @if (session('status') === 'verification-link-sent')
         <div class="mb-4 text-sm font-medium text-green-600">
             {{ __('A new verification link has been sent to your email address.') }}
+        </div>
+    @endif
+
+    @if (session('status') === 'verification-link-failed')
+        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {{ __("Your account was created, but we couldn't send the verification email right now. Please try the resend button again shortly, or contact support if the issue continues.") }}
         </div>
     @endif
 
