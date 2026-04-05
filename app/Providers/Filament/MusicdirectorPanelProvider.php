@@ -29,7 +29,7 @@ class MusicdirectorPanelProvider extends PanelProvider
             ->default()
             ->id('musicdirector')
             ->path('musicdirector')
-            ->brandName('Grinmusic Admin')
+            ->brandName('GrinMuzik Admin')
             ->login(FilamentLogin::class)
             ->colors([
                 'primary' => Color::hex('#728FCE'),

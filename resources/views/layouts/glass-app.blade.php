@@ -7,7 +7,9 @@
 
     @include('partials.theme-head')
     @include('partials.seo-head', ['pageTitle' => $title ?? null])
-    @php($appIconUrl = route('pwa.icon'))
+    @php
+        $appIconUrl = route('pwa.icon');
+    @endphp
     <link rel="icon" href="{{ $appIconUrl }}">
     <link rel="shortcut icon" href="{{ $appIconUrl }}">
     <link rel="apple-touch-icon" href="{{ $appIconUrl }}">
@@ -32,16 +34,29 @@
 <body class="glass-gradient-light min-h-screen antialiased transition-colors duration-300"
       x-data="{ showBackToTop: false }"
       x-on:scroll.window.throttle.150ms="showBackToTop = window.scrollY > 500">
-@php($currentRouteName = request()->route()?->getName())
-@php($publicShell = $publicShell ?? ($currentRouteName === 'search' ? 'search-sidebar' : 'default'))
-@php($useSearchSidebar = $publicShell === 'search-sidebar')
-@php($primaryNavItems = [
-    ['label' => 'Browse', 'route' => 'home'],
-    ['label' => 'Search', 'route' => 'search'],
-    ['label' => 'Charts', 'route' => 'charts'],
-    ['label' => 'New Releases', 'route' => 'new-releases'],
-    ['label' => 'Playlists', 'route' => 'playlists.public'],
-])
+@php
+    $currentRouteName = request()->route()?->getName();
+    $publicShell = $publicShell ?? ($currentRouteName === 'search' ? 'search-sidebar' : 'default');
+    $useSearchSidebar = $publicShell === 'search-sidebar';
+    $primaryNavItems = [
+        ['label' => 'Browse', 'route' => 'home'],
+        ['label' => 'Search', 'route' => 'search'],
+        ['label' => 'Charts', 'route' => 'charts'],
+        ['label' => 'New Releases', 'route' => 'new-releases'],
+        ['label' => 'Playlists', 'route' => 'playlists.public'],
+    ];
+    $inboxUnread = 0;
+    if (auth()->check()) {
+        try {
+            $inboxUnread = \App\Models\InternalMessage::query()
+                ->forUser(auth()->user())
+                ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', auth()->id()))
+                ->count();
+        } catch (\Throwable) {
+            $inboxUnread = 0;
+        }
+    }
+@endphp
 <div id="app" class="min-h-screen" data-public-shell="{{ $publicShell }}">
 
     @if($useSearchSidebar)
@@ -81,6 +96,12 @@
                     <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-200">Account</p>
                     <div class="mt-3 space-y-1.5">
                         <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Dashboard</a>
+                        <a href="{{ route('inbox') }}" wire:navigate class="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">
+                            <span>Inbox</span>
+                            @if($inboxUnread > 0)
+                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1.5 text-[10px] font-bold text-white">{{ $inboxUnread }}</span>
+                            @endif
+                        </a>
                         <a href="{{ route('profile') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Account Settings</a>
                         @if(Auth::user()->isArtist())
                             <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Artist Profile</a>
@@ -153,6 +174,15 @@
                                 <a href="{{ route('profile') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                     Account Settings
+                                </a>
+                                <a href="{{ route('inbox') }}" wire:navigate class="flex items-center justify-between gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                        Inbox
+                                    </span>
+                                    @if($inboxUnread > 0)
+                                        <span class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-500 px-1 text-[9px] font-bold text-white">{{ $inboxUnread }}</span>
+                                    @endif
                                 </a>
                                 @if(Auth::user()->isAdmin())
                                 <a href="{{ url('/musicdirector') }}" class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
@@ -237,6 +267,12 @@
                     <div class="mt-4 space-y-1 rounded-2xl border border-white/50 bg-white/70 p-3">
                         <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Account</p>
                         <a href="{{ route('dashboard') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Dashboard</a>
+                        <a href="{{ route('inbox') }}" wire:navigate class="flex items-center justify-between rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">
+                            <span>Inbox</span>
+                            @if($inboxUnread > 0)
+                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1.5 text-[10px] font-bold text-white">{{ $inboxUnread }}</span>
+                            @endif
+                        </a>
                         @if(Auth::user()->isArtist())
                             <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
                         @endif

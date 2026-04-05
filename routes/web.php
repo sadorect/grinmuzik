@@ -249,6 +249,11 @@ Route::middleware(['auth'])->prefix('me')->name('listener.')->group(function () 
     Volt::route('/history', 'pages.listener.history')->name('history');
 });
 
+// ── Inbox (all authenticated users) ───────────────────────────────────────
+Route::middleware(['auth'])->group(function () {
+    Volt::route('/inbox', 'pages.inbox')->name('inbox');
+});
+
 Route::post('logout', function () {
     auth()->logout();
     request()->session()->invalidate();

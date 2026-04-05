@@ -138,6 +138,27 @@ new #[Layout('layouts.glass-app')] class extends Component
 
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
 
+    @php
+        $dashInboxUnread = 0;
+        try {
+            $dashInboxUnread = \App\Models\InternalMessage::query()
+                ->forUser(auth()->user())
+                ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', auth()->id()))
+                ->count();
+        } catch (\Throwable) {}
+    @endphp
+
+    @if($dashInboxUnread > 0)
+        <a href="{{ route('inbox') }}" wire:navigate
+           class="flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary-800 shadow-sm transition hover:bg-primary/20">
+            <span class="flex items-center gap-2">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                You have {{ $dashInboxUnread }} unread {{ Str::plural('message', $dashInboxUnread) }} in your inbox.
+            </span>
+            <span class="whitespace-nowrap text-xs underline underline-offset-2">View inbox &rarr;</span>
+        </a>
+    @endif
+
     @if(!$profile)
         <div class="glass-card rounded-2xl p-8 text-center">
             <p class="text-gray-600">Your artist profile is being set up. Please check back shortly.</p>
