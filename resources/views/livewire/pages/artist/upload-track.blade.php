@@ -103,6 +103,14 @@ new #[Layout('layouts.glass-app')] class extends Component
         $this->validateOnly('coverFile');
     }
 
+    protected function messages(): array
+    {
+        return [
+            'audioFile.max' => 'The audio file must not be greater than ' . UploadLimits::formatKilobytes(UploadLimits::audioKb()) . '.',
+            'coverFile.max' => 'The cover image must not be greater than ' . UploadLimits::formatKilobytes(UploadLimits::imageKb()) . '.',
+        ];
+    }
+
     public function save(): void
     {
         $this->resetErrorBag('save');
