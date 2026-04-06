@@ -12,16 +12,16 @@
     @download-unavailable.window="showStatusToast($event.detail.message || 'Download unavailable.')"
     @start-download.window="
         if (!$event.detail?.url) return;
-        if (!window.GrinDownloadFrame) {
-            const frame = document.createElement('iframe');
-            frame.style.display = 'none';
-            frame.setAttribute('aria-hidden', 'true');
-            document.body.appendChild(frame);
-            window.GrinDownloadFrame = frame;
-        }
         const url = new URL($event.detail.url, window.location.origin);
         url.searchParams.set('_dl', Date.now().toString());
-        window.GrinDownloadFrame.src = url.toString();
+        const link = document.createElement('a');
+        link.href = url.toString();
+        link.rel = 'noopener';
+        link.target = '_blank';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        window.setTimeout(() => link.remove(), 0);
     "
     class="fixed bottom-0 left-0 right-0 z-50"
 >

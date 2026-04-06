@@ -241,13 +241,13 @@ class Track extends Model implements HasMedia
     public function getCoverUrl(string $conversion = 'thumb'): string
     {
         return $this->getFirstMediaUrl('cover', $conversion)
-            ?: ($this->album?->getCoverUrl($conversion) ?? '');
+            ?: ($this->album?->getCoverUrl($conversion) ?: SiteSetting::defaultImageUrl());
     }
 
     public function getShareImageUrl(): string
     {
         return $this->getFirstMediaUrl('cover', 'share')
-            ?: ($this->album?->getShareImageUrl() ?? '');
+            ?: ($this->album?->getShareImageUrl() ?: SiteSetting::defaultImageUrl());
     }
 
     public function getCoverAltAttribute(): string

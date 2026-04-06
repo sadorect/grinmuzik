@@ -241,13 +241,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
         <div class="flex flex-col sm:flex-row gap-8 mb-10">
             {{-- Cover art --}}
             <div class="w-full sm:w-56 h-56 shrink-0 rounded-2xl overflow-hidden shadow-2xl">
-                @if($track->getFirstMediaUrl('cover'))
-                    <img src="{{ $track->getFirstMediaUrl('cover', 'large') }}" alt="{{ $track->title }}" class="w-full h-full object-cover">
-                @else
-                    <div class="w-full h-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center">
-                        <svg class="w-20 h-20 text-white/50" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
-                    </div>
-                @endif
+                <img src="{{ $track->getCoverUrl('large') }}" alt="{{ $track->title }}" class="w-full h-full object-cover">
             </div>
 
             {{-- Info --}}

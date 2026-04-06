@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\ArtistProfile;
+use App\Models\SiteSetting;
+use App\Models\Track;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -116,5 +118,48 @@ class ArtistProfileManagementTest extends TestCase
             ->assertSee('https://twitter.com/socialartist', escape: false)
             ->assertSee('https://youtube.com/@socialartist', escape: false)
             ->assertSee('https://open.spotify.com/artist/abc123', escape: false);
+    }
+
+    public function test_artist_and_track_pages_fall_back_to_the_site_logo_when_media_is_missing(): void
+    {
+        Storage::fake('public');
+        Role::findOrCreate('artist', 'web');
+
+        SiteSetting::current()->update([
+            'site_logo' => 'branding/site-logo.png',
+        ]);
+
+        $user = User::factory()->create();
+        $user->assignRole('artist');
+
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Logo Fallback Artist',
+            'slug' => 'logo-fallback-artist',
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $track = Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Logo Fallback Track',
+            'slug' => 'logo-fallback-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
+
+        $siteLogoUrl = SiteSetting::current()->fresh()->site_logo_url;
+
+        $this->assertSame($siteLogoUrl, $profile->fresh()->getAvatarMediaUrl());
+        $this->assertSame($siteLogoUrl, $track->fresh()->getCoverUrl());
+
+        $this->get(route('artist.page', $profile))
+            ->assertOk()
+            ->assertSee($siteLogoUrl, escape: false);
+
+        $this->get(route('track.show', $track))
+            ->assertOk()
+            ->assertSee($siteLogoUrl, escape: false);
     }
 }

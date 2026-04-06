@@ -155,7 +155,7 @@ class ArtistProfile extends Model implements HasMedia
 
         $user = $this->relationLoaded('user') ? $this->user : $this->user()->first();
 
-        return $user?->getAvatarMediaUrl($conversion) ?? '';
+        return $user?->getAvatarMediaUrl($conversion) ?: SiteSetting::defaultImageUrl();
     }
 
     public function getAvatarUrl(string $conversion = 'thumb'): string

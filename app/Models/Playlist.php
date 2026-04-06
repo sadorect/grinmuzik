@@ -95,12 +95,12 @@ class Playlist extends Model implements HasMedia
 
     public function getCoverUrl(): string
     {
-        return $this->getFirstMediaUrl('cover') ?: '';
+        return $this->getFirstMediaUrl('cover') ?: SiteSetting::defaultImageUrl();
     }
 
     public function getShareImageUrl(): string
     {
-        return $this->getFirstMediaUrl('cover', 'share') ?: '';
+        return $this->getFirstMediaUrl('cover', 'share') ?: SiteSetting::defaultImageUrl();
     }
 
     public function getCoverAltAttribute(): string

@@ -179,7 +179,7 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
         $avatar = $this->getFirstMedia('avatar');
 
         if (! $avatar) {
-            return '';
+            return SiteSetting::defaultImageUrl();
         }
 
         return $conversion !== ''

@@ -264,11 +264,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                 <path d="M8 5v14l11-7z"/>
                             </svg>
                             <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-                                @if($track->getFirstMediaUrl('cover'))
-                                    <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
-                                @else
-                                    <div class="h-full w-full bg-gradient-to-br from-primary-200 to-primary-400"></div>
-                                @endif
+                                <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium text-gray-800">{{ $track->title }}</p>
@@ -297,13 +293,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     @foreach($profile->albums as $album)
                         <div class="overflow-hidden rounded-xl transition hover:bg-white/50 glass-card">
                             <div class="aspect-square">
-                                @if($album->getFirstMediaUrl('cover'))
-                                    <img src="{{ $album->getFirstMediaUrl('cover', 'large') }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
-                                @else
-                                    <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-300 to-primary-600">
-                                        <svg class="h-12 w-12 text-white/40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
-                                    </div>
-                                @endif
+                                <img src="{{ $album->getCoverUrl('large') }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
                             </div>
                             <div class="p-2">
                                 <p class="truncate text-sm font-semibold text-gray-800">{{ $album->title }}</p>

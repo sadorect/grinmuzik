@@ -272,6 +272,15 @@ class SiteSetting extends Model
         return $this->buildPublicAssetUrl($this->favicon);
     }
 
+    public static function defaultImageUrl(): string
+    {
+        try {
+            return trim((string) static::current()->site_logo_url);
+        } catch (Throwable) {
+            return '';
+        }
+    }
+
     protected function buildPublicAssetUrl(?string $path): ?string
     {
         if (! $path) {

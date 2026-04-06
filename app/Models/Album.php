@@ -115,12 +115,12 @@ class Album extends Model implements HasMedia
     public function getCoverUrl(string $conversion = 'thumb'): string
     {
         return $this->getFirstMediaUrl('cover', $conversion)
-            ?: '';
+            ?: SiteSetting::defaultImageUrl();
     }
 
     public function getShareImageUrl(): string
     {
-        return $this->getFirstMediaUrl('cover', 'share') ?: '';
+        return $this->getFirstMediaUrl('cover', 'share') ?: SiteSetting::defaultImageUrl();
     }
 
     public function getCoverAltAttribute(): string
