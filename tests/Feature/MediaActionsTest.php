@@ -323,10 +323,9 @@ class MediaActionsTest extends TestCase
 
         $response = $this->actingAs($user)
             ->get(route('track.download', $track))
-            ->assertOk();
+            ->assertRedirect();
 
-        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
-        $this->assertStringContainsString('test-track.mp3', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('test-track.mp3', (string) $response->headers->get('location'));
 
         $this->assertEquals(1, (int) $track->fresh()->downloads_count);
     }
@@ -369,10 +368,9 @@ class MediaActionsTest extends TestCase
 
         $response = $this->actingAs($user)
             ->get(route('track.download', $track))
-            ->assertOk();
+            ->assertRedirect();
 
-        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
-        $this->assertStringContainsString('locked-track.mp3', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('locked-track.mp3', (string) $response->headers->get('location'));
     }
 
     // ── Track show page ───────────────────────────────────────────────────────
