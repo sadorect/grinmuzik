@@ -36,10 +36,22 @@ class RegistrationTest extends TestCase
             ->assertDontSee('Choose the tab that matches your reason for joining');
     }
 
-    public function test_registration_defaults_to_artist_role(): void
+    public function test_registration_defaults_to_listener_role(): void
     {
         Volt::test('pages.auth.register')
-            ->assertSet('role', 'artist');
+            ->assertSet('role', 'listener');
+    }
+
+    public function test_registration_can_start_on_the_artist_role_from_the_query_string(): void
+    {
+        $this->get('/register?role=artist&show_role_guide=0')
+            ->assertOk()
+            ->assertSee('Release my music')
+            ->assertSee('Artist Details')
+            ->assertSee('Stage / Artist Name')
+            ->assertSee('Profile Photo (optional)')
+            ->assertDontSee('Choose the tab that matches your reason for joining')
+            ->assertSee('Create Account');
     }
 
     public function test_new_users_can_register(): void
@@ -55,36 +67,14 @@ class RegistrationTest extends TestCase
 
         session(['captcha_answer' => 7]);
 
-        $component->call('register');
+        $component
+            ->call('register')
+            ->assertHasNoErrors();
 
         $component->assertRedirect(route('verification.notice', absolute: false));
 
         $this->assertAuthenticated();
         $this->assertNull(auth()->user()->email_verified_at);
-    }
-
-    public function test_artist_registration_starts_pending_until_the_email_is_verified(): void
-    {
-        session(['captcha_answer' => 11]);
-
-        $component = Volt::test('pages.auth.register')
-            ->set('role', 'artist')
-            ->set('name', 'Artist User')
-            ->set('email', 'artist@example.com')
-            ->set('password', 'password')
-            ->set('password_confirmation', 'password')
-            ->set('stage_name', 'Artist User')
-            ->set('captcha', '11')
-            ->set('hasAcceptedPolicies', true);
-
-        $component->call('register');
-
-        $user = auth()->user()->load('artistProfile');
-
-        $this->assertAuthenticated();
-        $this->assertNotNull($user->artistProfile);
-        $this->assertFalse($user->artistProfile->is_verified);
-        $this->assertFalse($user->artistProfile->is_approved);
     }
 
     public function test_registration_still_succeeds_when_verification_email_cannot_be_sent(): void

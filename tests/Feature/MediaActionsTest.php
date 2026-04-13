@@ -277,6 +277,17 @@ class MediaActionsTest extends TestCase
     }
 
     #[Test]
+    public function guest_download_route_redirects_to_login_instead_of_returning_forbidden(): void
+    {
+        [, , $track] = $this->createArtistWithTrack([
+            'audio_file_path' => 'tracks/test-track.mp3',
+        ]);
+
+        $this->get(route('track.download', $track))
+            ->assertRedirect(route('login'));
+    }
+
+    #[Test]
     public function mini_player_download_dispatches_start_download_for_allowed_user(): void
     {
         [$user, , $track] = $this->createArtistWithTrack();

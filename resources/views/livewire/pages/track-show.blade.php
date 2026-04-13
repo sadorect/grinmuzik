@@ -169,7 +169,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
     public function download(): void
     {
         if (!auth()->check()) {
-            $this->dispatch('open-modal', 'login-required');
+            $this->dispatchDownloadLoginPrompt();
+
             return;
         }
 
@@ -188,6 +189,21 @@ new #[Layout('layouts.glass-app')] class extends Component {
             'start-download',
             url: route('track.download', $this->track),
             filename: $this->track->getDownloadFilename(),
+        );
+    }
+
+    protected function dispatchDownloadLoginPrompt(): void
+    {
+        $this->dispatch(
+            'open-modal',
+            id: 'login-required',
+            title: 'Sign in to download',
+            message: 'Log in or create a listener account to download this track.',
+            loginUrl: route('track.download', $this->track),
+            registerUrl: route('register', [
+                'role' => 'listener',
+                'show_role_guide' => 0,
+            ]),
         );
     }
 
@@ -214,7 +230,40 @@ new #[Layout('layouts.glass-app')] class extends Component {
 <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8"
      x-data="{
          copied: false,
+         lyricLinkCopied: false,
+         lyricTextCopied: false,
          shareUrl: @js($shareUrl),
+         lyricsText: @js($track->lyrics),
+         async copyValue(value) {
+             if (!value) {
+                 return false;
+             }
+
+             if (navigator.clipboard?.writeText) {
+                 try {
+                     await navigator.clipboard.writeText(value);
+                     return true;
+                 } catch (_) {
+                 }
+             }
+
+             const input = document.createElement('textarea');
+             input.value = value;
+             input.setAttribute('readonly', '');
+             input.style.position = 'absolute';
+             input.style.left = '-9999px';
+             document.body.appendChild(input);
+             input.select();
+
+             const copied = document.execCommand('copy');
+             document.body.removeChild(input);
+
+             return copied;
+         },
+         flashCopied(stateKey) {
+             this[stateKey] = true;
+             setTimeout(() => this[stateKey] = false, 2200);
+         },
          async shareTrack() {
              if (navigator.share) {
                  await navigator.share({ title: @js($track->title), text: @js($track->artistProfile->stage_name ?? $track->artistProfile->user->name), url: this.shareUrl });
@@ -223,15 +272,55 @@ new #[Layout('layouts.glass-app')] class extends Component {
 
              await this.copyTrackLink();
          },
+         getLyricsShareUrl() {
+             return `${this.shareUrl}#lyrics`;
+         },
+         scrollToLyrics() {
+             this.$refs.lyricsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         },
+         async shareLyrics() {
+             const lyricsUrl = this.getLyricsShareUrl();
+             const shareTitle = `${@js($track->title)} lyrics`;
+             const shareText = `Read the lyrics for ${@js($track->title)} by ${@js($track->artistProfile->stage_name ?? $track->artistProfile->user->name)}.`;
+
+             if (navigator.share) {
+                 await navigator.share({ title: shareTitle, text: shareText, url: lyricsUrl });
+                 return;
+             }
+
+             await this.copyLyricsLink();
+         },
          async copyTrackLink() {
-             if (navigator.clipboard?.writeText) {
-                 await navigator.clipboard.writeText(this.shareUrl);
-                 this.copied = true;
-                 setTimeout(() => this.copied = false, 2200);
+             if (await this.copyValue(this.shareUrl)) {
+                 this.flashCopied('copied');
                  return;
              }
 
              window.prompt('Copy this track link:', this.shareUrl);
+         },
+         async copyLyricsLink() {
+             const lyricsUrl = this.getLyricsShareUrl();
+
+             if (await this.copyValue(lyricsUrl)) {
+                 this.flashCopied('lyricLinkCopied');
+                 return;
+             }
+
+             window.prompt('Copy this lyrics link:', lyricsUrl);
+         },
+         async copyLyricsText() {
+             const lyricsText = (this.lyricsText || '').trim();
+
+             if (!lyricsText) {
+                 return;
+             }
+
+             if (await this.copyValue(lyricsText)) {
+                 this.flashCopied('lyricTextCopied');
+                 return;
+             }
+
+             window.prompt('Copy these lyrics:', lyricsText);
          }
      }"
     >
@@ -305,6 +394,15 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     @endif
                     <x-queue-track-button :track="$track" class="px-4 py-2 text-sm" />
                     @livewire('like-button', ['trackId' => $track->id], key('like-'.$track->id))
+                    @if(filled($track->lyrics))
+                        <button @click="scrollToLyrics"
+                                class="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary-700 transition hover:border-primary/30 hover:bg-primary/15">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 12h8M8 17h5M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>
+                            </svg>
+                            Lyrics
+                        </button>
+                    @endif
                     {{-- Download button --}}
                     <button wire:click="download"
                             title="Download track"
@@ -332,6 +430,103 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 </div>
             </div>
         </div>
+
+        @if(filled($track->lyrics))
+            @php
+                $lyricsLines = preg_split("/\r\n|\n|\r/", trim($track->lyrics)) ?: [];
+                $lyricsLineCount = collect($lyricsLines)->filter(fn ($line) => filled(trim($line)))->count();
+                $lyricsWordCount = str_word_count(trim($track->lyrics));
+            @endphp
+
+            <section id="lyrics" x-ref="lyricsSection" class="mb-8">
+                <div class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(254,242,242,0.92)_42%,_rgba(255,255,255,0.88)_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:p-6">
+                    <div class="absolute -left-16 top-0 h-40 w-40 rounded-full bg-primary/12 blur-3xl"></div>
+                    <div class="absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-secondary/15 blur-3xl"></div>
+
+                    <div class="relative">
+                        <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="max-w-2xl">
+                                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Lyrics View</p>
+                                <h2 class="mt-2 text-2xl font-black tracking-tight text-gray-900 sm:text-[2rem]">Read every line while the track plays</h2>
+                                <p class="mt-2 text-sm leading-6 text-gray-500 sm:text-base">
+                                    A dedicated lyrics view for <span class="font-semibold text-gray-700">{{ $track->title }}</span>.
+                                </p>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2">
+                                <button @click="shareLyrics"
+                                        class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.173 13.13 9.713 13 10.286 13c.573 0 1.113.13 1.602.342m-3.204 0a3 3 0 110-2.684m3.204 2.684a3 3 0 100-2.684m0 0L15.5 8m-5.214 5.342L6.5 16"/>
+                                    </svg>
+                                    Share Lyrics
+                                </button>
+                                <button @click="copyLyricsLink"
+                                        class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary/20 hover:text-primary">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span x-show="!lyricLinkCopied">Copy Link</span>
+                                    <span x-show="lyricLinkCopied" style="display:none">Link Copied</span>
+                                </button>
+                                <button @click="copyLyricsText"
+                                        class="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary/20 hover:text-primary">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M9 8h6m-7 12h8a2 2 0 002-2V6a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span x-show="!lyricTextCopied">Copy Text</span>
+                                    <span x-show="lyricTextCopied" style="display:none">Text Copied</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">
+                            <span class="rounded-full border border-white/80 bg-white/70 px-3 py-1 text-primary/80">Official Lyrics</span>
+                            <span class="rounded-full border border-white/80 bg-white/70 px-3 py-1">{{ number_format($lyricsLineCount) }} lines</span>
+                            <span class="rounded-full border border-white/80 bg-white/70 px-3 py-1">{{ number_format($lyricsWordCount) }} words</span>
+                        </div>
+
+                        <div class="mt-6 rounded-[1.75rem] border border-white/80 bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] sm:p-6">
+                            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                                <div class="rounded-[1.4rem] border border-primary/10 bg-gradient-to-br from-white to-primary-50/40 p-4 sm:p-5">
+                                    <div class="space-y-3 text-sm leading-7 text-gray-700 sm:text-[15px]">
+                                        @foreach($lyricsLines as $index => $line)
+                                            @if(filled(trim($line)))
+                                                <p class="flex gap-3">
+                                                    <span class="mt-0.5 hidden w-7 shrink-0 text-right text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-300 sm:inline">{{ $index + 1 }}</span>
+                                                    <span class="whitespace-pre-line break-words">{{ $line }}</span>
+                                                </p>
+                                            @else
+                                                <div class="h-3"></div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col justify-between rounded-[1.4rem] border border-dashed border-primary/20 bg-primary/5 p-4 text-sm text-gray-600">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Share Options</p>
+                                        <p class="mt-3 leading-6">
+                                            Send listeners straight to the lyrics section, or copy the full text for captions, notes, and repost-ready snippets.
+                                        </p>
+                                    </div>
+                                    <div class="mt-5 space-y-2">
+                                        <button @click="shareLyrics"
+                                                class="w-full rounded-2xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">
+                                            Share This View
+                                        </button>
+                                        <button @click="copyLyricsText"
+                                                class="w-full rounded-2xl border border-primary/20 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:border-primary/35 hover:bg-primary/5">
+                                            Copy Full Lyrics
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        @endif
 
         @if($relatedTracks->isNotEmpty())
             <section class="mb-8 rounded-[2rem] glass-card p-5 sm:p-6">

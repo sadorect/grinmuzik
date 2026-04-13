@@ -99,7 +99,7 @@ class MiniPlayer extends Component
     public function downloadTrack(): void
     {
         if (! Auth::check()) {
-            $this->dispatch('open-modal', 'login-required');
+            $this->dispatchDownloadLoginPrompt();
 
             return;
         }
@@ -244,6 +244,23 @@ class MiniPlayer extends Component
                 ->exists();
 
         $this->likesCount = Like::where('track_id', $this->trackId)->count();
+    }
+
+    protected function dispatchDownloadLoginPrompt(): void
+    {
+        $track = $this->trackId ? Track::find($this->trackId) : null;
+
+        $this->dispatch(
+            'open-modal',
+            id: 'login-required',
+            title: 'Sign in to download',
+            message: 'Log in or create a listener account to download this track.',
+            loginUrl: $track ? route('track.download', $track) : route('login'),
+            registerUrl: route('register', [
+                'role' => 'listener',
+                'show_role_guide' => 0,
+            ]),
+        );
     }
 
     protected function makePlayerTrackPayload(Track $model, bool $includeAutoQueue = false): ?array

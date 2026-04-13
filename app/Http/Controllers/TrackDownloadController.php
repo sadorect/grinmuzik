@@ -14,6 +14,11 @@ class TrackDownloadController extends Controller
     public function __invoke(Request $request, Track $track): RedirectResponse|StreamedResponse
     {
         abort_unless($track->is_published, 404);
+
+        if (! $request->user()) {
+            return redirect()->guest(route('login'));
+        }
+
         abort_unless($track->canBeDownloadedBy($request->user()), 403);
 
         $source = $track->getAudioDownloadSource();

@@ -26,9 +26,10 @@ new #[Layout('layouts.guest')] class extends Component
     public string $email       = '';
     public string $password    = '';
     public string $password_confirmation = '';
-    public string $role        = 'artist'; // 'listener' | 'artist'
+    public string $role        = 'listener'; // 'listener' | 'artist'
     public string $captcha     = '';
     public bool $hasAcceptedPolicies = false;
+    public bool $hideRoleGuide = false;
 
     // Artist-only fields
     public string $stage_name = '';
@@ -39,6 +40,16 @@ new #[Layout('layouts.guest')] class extends Component
     public function mount(): void
     {
         $this->genres = Genre::active()->orderBy('name')->get()->toArray();
+
+        $requestedRole = strtolower((string) request()->query('role', ''));
+
+        if (in_array($requestedRole, ['listener', 'artist'], true)) {
+            $this->role = $requestedRole;
+        }
+
+        if (request()->has('show_role_guide')) {
+            $this->hideRoleGuide = ! request()->boolean('show_role_guide');
+        }
     }
 
     public array $genres = [];
@@ -149,8 +160,10 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }; ?>
 
-<div x-data="{ showRoleGuide: @js($showRegistrationRoleGuide ?? true) }" x-on:keydown.escape.window="showRoleGuide = false">
-    @if($showRegistrationRoleGuide ?? true)
+@php($shouldShowRoleGuide = ($showRegistrationRoleGuide ?? true) && ! $hideRoleGuide)
+
+<div x-data="{ showRoleGuide: @js($shouldShowRoleGuide) }" x-on:keydown.escape.window="showRoleGuide = false">
+    @if($shouldShowRoleGuide)
     <div
         x-show="showRoleGuide"
         x-transition.opacity
@@ -206,6 +219,28 @@ new #[Layout('layouts.guest')] class extends Component
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <button
                         type="button"
+                        x-on:click="$wire.set('role', 'listener'); showRoleGuide = false"
+                        class="group rounded-[1.6rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                        <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-gray-900">Listen to music</h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-600">
+                            Best for fans and listeners. This is the default path below, so you can register with just the basics and start downloading faster.
+                        </p>
+                        <span class="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition group-hover:bg-slate-800">
+                            Continue as listener
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
                         x-on:click="$wire.set('role', 'artist'); showRoleGuide = false"
                         class="group rounded-[1.6rem] border border-primary-100 bg-gradient-to-br from-primary-50 via-white to-primary-50 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                     >
@@ -216,32 +251,10 @@ new #[Layout('layouts.guest')] class extends Component
                         </div>
                         <h3 class="text-base font-semibold text-gray-900">Release my music</h3>
                         <p class="mt-2 text-sm leading-6 text-gray-600">
-                            Best for artists, labels, and creators. Keep this tab selected, then complete the artist details before creating your account.
+                            Best for artists, labels, and creators. Switch to this tab whenever you want the artist details and publishing tools.
                         </p>
                         <span class="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition group-hover:bg-primary-500">
-                            Continue as artist
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </span>
-                    </button>
-
-                    <button
-                        type="button"
-                        x-on:click="$wire.set('role', 'listener'); showRoleGuide = false"
-                        class="group rounded-[1.6rem] border border-gray-200 bg-gradient-to-br from-white via-slate-50 to-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-                    >
-                        <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                            </svg>
-                        </div>
-                        <h3 class="text-base font-semibold text-gray-900">Listen to music</h3>
-                        <p class="mt-2 text-sm leading-6 text-gray-600">
-                            Best for fans and listeners. Switch to this tab and the artist-only fields disappear, so you can register with just the basics.
-                        </p>
-                        <span class="mt-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition group-hover:border-primary-200 group-hover:text-primary-600">
-                            Switch to listener
+                            Switch to artist
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5l7 7-7 7" />
                             </svg>

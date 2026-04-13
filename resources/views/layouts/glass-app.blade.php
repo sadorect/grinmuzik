@@ -429,8 +429,27 @@
 
     {{-- â”€â”€ Login-Required Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
     <div
-        x-data="{ show: false }"
-        @open-modal.window="if ($event.detail === 'login-required' || $event.detail?.id === 'login-required') show = true"
+        x-data="{
+            show: false,
+            title: 'Sign in to continue',
+            message: 'You need an account to like tracks, download music, and more.',
+            defaultLoginUrl: @js(route('login')),
+            defaultRegisterUrl: @js(route('register', ['role' => 'listener', 'show_role_guide' => 0])),
+            loginUrl: @js(route('login')),
+            registerUrl: @js(route('register', ['role' => 'listener', 'show_role_guide' => 0])),
+            openModal(detail) {
+                if (detail !== 'login-required' && detail?.id !== 'login-required') {
+                    return;
+                }
+
+                this.title = detail?.title || 'Sign in to continue';
+                this.message = detail?.message || 'You need an account to like tracks, download music, and more.';
+                this.loginUrl = detail?.loginUrl || this.defaultLoginUrl;
+                this.registerUrl = detail?.registerUrl || this.defaultRegisterUrl;
+                this.show = true;
+            },
+        }"
+        @open-modal.window="openModal($event.detail)"
         x-show="show"
         x-transition.opacity
         class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
@@ -443,11 +462,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
             </div>
-            <h2 class="text-xl font-bold text-gray-900 mb-2">Sign in to continue</h2>
-            <p class="text-gray-500 text-sm mb-6">You need an account to like tracks, download music, and more.</p>
+            <h2 class="text-xl font-bold text-gray-900 mb-2" x-text="title"></h2>
+            <p class="text-gray-500 text-sm mb-6" x-text="message"></p>
             <div class="flex flex-col gap-3">
-                <a href="{{ route('login') }}" class="glass-btn-primary glass-btn-primary-hover w-full py-2.5 rounded-xl text-sm font-semibold text-center">Sign In</a>
-                <a href="{{ route('register') }}" class="glass-btn glass-btn-hover w-full py-2.5 rounded-xl text-sm font-semibold text-center">Create Free Account</a>
+                <a x-bind:href="loginUrl" class="glass-btn-primary glass-btn-primary-hover w-full py-2.5 rounded-xl text-sm font-semibold text-center">Sign In</a>
+                <a x-bind:href="registerUrl" class="glass-btn glass-btn-hover w-full py-2.5 rounded-xl text-sm font-semibold text-center">Create Free Account</a>
             </div>
             <button @click="show = false" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
