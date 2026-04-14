@@ -36,10 +36,10 @@ class RegistrationTest extends TestCase
             ->assertDontSee('Choose the tab that matches your reason for joining');
     }
 
-    public function test_registration_defaults_to_listener_role(): void
+    public function test_registration_defaults_to_artist_role(): void
     {
         Volt::test('pages.auth.register')
-            ->assertSet('role', 'listener');
+            ->assertSet('role', 'artist');
     }
 
     public function test_registration_can_start_on_the_artist_role_from_the_query_string(): void
@@ -52,6 +52,15 @@ class RegistrationTest extends TestCase
             ->assertSee('Profile Photo (optional)')
             ->assertDontSee('Choose the tab that matches your reason for joining')
             ->assertSee('Create Account');
+    }
+
+    public function test_registration_can_start_on_the_listener_role_from_the_query_string(): void
+    {
+        $this->get('/register?role=listener&show_role_guide=0')
+            ->assertOk()
+            ->assertSee('Listen to music')
+            ->assertDontSee('Artist Details')
+            ->assertDontSee('Choose the tab that matches your reason for joining');
     }
 
     public function test_new_users_can_register(): void

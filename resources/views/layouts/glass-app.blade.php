@@ -434,9 +434,9 @@
             title: 'Sign in to continue',
             message: 'You need an account to like tracks, download music, and more.',
             defaultLoginUrl: @js(route('login')),
-            defaultRegisterUrl: @js(route('register', ['role' => 'listener', 'show_role_guide' => 0])),
+            defaultRegisterUrl: @js(route('register')),
             loginUrl: @js(route('login')),
-            registerUrl: @js(route('register', ['role' => 'listener', 'show_role_guide' => 0])),
+            registerUrl: @js(route('register')),
             openModal(detail) {
                 if (detail !== 'login-required' && detail?.id !== 'login-required') {
                     return;
