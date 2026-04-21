@@ -4,6 +4,7 @@ use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
 use App\StagesLivewireUploads;
+use App\Support\ArtistAccess;
 use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use App\Models\SiteSetting;
@@ -39,12 +40,16 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->isArtist(), 403);
+        if (! auth()->user()->isArtist()) {
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
+
+            return;
+        }
 
         $profile = auth()->user()->artistProfile;
 
         if (! $profile) {
-            $this->redirect(route('artist.setup'), navigate: true);
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
 
             return;
         }
@@ -330,7 +335,7 @@ new #[Layout('layouts.glass-app')] class extends Component
         </div>
 
         <div class="glass-card rounded-2xl p-6 space-y-4">
-            <h2 class="font-semibold text-gray-700">Visibility & Monetization</h2>
+            <h2 class="font-semibold text-gray-700">Visibility </h2>
 
             <label class="flex items-center gap-3 cursor-pointer">
                 <input wire:model.live="is_published" type="checkbox" class="rounded border-gray-300 text-red-500 focus:ring-red-400">

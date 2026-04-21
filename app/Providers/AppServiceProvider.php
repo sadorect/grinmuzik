@@ -118,8 +118,8 @@ class AppServiceProvider extends ServiceProvider
                         'canonical' => route('artist-guide'),
                     ],
                     'pricing' => [
-                        'title' => 'Pricing and Donations',
-                        'description' => 'Understand how listener donations and artist monetization work on GrinMuzik.',
+                        'title' => 'Creator Access',
+                        'description' => 'See how GrinMuzik helps artists set up profiles, upload music, and build their presence.',
                         'canonical' => route('pricing'),
                     ],
                     'privacy' => [

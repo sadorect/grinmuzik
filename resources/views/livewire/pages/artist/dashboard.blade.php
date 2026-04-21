@@ -2,6 +2,7 @@
 
 use App\Models\Donation;
 use App\Models\PlayHistory;
+use App\Support\ArtistAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -9,10 +10,14 @@ new #[Layout('layouts.glass-app')] class extends Component
 {
     public function mount(): void
     {
-        abort_unless(auth()->user()->isArtist(), 403);
+        if (! auth()->user()->isArtist()) {
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
+
+            return;
+        }
 
         if (! auth()->user()->artistProfile) {
-            $this->redirect(route('artist.setup'), navigate: true);
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
         }
     }
 

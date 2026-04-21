@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Jobs\ResolvePageViewLocation;
 use App\Models\PageView;
 use Closure;
 use Illuminate\Http\Request;
@@ -13,25 +14,26 @@ class TrackPageView
     {
         $response = $next($request);
 
-        // Only track front-end GET requests (not admin, not Livewire AJAX, not assets)
         if (
             $request->isMethod('GET')
-            && !$request->is('musicdirector*')
-            && !$request->is('livewire*')
-            && !$request->expectsJson()
-            && !$request->header('X-Livewire')
-            && !$request->is('_ignition*')
+            && ! $request->is('musicdirector*')
+            && ! $request->is('livewire*')
+            && ! $request->expectsJson()
+            && ! $request->header('X-Livewire')
+            && ! $request->is('_ignition*')
         ) {
             try {
-                PageView::create([
-                    'path'       => '/' . ltrim($request->path(), '/'),
+                $pageView = PageView::create([
+                    'path' => '/' . ltrim($request->path(), '/'),
                     'session_id' => session()->getId(),
-                    'user_id'    => auth()->id(),
+                    'user_id' => auth()->id(),
                     'ip_address' => $request->ip(),
                     'user_agent' => mb_substr($request->userAgent() ?? '', 0, 500),
                 ]);
+
+                ResolvePageViewLocation::dispatchAfterResponse($pageView->id);
             } catch (\Throwable) {
-                // Silently fail — never let analytics break a page request
+                // Analytics should never break the user-facing request.
             }
         }
 

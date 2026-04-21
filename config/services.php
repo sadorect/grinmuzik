@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'ip_geolocation' => [
+        'enabled' => env('IP_GEOLOCATION_ENABLED', true),
+        'base_url' => env('IP_GEOLOCATION_BASE_URL', 'https://ipwho.is'),
+        'timeout' => env('IP_GEOLOCATION_TIMEOUT', 3),
+    ],
+
 ];

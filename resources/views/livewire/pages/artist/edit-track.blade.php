@@ -4,6 +4,7 @@ use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
 use App\StagesLivewireUploads;
+use App\Support\ArtistAccess;
 use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use App\Models\SiteSetting;
@@ -41,7 +42,11 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public function mount(Track $track): void
     {
-        abort_unless(auth()->user()->isArtist(), 403);
+        if (! auth()->user()->isArtist()) {
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
+
+            return;
+        }
 
         $profile = auth()->user()->artistProfile;
         abort_unless($profile && $track->artist_profile_id === $profile->id, 403);

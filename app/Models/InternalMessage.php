@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\InternalMessageAudience;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,12 +16,14 @@ class InternalMessage extends Model
         'subject',
         'body',
         'audience',
+        'audience_filters',
         'send_email',
         'sent_at',
     ];
 
     protected $casts = [
         'send_email' => 'boolean',
+        'audience_filters' => 'array',
         'sent_at'    => 'datetime',
     ];
 
@@ -78,6 +81,32 @@ class InternalMessage extends Model
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
+    public function recipientUsers(): Builder
+    {
+        if ($this->recipient_user_id) {
+            return User::query()->whereKey($this->recipient_user_id);
+        }
+
+        return InternalMessageAudience::apply(
+            User::query(),
+            $this->audience,
+            $this->audience_filters,
+        );
+    }
+
+    public function targetsUser(User $user): bool
+    {
+        if (! $this->isSent()) {
+            return false;
+        }
+
+        if ($this->recipient_user_id) {
+            return (int) $this->recipient_user_id === (int) $user->id;
+        }
+
+        return InternalMessageAudience::matches($user, $this->audience, $this->audience_filters);
+    }
+
     public function isSent(): bool
     {
         return $this->sent_at !== null;
@@ -94,22 +123,16 @@ class InternalMessage extends Model
             return $this->recipient?->name ?? 'Specific user';
         }
 
-        return match ($this->audience) {
-            'artists'   => 'Artists only',
-            'listeners' => 'Listeners only',
-            default     => 'All users',
-        };
+        return InternalMessageAudience::describe($this->audience, $this->audience_filters);
     }
 
     /**
-     * Replace {name}, {username}, {email} placeholders for a specific recipient.
+     * Replace supported placeholders for a specific recipient.
      */
     public function interpolate(string $text, User $user): string
     {
-        return str_ireplace(
-            ['{name}', '{username}', '{email}'],
-            [$user->name, $user->name, $user->email],
-            $text,
-        );
+        $context = InternalMessageAudience::personalizationContext($user);
+
+        return str_ireplace(array_keys($context), array_values($context), $text);
     }
 }

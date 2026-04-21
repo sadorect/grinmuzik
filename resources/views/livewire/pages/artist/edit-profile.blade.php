@@ -1,6 +1,7 @@
 <?php
 
 use App\StagesLivewireUploads;
+use App\Support\ArtistAccess;
 use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use Illuminate\Support\Facades\DB;
@@ -34,12 +35,16 @@ new #[Layout('layouts.glass-app')] class extends Component
     {
         $user = auth()->user();
 
-        abort_unless($user->isArtist(), 403);
+        if (! $user->isArtist()) {
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
+
+            return;
+        }
 
         $profile = $user->artistProfile;
 
         if (! $profile) {
-            $this->redirect(route('artist.setup'), navigate: true);
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
 
             return;
         }

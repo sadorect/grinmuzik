@@ -3,6 +3,7 @@
 use App\Models\Album;
 use App\Models\Genre;
 use App\StagesLivewireUploads;
+use App\Support\ArtistAccess;
 use App\Support\UploadLimits;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -25,10 +26,14 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->isArtist(), 403);
+        if (! auth()->user()->isArtist()) {
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
+
+            return;
+        }
 
         if (!auth()->user()->artistProfile) {
-            $this->redirect(route('artist.setup'), navigate: true);
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
             return;
         }
 

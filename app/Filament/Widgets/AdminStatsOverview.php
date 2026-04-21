@@ -39,6 +39,13 @@ class AdminStatsOverview extends StatsOverviewWidget
         $todayPageViews    = PageView::today()->count();
         $todayUniqueSessions = PageView::today()->distinct('session_id')->count('session_id');
         $totalUniqueSessions = PageView::distinct('session_id')->count('session_id');
+        $resolvedLocations = PageView::resolved()->count();
+        $topCountryToday = PageView::today()
+            ->whereNotNull('country')
+            ->selectRaw('country, COUNT(*) as aggregate')
+            ->groupBy('country')
+            ->orderByDesc('aggregate')
+            ->value('country');
 
         return [
             Stat::make('Total Users', number_format($totalUsers))
@@ -76,6 +83,10 @@ class AdminStatsOverview extends StatsOverviewWidget
             Stat::make('Unique Sessions', number_format($totalUniqueSessions))
                 ->description(number_format($todayUniqueSessions) . ' today')
                 ->icon('heroicon-o-user-circle'),
+
+            Stat::make('Resolved Visitor Locations', number_format($resolvedLocations))
+                ->description(($topCountryToday ?: 'No country yet') . ' leading today')
+                ->icon('heroicon-o-map-pin'),
         ];
     }
 }

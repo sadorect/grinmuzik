@@ -370,7 +370,7 @@
                             <li><a href="{{ route('register') }}" class="hover:text-primary-400 transition">Join as Artist</a></li>
                         @endauth
                         <li><a href="{{ route('artist-guide') }}" wire:navigate class="hover:text-primary-400 transition">Artist Guide</a></li>
-                        <li><a href="{{ route('pricing') }}" wire:navigate class="hover:text-primary-400 transition">{{ $paymentsEnabled ? 'Pricing &amp; Donations' : 'Creator Access' }}</a></li>
+                        <li><a href="{{ route('pricing') }}" wire:navigate class="hover:text-primary-400 transition">Creator Access</a></li>
                     </ul>
                 </div>
 

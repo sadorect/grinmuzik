@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Track;
+use App\Support\ArtistAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -13,13 +14,13 @@ new #[Layout('layouts.glass-app')] class extends Component
     public function mount(): void
     {
         if (! auth()->user()?->isArtist()) {
-            $this->redirect(route('dashboard'));
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
 
             return;
         }
 
         if (! auth()->user()->artistProfile) {
-            $this->redirect(route('artist.setup'));
+            $this->redirect(ArtistAccess::setupUrl(request()->getRequestUri()), navigate: true);
 
             return;
         }

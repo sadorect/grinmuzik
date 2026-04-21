@@ -19,10 +19,14 @@ new #[Layout('layouts.glass-app')] class extends Component
         $user = auth()->user();
 
         $messages = InternalMessage::query()
-            ->forUser($user)
+            ->sent()
             ->with(['reads' => fn ($q) => $q->where('user_id', $user->id)])
             ->latest('sent_at')
             ->get();
+
+        $messages = $messages
+            ->filter(fn (InternalMessage $message): bool => $message->targetsUser($user))
+            ->values();
 
         return [
             'messages'      => $messages,
@@ -33,7 +37,8 @@ new #[Layout('layouts.glass-app')] class extends Component
     public function open(int $id): void
     {
         $user = auth()->user();
-        $message = InternalMessage::forUser($user)->findOrFail($id);
+        $message = InternalMessage::sent()->findOrFail($id);
+        abort_unless($message->targetsUser($user), 404);
 
         $this->openMessageId = $id;
 

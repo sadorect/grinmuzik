@@ -68,6 +68,20 @@ class PageViewsChartWidget extends ChartWidget
         ];
     }
 
+    public function getDescription(): ?string
+    {
+        $topCountry = PageView::lastDays(30)
+            ->whereNotNull('country')
+            ->selectRaw('country, COUNT(*) as aggregate')
+            ->groupBy('country')
+            ->orderByDesc('aggregate')
+            ->value('country');
+
+        return $topCountry
+            ? "Most page views recently came from {$topCountry}."
+            : 'Location enrichment appears here as page view records are resolved.';
+    }
+
     protected function getType(): string
     {
         return 'line';
