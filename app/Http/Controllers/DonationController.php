@@ -50,6 +50,8 @@ class DonationController extends Controller
 
             $amountCents = (int) round($track->donation_amount * 100);
         } else {
+            abort_if(! $track->canReceiveGifts(), 400, 'Artist gifts are not available for this track.');
+
             $amountCents = (int) round($request->input('amount', 1.0) * 100);
         }
 

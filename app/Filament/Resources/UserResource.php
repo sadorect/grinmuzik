@@ -15,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
@@ -72,6 +73,9 @@ class UserResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('phone')
+                            ->tel()
+                            ->maxLength(32),
                         Forms\Components\DateTimePicker::make('email_verified_at')
                             ->label('Email Verified At')
                             ->seconds(false),
@@ -92,13 +96,19 @@ class UserResource extends Resource
                             ->searchable()
                             ->helperText('Assign one or more roles to the user.'),
                     ])
-                    ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
+                    ->visible(function (): bool {
+                        $user = Auth::user();
+
+                        return $user instanceof User && $user->isSuperAdmin();
+                    }),
             ]);
     }
 
     public static function canEdit(Model $record): bool
     {
-        if ($record instanceof User && $record->isSuperAdmin() && ! (auth()->user()?->isSuperAdmin() ?? false)) {
+        $authUser = Auth::user();
+
+        if ($record instanceof User && $record->isSuperAdmin() && ! ($authUser instanceof User && $authUser->isSuperAdmin())) {
             return false;
         }
 
@@ -107,7 +117,9 @@ class UserResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        if ($record instanceof User && $record->isSuperAdmin() && ! (auth()->user()?->isSuperAdmin() ?? false)) {
+        $authUser = Auth::user();
+
+        if ($record instanceof User && $record->isSuperAdmin() && ! ($authUser instanceof User && $authUser->isSuperAdmin())) {
             return false;
         }
 
@@ -117,8 +129,9 @@ class UserResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
+        $authUser = Auth::user();
 
-        if (! (auth()->user()?->isSuperAdmin() ?? false)) {
+        if (! ($authUser instanceof User && $authUser->isSuperAdmin())) {
             $query->whereDoesntHave('roles', fn (Builder $roleQuery): Builder => $roleQuery->where('name', 'super_admin'));
         }
 
@@ -135,6 +148,9 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('phone')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('online_status')
                     ->label('Status')
                     ->badge()
@@ -182,7 +198,11 @@ class UserResource extends Resource
             ])
             ->bulkActions([
                 Actions\DeleteBulkAction::make()
-                    ->visible(fn (): bool => auth()->user()?->isSuperAdmin() ?? false),
+                    ->visible(function (): bool {
+                        $user = Auth::user();
+
+                        return $user instanceof User && $user->isSuperAdmin();
+                    }),
             ]);
     }
 

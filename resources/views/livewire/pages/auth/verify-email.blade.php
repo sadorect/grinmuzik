@@ -1,11 +1,20 @@
 <?php
 
+use App\Models\SiteSetting;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.guest')] class extends Component
 {
+    public function mount(): void
+    {
+        if (! SiteSetting::registrationRequiresEmailVerification()) {
+            Auth::user()?->refresh()->syncArtistVerificationState();
+            $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+        }
+    }
+
     public function sendVerification(): void
     {
         if (Auth::user()->hasVerifiedEmail()) {

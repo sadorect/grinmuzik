@@ -63,6 +63,7 @@ class Track extends Model implements HasMedia
         'is_free',
         'requires_donation',
         'donation_amount',
+        'allow_artist_gifts',
         'play_count',
         'downloads_count',
         'track_number',
@@ -72,6 +73,7 @@ class Track extends Model implements HasMedia
         'is_published'    => 'boolean',
         'is_featured'     => 'boolean',
         'is_free'         => 'boolean',
+        'allow_artist_gifts' => 'boolean',
         'donation_amount' => 'decimal:2',
         'play_count'      => 'integer',
         'downloads_count' => 'integer',
@@ -413,6 +415,12 @@ class Track extends Model implements HasMedia
         }
 
         return ! $this->requires_donation || $this->isUnlockedBy($user);
+    }
+
+    public function canReceiveGifts(): bool
+    {
+        return SiteSetting::paymentsEnabled()
+            && filled($this->artist_profile_id);
     }
 
     public function suggestMood(): ?string

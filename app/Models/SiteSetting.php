@@ -20,8 +20,10 @@ class SiteSetting extends Model
     protected static ?bool $supportsPublicThemeToggleControlCache = null;
     protected static ?bool $supportsAutoPlaylistControlsCache = null;
     protected static ?bool $supportsRegistrationRoleGuideControlCache = null;
+    protected static ?bool $supportsRegistrationVerificationControlCache = null;
     protected static ?bool $paymentsEnabledCache = null;
     protected static ?bool $autoPlaylistEnabledCache = null;
+    protected static ?bool $registrationRequiresEmailVerificationCache = null;
 
     protected $fillable = [
         'site_name',
@@ -56,6 +58,7 @@ class SiteSetting extends Model
         'show_public_theme_toggle',
         'auto_playlist_enabled',
         'show_registration_role_guide',
+        'registration_requires_email_verification',
     ];
 
     protected $casts = [
@@ -78,6 +81,7 @@ class SiteSetting extends Model
         'show_public_theme_toggle' => 'boolean',
         'auto_playlist_enabled' => 'boolean',
         'show_registration_role_guide' => 'boolean',
+        'registration_requires_email_verification' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -228,6 +232,23 @@ class SiteSetting extends Model
         }
     }
 
+    public static function supportsRegistrationVerificationControl(): bool
+    {
+        if (static::$supportsRegistrationVerificationControlCache !== null) {
+            return static::$supportsRegistrationVerificationControlCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsRegistrationVerificationControlCache = false;
+            }
+
+            return static::$supportsRegistrationVerificationControlCache = Schema::hasColumn('site_settings', 'registration_requires_email_verification');
+        } catch (Throwable) {
+            return static::$supportsRegistrationVerificationControlCache = false;
+        }
+    }
+
     public static function paymentsEnabled(): bool
     {
         if (static::$paymentsEnabledCache !== null) {
@@ -259,6 +280,23 @@ class SiteSetting extends Model
             return static::$autoPlaylistEnabledCache = (bool) (static::current()->auto_playlist_enabled ?? true);
         } catch (Throwable) {
             return static::$autoPlaylistEnabledCache = false;
+        }
+    }
+
+    public static function registrationRequiresEmailVerification(): bool
+    {
+        if (static::$registrationRequiresEmailVerificationCache !== null) {
+            return static::$registrationRequiresEmailVerificationCache;
+        }
+
+        if (! static::supportsRegistrationVerificationControl()) {
+            return static::$registrationRequiresEmailVerificationCache = true;
+        }
+
+        try {
+            return static::$registrationRequiresEmailVerificationCache = (bool) (static::current()->registration_requires_email_verification ?? true);
+        } catch (Throwable) {
+            return static::$registrationRequiresEmailVerificationCache = true;
         }
     }
 
@@ -384,6 +422,15 @@ class SiteSetting extends Model
         return (bool) ($this->show_registration_role_guide ?? true);
     }
 
+    public function getEffectiveRegistrationRequiresEmailVerificationAttribute(): bool
+    {
+        if (! static::supportsRegistrationVerificationControl()) {
+            return true;
+        }
+
+        return (bool) ($this->registration_requires_email_verification ?? true);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -468,8 +515,10 @@ class SiteSetting extends Model
         static::$supportsPublicThemeToggleControlCache = null;
         static::$supportsAutoPlaylistControlsCache = null;
         static::$supportsRegistrationRoleGuideControlCache = null;
+        static::$supportsRegistrationVerificationControlCache = null;
         static::$paymentsEnabledCache = null;
         static::$autoPlaylistEnabledCache = null;
+        static::$registrationRequiresEmailVerificationCache = null;
 
         return true;
     }

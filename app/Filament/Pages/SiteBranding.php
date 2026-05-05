@@ -97,14 +97,19 @@ class SiteBranding extends Page implements HasForms
                     ])
                     ->visible(fn (): bool => SiteSetting::supportsPublicThemeToggleControl()),
                 Section::make('Registration')
-                    ->description('Control whether the account-type helper modal appears on the public registration page.')
+                    ->description('Control registration guidance and whether new accounts must confirm email before access is fully active.')
                     ->schema([
                         Forms\Components\Toggle::make('show_registration_role_guide')
                             ->label('Show registration role guide modal')
                             ->helperText('When on, new visitors see a quick prompt explaining when to choose artist versus listener before filling the sign-up form.')
                             ->default(true),
+                        Forms\Components\Toggle::make('registration_requires_email_verification')
+                            ->label('Require email verification on registration')
+                            ->helperText('When off, new accounts are marked verified immediately and the verification email step is skipped.')
+                            ->default(true)
+                            ->visible(fn (): bool => SiteSetting::supportsRegistrationVerificationControl()),
                     ])
-                    ->visible(fn (): bool => SiteSetting::supportsRegistrationRoleGuideControl()),
+                    ->visible(fn (): bool => SiteSetting::supportsRegistrationRoleGuideControl() || SiteSetting::supportsRegistrationVerificationControl()),
                 Section::make('Social Profiles')
                     ->description('Add social media handles or full profile URLs. Only configured profiles will appear in the footer and shared branding areas.')
                     ->schema([
@@ -323,6 +328,12 @@ class SiteBranding extends Page implements HasForms
             ]));
         }
 
+        if (SiteSetting::supportsRegistrationVerificationControl()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'registration_requires_email_verification',
+            ]));
+        }
+
         if (SiteSetting::supportsUploadLimits()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'audio_upload_limit_kb',
@@ -431,6 +442,10 @@ class SiteBranding extends Page implements HasForms
 
         if (SiteSetting::supportsRegistrationRoleGuideControl()) {
             $keys[] = 'show_registration_role_guide';
+        }
+
+        if (SiteSetting::supportsRegistrationVerificationControl()) {
+            $keys[] = 'registration_requires_email_verification';
         }
 
         if (SiteSetting::supportsUploadLimits()) {

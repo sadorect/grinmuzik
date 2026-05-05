@@ -15,16 +15,25 @@
                 loading: false,
                 processing: false,
                 error: null,
+                hasStripeKey: @js(filled(config('cashier.key'))),
                 stripe: null,
                 elements: null,
                 paymentElement: null,
 
                 async init() {
-                    this.stripe = Stripe('{{ config('cashier.key') }}');
+                    if (this.hasStripeKey && window.Stripe) {
+                        this.stripe = Stripe('{{ config('cashier.key') }}');
+                    }
                 },
 
                 async openModal() {
                     @auth
+                        if (!this.hasStripeKey) {
+                            this.error = 'Payments are not configured right now.';
+                            this.open = true;
+                            return;
+                        }
+
                         this.open = true;
                         this.error = null;
                         await this.$nextTick();
@@ -35,6 +44,11 @@
                 },
 
                 async mountStripe() {
+                    if (!this.stripe) {
+                        this.error = 'Payments are not configured right now.';
+                        return;
+                    }
+
                     this.loading = true;
                     try {
                         const res = await fetch('{{ route('donation.intent', $track) }}', {
@@ -131,14 +145,16 @@
 
                     {{-- Stripe Elements mount point --}}
                     <div x-show="loading" class="py-8 text-center text-white/50 text-sm">Loading payment form…</div>
-                    <div x-ref="paymentEl" x-show="!loading" class="mb-4"></div>
+                    <div x-ref="paymentEl" x-show="!loading && hasStripeKey" class="mb-4"></div>
 
                     <div x-show="error" class="text-red-400 text-sm mb-3" x-text="error"></div>
 
                     <button
                         @click="pay()"
-                        :disabled="processing || loading"
+                        x-show="hasStripeKey"
+                        :disabled="processing || loading || !stripe || !elements"
                         class="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white py-3 rounded-xl font-semibold transition"
+                        style="display:none"
                     >
                         <span x-show="!processing">Pay & Unlock</span>
                         <span x-show="processing">Processing…</span>

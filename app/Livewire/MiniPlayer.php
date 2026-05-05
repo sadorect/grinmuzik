@@ -280,9 +280,11 @@ class MiniPlayer extends Component
             'cover' => $model->getCoverUrl(),
             'audio_url' => $audioUrl,
             'url' => route('track.show', $model->slug),
+            'gift_intent_url' => route('donation.intent', $model),
             'duration' => $model->duration ?? 0,
             'requires_donation' => $model->requires_donation,
             'donation_amount' => $model->donation_amount,
+            'can_gift_artist' => $model->canReceiveGifts(),
             'download_allowed' => $model->canBeDownloadedBy(Auth::user()),
             'auto_queue_tracks' => $includeAutoQueue
                 ? $this->buildAutoQueueTracks($model)

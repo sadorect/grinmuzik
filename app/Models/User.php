@@ -31,6 +31,7 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'last_seen_at',
     ];

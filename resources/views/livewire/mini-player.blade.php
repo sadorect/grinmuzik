@@ -10,19 +10,7 @@
     x-on:player-track-loaded.window="onTrackLoaded($event.detail)"
     x-on:player-queue-add.window="onQueueAdd($event.detail)"
     @download-unavailable.window="showStatusToast($event.detail.message || 'Download unavailable.')"
-    @start-download.window="
-        if (!$event.detail?.url) return;
-        const url = new URL($event.detail.url, window.location.origin);
-        url.searchParams.set('_dl', Date.now().toString());
-        const link = document.createElement('a');
-        link.href = url.toString();
-        link.rel = 'noopener';
-        link.target = '_blank';
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        window.setTimeout(() => link.remove(), 0);
-    "
+    @start-download.window="startBackgroundDownload($event.detail)"
     class="fixed bottom-0 left-0 right-0 z-50"
 >
     {{-- ── Queue Panel (slides up above the bar) ───────────────────────────── --}}
@@ -134,6 +122,123 @@
     ></div>
 
     <div
+        x-show="giftOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        @keydown.escape.window="closeGiftModal()"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+        style="display:none"
+    >
+        <div class="w-full max-w-md overflow-hidden rounded-[1.75rem] border border-white/10 bg-gray-950 shadow-2xl">
+            <div class="flex items-start justify-between border-b border-white/10 px-5 py-4">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Support</p>
+                    <h3 class="mt-1 text-lg font-semibold text-white">Gift artist</h3>
+                </div>
+                <button type="button" @click="closeGiftModal()" class="rounded-full p-2 text-white/50 transition hover:bg-white/5 hover:text-white">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-5 px-5 py-5">
+                <div class="flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-3">
+                    <img
+                        :src="track?.cover || '/images/placeholder-track.svg'"
+                        :alt="track?.title || 'Track cover'"
+                        class="h-12 w-12 rounded-xl object-cover"
+                    >
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold text-white" x-text="track?.title || 'Current track'"></p>
+                        <p class="truncate text-xs text-white/55" x-text="track?.artist || 'Artist'"></p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-sm font-medium text-white/85">Amount</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <template x-for="amount in giftPresetOptions" :key="amount">
+                            <button
+                                type="button"
+                                @click="selectGiftAmount(amount)"
+                                class="rounded-xl border px-3 py-2 text-sm font-semibold transition"
+                                :class="Number(giftAmount) === amount ? 'border-primary-400 bg-primary-500 text-white' : 'border-white/10 bg-white/5 text-white/75 hover:border-white/20 hover:bg-white/10'"
+                                x-text="`$${amount}`"
+                            ></button>
+                        </template>
+                    </div>
+                    <input
+                        x-model="giftAmount"
+                        type="number"
+                        min="0.5"
+                        step="0.5"
+                        class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-primary-400 focus:bg-white/10"
+                        placeholder="Custom amount"
+                    >
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-white/85">Message</label>
+                    <textarea
+                        x-model="giftMessage"
+                        rows="3"
+                        maxlength="280"
+                        class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-primary-400 focus:bg-white/10"
+                        placeholder="Optional note"
+                    ></textarea>
+                </div>
+
+                <div x-show="giftLoading" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-center text-sm text-white/55" style="display:none">
+                    Loading secure payment form...
+                </div>
+
+                <div x-show="giftPrepared" x-ref="giftPaymentEl" class="rounded-2xl border border-white/10 bg-white px-3 py-3" style="display:none"></div>
+
+                <p x-show="giftError" x-text="giftError" class="text-sm text-rose-300" style="display:none"></p>
+
+                <div class="flex gap-3">
+                    <button
+                        type="button"
+                        x-show="giftPrepared"
+                        @click="resetGiftPayment()"
+                        class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white/75 transition hover:bg-white/10"
+                        style="display:none"
+                    >
+                        Change amount
+                    </button>
+
+                    <button
+                        type="button"
+                        x-show="!giftPrepared"
+                        @click="prepareGiftPayment()"
+                        :disabled="giftLoading"
+                        class="flex-1 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        Continue
+                    </button>
+
+                    <button
+                        type="button"
+                        x-show="giftPrepared"
+                        @click="submitGift()"
+                        :disabled="giftProcessing || giftLoading"
+                        class="flex-1 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        style="display:none"
+                    >
+                        <span x-show="!giftProcessing">Send gift</span>
+                        <span x-show="giftProcessing" style="display:none">Processing...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div
         x-show="track"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="translate-y-full opacity-0"
@@ -154,6 +259,15 @@
                 <div class="min-w-0">
                     <p class="text-sm font-semibold text-gray-800 truncate" x-text="track?.title"></p>
                     <p class="text-xs text-gray-500 truncate" x-text="track?.artist"></p>
+                    <button
+                        type="button"
+                        x-show="track?.can_gift_artist"
+                        @click="openGiftModal()"
+                        class="mt-1 inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700 transition hover:border-primary-200 hover:bg-primary-100"
+                        style="display:none"
+                    >
+                        Gift artist
+                    </button>
                 </div>
             </div>
 
@@ -296,6 +410,8 @@ function miniPlayer() {
         duration:    0,
         volume:      P.volume,
         muted:       P.muted,
+        isAuthenticated: @js(auth()->check()),
+        hasStripeKey: @js(filled(config('cashier.key'))),
         queue:       P.queue,
         queueTracks: P.queueTracks,
         queueIndex:  P.queueIndex,
@@ -303,6 +419,17 @@ function miniPlayer() {
         queueToast:  false,
         statusToastMessage: '',
         shareCopied: false,
+        giftOpen: false,
+        giftPrepared: false,
+        giftLoading: false,
+        giftProcessing: false,
+        giftError: '',
+        giftAmount: 3,
+        giftMessage: '',
+        giftStripe: null,
+        giftElements: null,
+        giftPaymentElement: null,
+        giftPresetOptions: [1, 2, 3, 5, 10],
         _toastTimer: null,
         _statusToastTimer: null,
         _shareTimer: null,
@@ -319,6 +446,10 @@ function miniPlayer() {
             this.duration = Math.floor(P.audio.duration) || 0;
             P.audio.volume = this.volume / 100;
             P.audio.muted  = this.muted;
+
+            if (this.hasStripeKey && window.Stripe) {
+                this.giftStripe = Stripe('{{ config('cashier.key') }}');
+            }
 
             this._handlers = {
                 timeupdate:     () => { this.currentTime = Math.floor(P.audio.currentTime); },
@@ -530,6 +661,195 @@ function miniPlayer() {
             }, 2500);
         },
 
+        async startBackgroundDownload(detail) {
+            if (!detail?.url) {
+                return;
+            }
+
+            try {
+                const url = new URL(detail.url, window.location.origin);
+                url.searchParams.set('_dl', Date.now().toString());
+
+                const response = await fetch(url.toString(), {
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Download could not be started.');
+                }
+
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = detail.filename || 'track.mp3';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            } catch (_) {
+                this.showStatusToast('Download could not be started.');
+            }
+        },
+
+        randomGiftAmount() {
+            const options = this.giftPresetOptions;
+
+            return options[Math.floor(Math.random() * options.length)] || 3;
+        },
+
+        async ensureGiftStripe() {
+            if (this.giftStripe || !window.Stripe || !this.hasStripeKey) {
+                return;
+            }
+
+            this.giftStripe = Stripe('{{ config('cashier.key') }}');
+        },
+
+        openGiftModal() {
+            if (!this.track?.can_gift_artist) {
+                return;
+            }
+
+            if (!this.hasStripeKey) {
+                this.showStatusToast('Payments are not configured right now.');
+                return;
+            }
+
+            if (!this.isAuthenticated) {
+                Livewire.dispatch('open-modal', {
+                    id: 'login-required',
+                    title: 'Sign in to gift artist',
+                    message: 'Log in or create an account to send support directly to this artist.',
+                    loginUrl: '{{ route('login') }}',
+                    registerUrl: '{{ route('register', ['role' => 'listener', 'show_role_guide' => 0]) }}',
+                });
+
+                return;
+            }
+
+            this.giftOpen = true;
+            this.giftAmount = this.randomGiftAmount();
+            this.giftMessage = '';
+            this.giftError = '';
+            this.giftProcessing = false;
+            this.resetGiftPayment();
+        },
+
+        closeGiftModal() {
+            this.giftOpen = false;
+            this.giftMessage = '';
+            this.giftError = '';
+            this.giftProcessing = false;
+            this.resetGiftPayment();
+        },
+
+        selectGiftAmount(amount) {
+            this.giftAmount = amount;
+
+            if (this.giftPrepared) {
+                this.resetGiftPayment();
+            }
+        },
+
+        resetGiftPayment() {
+            if (this.giftPaymentElement) {
+                try {
+                    this.giftPaymentElement.unmount();
+                } catch (_) {
+                }
+            }
+
+            this.giftPaymentElement = null;
+            this.giftElements = null;
+            this.giftPrepared = false;
+        },
+
+        async prepareGiftPayment() {
+            if (!this.track?.gift_intent_url) {
+                this.giftError = 'This artist cannot receive gifts right now.';
+                return;
+            }
+
+            if (!this.hasStripeKey) {
+                this.giftError = 'Payments are not configured right now.';
+                return;
+            }
+
+            await this.ensureGiftStripe();
+
+            if (!this.giftStripe) {
+                this.giftError = 'Payments are unavailable right now.';
+                return;
+            }
+
+            this.giftError = '';
+            this.giftLoading = true;
+            this.resetGiftPayment();
+
+            try {
+                const response = await fetch(this.track.gift_intent_url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'tip',
+                        amount: Number(this.giftAmount),
+                        message: this.giftMessage || null,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.client_secret) {
+                    throw new Error(data.message || 'Could not load payment form.');
+                }
+
+                this.giftElements = this.giftStripe.elements({
+                    clientSecret: data.client_secret,
+                    appearance: { theme: 'night' },
+                });
+                this.giftPaymentElement = this.giftElements.create('payment');
+                this.giftPrepared = true;
+                await this.$nextTick();
+                this.giftPaymentElement.mount(this.$refs.giftPaymentEl);
+            } catch (error) {
+                this.giftError = error?.message || 'Could not load payment form.';
+            } finally {
+                this.giftLoading = false;
+            }
+        },
+
+        async submitGift() {
+            if (!this.giftPrepared || !this.giftStripe || !this.giftElements) {
+                return;
+            }
+
+            this.giftProcessing = true;
+            this.giftError = '';
+
+            const { error } = await this.giftStripe.confirmPayment({
+                elements: this.giftElements,
+                redirect: 'if_required',
+            });
+
+            if (error) {
+                this.giftError = error.message || 'Payment could not be completed.';
+                this.giftProcessing = false;
+                return;
+            }
+
+            this.closeGiftModal();
+            this.showStatusToast('Gift sent to artist.');
+        },
+
         togglePlay() {
             if (!this.track) return;
             if (this.playing) {
@@ -566,3 +886,7 @@ function miniPlayer() {
     };
 }
 </script>
+
+@once
+    <script src="https://js.stripe.com/v3/" defer></script>
+@endonce

@@ -8,6 +8,7 @@ use App\Models\NotificationEvent;
 use App\Models\Track;
 use App\Models\User;
 use App\Notifications\Artist\ArtistActivityNotification;
+use Throwable;
 
 class ArtistActivityNotifier
 {
@@ -356,7 +357,11 @@ class ArtistActivityNotifier
             return;
         }
 
-        $user->notify($notification);
+        try {
+            $user->notify($notification);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     protected function sendOnce(?User $user, string $type, string $eventKey, ArtistActivityNotification $notification): void
@@ -378,7 +383,11 @@ class ArtistActivityNotifier
             return;
         }
 
-        $user->notify($notification);
+        try {
+            $user->notify($notification);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     protected function highestThreshold(int|float $value, array $thresholds): int|float|null

@@ -2,6 +2,7 @@
 
 use App\Models\ArtistProfile;
 use App\Models\Genre;
+use App\Models\SiteSetting;
 use App\Models\User;
 use App\Rules\CaptchaAnswer;
 use App\StagesLivewireUploads;
@@ -93,10 +94,13 @@ new #[Layout('layouts.guest')] class extends Component
 
         try {
             DB::transaction(function () use (&$user): void {
+                $requiresEmailVerification = SiteSetting::registrationRequiresEmailVerification();
+
                 $user = User::create([
                     'name'     => $this->name,
                     'email'    => $this->email,
                     'password' => Hash::make($this->password),
+                    'email_verified_at' => $requiresEmailVerification ? null : now(),
                 ]);
 
                 Role::findOrCreate($this->role, 'web');
@@ -140,6 +144,12 @@ new #[Layout('layouts.guest')] class extends Component
 
         Auth::login($user);
         Session::regenerate();
+
+        if (! SiteSetting::registrationRequiresEmailVerification()) {
+            $user->refresh()->syncArtistVerificationState();
+
+            return $this->redirectRoute('dashboard', navigate: true);
+        }
 
         session()->flash('status', $this->sendVerificationLink($user));
 

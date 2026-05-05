@@ -109,6 +109,10 @@ class TrackResource extends Resource
                     Forms\Components\Toggle::make('requires_donation')
                         ->label('Requires donation to unlock')
                         ->visible(fn (): bool => SiteSetting::paymentsEnabled()),
+                    Forms\Components\Toggle::make('allow_artist_gifts')
+                        ->label('Allow artist gifts')
+                        ->helperText('Lets listeners send support while the track is playing whenever sitewide payments are enabled.')
+                        ->default(true),
                     Forms\Components\TextInput::make('donation_amount')
                         ->numeric()
                         ->prefix('$')
@@ -133,6 +137,7 @@ class TrackResource extends Resource
                 Tables\Columns\TextColumn::make('donation_amount')->money('USD')->sortable()->label('Unlock $'),
                 Tables\Columns\IconColumn::make('is_featured')->boolean()->label('Featured'),
                 Tables\Columns\IconColumn::make('is_published')->boolean()->label('Live'),
+                Tables\Columns\IconColumn::make('allow_artist_gifts')->boolean()->label('Gifts'),
                 Tables\Columns\IconColumn::make('requires_donation')->boolean()->label('Locked'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -140,6 +145,7 @@ class TrackResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_published'),
                 Tables\Filters\TernaryFilter::make('is_featured'),
                 Tables\Filters\TernaryFilter::make('requires_donation'),
+                Tables\Filters\TernaryFilter::make('allow_artist_gifts'),
                 Tables\Filters\SelectFilter::make('genre_id')
                     ->relationship('genre', 'name')
                     ->label('Genre'),
