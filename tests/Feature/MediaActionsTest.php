@@ -7,7 +7,6 @@ use App\Livewire\MiniPlayer;
 use App\Models\ArtistProfile;
 use App\Models\Donation;
 use App\Models\Like;
-use App\Models\PlayHistory;
 use App\Models\SiteSetting;
 use App\Models\Track;
 use App\Models\User;
@@ -338,6 +337,30 @@ class MediaActionsTest extends TestCase
 
         $this->assertStringContainsString('test-track.mp3', (string) $response->headers->get('location'));
 
+        $this->assertEquals(1, (int) $track->fresh()->downloads_count);
+    }
+
+    #[Test]
+    public function ajax_download_route_streams_same_origin_response_without_redirecting(): void
+    {
+        config()->set('media-storage.private_disk', 'local');
+        config()->set('media-storage.public_disk', 'public');
+
+        Storage::fake('local');
+
+        [$user, , $track] = $this->createArtistWithTrack([
+            'audio_file_path' => 'tracks/test-track.mp3',
+        ]);
+
+        Storage::disk('local')->put('tracks/test-track.mp3', 'audio-bytes');
+
+        $response = $this->actingAs($user)
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->get(route('track.download', $track));
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
         $this->assertEquals(1, (int) $track->fresh()->downloads_count);
     }
 

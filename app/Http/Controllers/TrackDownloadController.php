@@ -27,24 +27,29 @@ class TrackDownloadController extends Controller
 
         $disk = Storage::disk($source['disk']);
         $filename = $track->getDownloadFilename();
+        $serveThroughApplication = $request->ajax()
+            || $request->expectsJson()
+            || $request->header('X-Requested-With') === 'XMLHttpRequest';
 
-        try {
-            $temporaryUrl = $disk->temporaryUrl(
-                $source['path'],
-                now()->addMinutes((int) config('media-storage.private_url_ttl_minutes', 15)),
-                [
-                    'ResponseContentDisposition' => 'attachment; filename="'.$filename.'"',
-                    'ResponseCacheControl' => 'private, no-store, no-cache, must-revalidate',
-                ],
-            );
+        if (! $serveThroughApplication) {
+            try {
+                $temporaryUrl = $disk->temporaryUrl(
+                    $source['path'],
+                    now()->addMinutes((int) config('media-storage.private_url_ttl_minutes', 15)),
+                    [
+                        'ResponseContentDisposition' => 'attachment; filename="'.$filename.'"',
+                        'ResponseCacheControl' => 'private, no-store, no-cache, must-revalidate',
+                    ],
+                );
 
-            if (filled($temporaryUrl)) {
-                $track->incrementDownloadsCount();
+                if (filled($temporaryUrl)) {
+                    $track->incrementDownloadsCount();
 
-                return redirect()->away($temporaryUrl);
+                    return redirect()->away($temporaryUrl);
+                }
+            } catch (Throwable $exception) {
+                report($exception);
             }
-        } catch (Throwable $exception) {
-            report($exception);
         }
 
         $track->incrementDownloadsCount();

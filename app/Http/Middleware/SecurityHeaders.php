@@ -50,22 +50,39 @@ class SecurityHeaders
      */
     protected function configuredConnectOrigins(): array
     {
-        $candidates = [
-            config('filesystems.disks.r2_private.endpoint'),
-            config('filesystems.disks.r2_public.endpoint'),
-            config('filesystems.disks.r2_public.url'),
-            config('filesystems.disks.s3.endpoint'),
-            config('filesystems.disks.s3.url'),
-        ];
-
         $origins = [];
 
-        foreach ($candidates as $candidate) {
+        foreach (['r2_private', 'r2_public', 's3'] as $disk) {
+            $origins = array_merge($origins, $this->diskConnectOrigins($disk));
+        }
+
+        return array_values(array_unique($origins));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function diskConnectOrigins(string $disk): array
+    {
+        $config = (array) config("filesystems.disks.{$disk}", []);
+        $origins = [];
+
+        foreach ([$config['endpoint'] ?? null, $config['url'] ?? null] as $candidate) {
             $origin = $this->normalizeOrigin($candidate);
 
             if ($origin !== null) {
                 $origins[] = $origin;
             }
+        }
+
+        $bucketOrigin = $this->virtualHostedBucketOrigin(
+            $config['bucket'] ?? null,
+            $config['endpoint'] ?? ($config['url'] ?? null),
+            (bool) ($config['use_path_style_endpoint'] ?? false),
+        );
+
+        if ($bucketOrigin !== null) {
+            $origins[] = $bucketOrigin;
         }
 
         return array_values(array_unique($origins));
@@ -84,6 +101,27 @@ class SecurityHeaders
         }
 
         $origin = $parts['scheme'] . '://' . $parts['host'];
+
+        if (filled($parts['port'] ?? null)) {
+            $origin .= ':' . $parts['port'];
+        }
+
+        return $origin;
+    }
+
+    protected function virtualHostedBucketOrigin(?string $bucket, ?string $baseUrl, bool $usePathStyleEndpoint): ?string
+    {
+        if ($usePathStyleEndpoint || blank($bucket) || blank($baseUrl)) {
+            return null;
+        }
+
+        $parts = parse_url($baseUrl);
+
+        if (! is_array($parts) || blank($parts['scheme'] ?? null) || blank($parts['host'] ?? null)) {
+            return null;
+        }
+
+        $origin = $parts['scheme'] . '://' . $bucket . '.' . $parts['host'];
 
         if (filled($parts['port'] ?? null)) {
             $origin .= ':' . $parts['port'];
