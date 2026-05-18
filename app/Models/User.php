@@ -267,13 +267,18 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
             return;
         }
 
-        if ($this->hasVerifiedEmail()) {
+        if ($this->shouldAutoActivateArtistProfile()) {
             $profile->markVerifiedAndApproved();
 
             return;
         }
 
         $profile->markPendingEmailVerification();
+    }
+
+    public function shouldAutoActivateArtistProfile(): bool
+    {
+        return $this->hasVerifiedEmail() || ! SiteSetting::registrationRequiresEmailVerification();
     }
 
     public function manuallyVerifyAndApproveArtist(): void

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ArtistProfile;
+use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -71,6 +72,34 @@ class ArtistVerificationFlowTest extends TestCase
         $profile->refresh();
 
         $this->assertNotNull($user->email_verified_at);
+        $this->assertTrue($profile->is_verified);
+        $this->assertTrue($profile->is_approved);
+    }
+
+    public function test_disabling_registration_email_verification_auto_activates_artist_profiles(): void
+    {
+        SiteSetting::current()->update([
+            'registration_requires_email_verification' => false,
+        ]);
+
+        $user = User::factory()->unverified()->create();
+        Role::findOrCreate('artist', 'web');
+        $user->assignRole('artist');
+
+        $profile = ArtistProfile::create([
+            'user_id' => $user->id,
+            'stage_name' => 'Neon Harbour',
+            'slug' => 'neon-harbour',
+            'is_verified' => false,
+            'is_approved' => false,
+            'is_active' => true,
+        ]);
+
+        $user->refresh();
+        $profile->refresh();
+
+        $this->assertNull($user->email_verified_at);
+        $this->assertTrue($user->shouldAutoActivateArtistProfile());
         $this->assertTrue($profile->is_verified);
         $this->assertTrue($profile->is_approved);
     }
