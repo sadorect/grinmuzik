@@ -133,13 +133,15 @@ new #[Layout('layouts.glass-app')] class extends Component
                     ->get())
                 : collect(),
             'featuredArtists' => $showSearchPopularArtists
-                ? Cache::remember('search.featured-artists.v2', now()->addMinutes(10), fn () => ArtistProfile::query()
+                ? Cache::remember('search.featured-artists.v3', now()->addMinutes(10), fn () => ArtistProfile::query()
+                    ->withFeaturedRecommendationMetrics()
                     ->with('user')
                     ->publiclyDiscoverable()
-                    ->when(ArtistProfile::supportsFeaturedCuration(), fn ($query) => $query->orderByDesc('is_featured'))
                     ->orderByDesc('followers_count')
-                    ->take(4)
-                    ->get())
+                    ->orderByDesc('total_plays')
+                    ->take(16)
+                    ->get()
+                    ->pipe(fn ($artists) => ArtistProfile::rankForFeaturedListing($artists)->take(4)->values()))
                 : collect(),
             'showSearchTrendingTracks' => $showSearchTrendingTracks,
             'showSearchPopularArtists' => $showSearchPopularArtists,

@@ -71,12 +71,15 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 ->get())
             : collect();
 
-        $featuredArtists = Cache::remember('home.featured-artists.v3', now()->addMinutes(5), fn () => ArtistProfile::with('user')
+        $featuredArtists = Cache::remember('home.featured-artists.v4', now()->addMinutes(5), fn () => ArtistProfile::query()
+            ->with('user')
+            ->withFeaturedRecommendationMetrics()
             ->publiclyDiscoverable()
-            ->when(ArtistProfile::supportsFeaturedCuration(), fn ($query) => $query->orderByDesc('is_featured'))
             ->orderByDesc('followers_count')
-            ->take(6)
-            ->get());
+            ->orderByDesc('total_plays')
+            ->take(24)
+            ->get()
+            ->pipe(fn ($artists) => ArtistProfile::rankForFeaturedListing($artists)->take(6)->values()));
 
         $heroSlides = Cache::remember('home.hero-slides.v1', now()->addMinutes(5), fn () => Schema::hasTable('homepage_banner_slides')
             ? HomepageBannerSlide::query()->active()->get()

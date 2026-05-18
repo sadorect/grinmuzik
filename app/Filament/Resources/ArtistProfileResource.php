@@ -95,7 +95,7 @@ class ArtistProfileResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 ->with('user')
-                ->withCount(['tracks as published_tracks_count' => fn (Builder $trackQuery): Builder => $trackQuery->published()]))
+                ->withFeaturedRecommendationMetrics())
             ->columns([
                 Tables\Columns\TextColumn::make('stage_name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('user.name')->label('User')->searchable(),
@@ -140,6 +140,19 @@ class ArtistProfileResource extends Resource
 
                         return 'danger';
                     }),
+                Tables\Columns\TextColumn::make('featured_recommendation_status')
+                    ->label('Feature Recommendation')
+                    ->badge()
+                    ->state(fn (ArtistProfile $record): string => $record->featured_recommendation_status)
+                    ->color(fn (ArtistProfile $record): string => match ($record->featured_recommendation_status) {
+                        'Featured' => 'success',
+                        'Recommended' => 'warning',
+                        'Eligible' => 'info',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('featured_recommendation_score')
+                    ->label('Feature Score')
+                    ->state(fn (ArtistProfile $record): int => $record->featured_recommendation_score),
                 Tables\Columns\TextColumn::make('published_tracks_count')
                     ->label('Published Tracks')
                     ->numeric()
@@ -163,6 +176,9 @@ class ArtistProfileResource extends Resource
                 Tables\Filters\Filter::make('in_limbo')
                     ->label('In limbo')
                     ->query(fn (Builder $query): Builder => $query->inLimbo()),
+                Tables\Filters\Filter::make('feature_recommendation_candidates')
+                    ->label('Feature candidates')
+                    ->query(fn (Builder $query): Builder => $query->featuredRecommendationEligible()),
                 ...(ArtistProfile::supportsFeaturedCuration()
                     ? [Tables\Filters\TernaryFilter::make('is_featured')]
                     : []),
@@ -203,6 +219,12 @@ class ArtistProfileResource extends Resource
                     ->color('danger')
                     ->visible(fn (): bool => AdminPanelAccess::allows(['reject artists', 'manage artists']))
                     ->action(fn (ArtistProfile $record) => $record->rejectFromModeration()),
+                Actions\Action::make('featureRecommendation')
+                    ->label('Feature recommendation')
+                    ->icon('heroicon-o-star')
+                    ->color('warning')
+                    ->visible(fn (ArtistProfile $record): bool => AdminPanelAccess::allows('manage artists') && $record->is_featured_recommended)
+                    ->action(fn (ArtistProfile $record) => $record->update(['is_featured' => true])),
             ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
@@ -243,6 +265,15 @@ class ArtistProfileResource extends Resource
                                 ->label('Remove feature')
                                 ->visible(fn (): bool => AdminPanelAccess::allows('manage artists'))
                                 ->action(fn ($records) => $records->each->update(['is_featured' => false]))
+                                ->icon('heroicon-o-star'),
+                            Actions\BulkAction::make('featureRecommended')
+                                ->label('Feature recommended selected')
+                                ->visible(fn (): bool => AdminPanelAccess::allows('manage artists'))
+                                ->action(fn ($records) => $records->each(function (ArtistProfile $record): void {
+                                    if ($record->is_featured_recommended) {
+                                        $record->update(['is_featured' => true]);
+                                    }
+                                }))
                                 ->icon('heroicon-o-star'),
                         ]
                         : []),

@@ -212,17 +212,17 @@ new #[Layout('layouts.glass-app')] class extends Component {
             : collect();
 
         $topArtists = $showBrowseArtistsToWatch
-            ? Cache::remember("browse.top-artists.{$filterKey}.v2", now()->addMinutes(5), function () use ($selectedGenre) {
+            ? Cache::remember("browse.top-artists.{$filterKey}.v3", now()->addMinutes(5), function () use ($selectedGenre) {
                 return ArtistProfile::query()
+                    ->withFeaturedRecommendationMetrics()
                     ->publiclyDiscoverable()
                     ->with('user')
                     ->when($selectedGenre, fn (Builder $query) => $query->whereHas('genres', fn (Builder $genreQuery) => $genreQuery->whereKey($selectedGenre->id)))
-                    ->when(ArtistProfile::supportsFeaturedCuration(), fn (Builder $query) => $query->orderByDesc('is_featured'))
-                    ->orderByDesc('is_verified')
                     ->orderByDesc('followers_count')
                     ->orderByDesc('total_plays')
-                    ->take(6)
-                    ->get();
+                    ->take(24)
+                    ->get()
+                    ->pipe(fn ($artists) => ArtistProfile::rankForFeaturedListing($artists)->take(6)->values());
             })
             : collect();
 

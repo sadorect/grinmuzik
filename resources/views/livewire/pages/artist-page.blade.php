@@ -54,6 +54,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             now()->addMinutes(10),
             function () use ($genreIds) {
                 $query = ArtistProfile::query()
+                    ->withFeaturedRecommendationMetrics()
                     ->publiclyDiscoverable()
                     ->with(['user', 'genres'])
                     ->whereKeyNot($this->profile->id);
@@ -63,26 +64,27 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 }
 
                 $artists = $query
-                    ->when(ArtistProfile::supportsFeaturedCuration(), fn ($artistsQuery) => $artistsQuery->orderByDesc('is_featured'))
-                    ->orderByDesc('is_verified')
                     ->orderByDesc('followers_count')
                     ->orderByDesc('total_plays')
-                    ->take(6)
+                    ->take(24)
                     ->get();
+
+                $artists = ArtistProfile::rankForFeaturedListing($artists)->take(6)->values();
 
                 if ($artists->isNotEmpty()) {
                     return $artists;
                 }
 
                 return ArtistProfile::query()
+                    ->withFeaturedRecommendationMetrics()
                     ->publiclyDiscoverable()
                     ->with('user')
                     ->whereKeyNot($this->profile->id)
-                    ->when(ArtistProfile::supportsFeaturedCuration(), fn ($artistsQuery) => $artistsQuery->orderByDesc('is_featured'))
-                    ->orderByDesc('is_verified')
                     ->orderByDesc('followers_count')
-                    ->take(6)
-                    ->get();
+                    ->orderByDesc('total_plays')
+                    ->take(24)
+                    ->get()
+                    ->pipe(fn ($artists) => ArtistProfile::rankForFeaturedListing($artists)->take(6)->values());
             }
         );
 
