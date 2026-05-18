@@ -75,6 +75,15 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
             'followers_count' => 999,
         ]);
 
+        Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Fallback Artist Track',
+            'slug' => 'fallback-artist-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
+
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('Featured Artists')
@@ -198,6 +207,46 @@ class HomepageBannerAndArtistDashboardTest extends TestCase
             ->assertSee('Scroll weekly top tracks right')
             ->assertSee('Scroll trending tracks left')
             ->assertSee('Scroll featured artists right');
+    }
+
+    #[Test]
+    public function homepage_featured_artists_excludes_approved_artists_without_published_tracks(): void
+    {
+        Cache::flush();
+
+        $hiddenUser = User::factory()->create();
+        ArtistProfile::create([
+            'user_id' => $hiddenUser->id,
+            'stage_name' => 'Limbo Artist',
+            'slug' => 'limbo-artist-home',
+            'is_approved' => true,
+            'is_active' => true,
+            'followers_count' => 1500,
+        ]);
+
+        $visibleUser = User::factory()->create();
+        $visibleProfile = ArtistProfile::create([
+            'user_id' => $visibleUser->id,
+            'stage_name' => 'Live Artist',
+            'slug' => 'live-artist-home',
+            'is_approved' => true,
+            'is_active' => true,
+            'followers_count' => 900,
+        ]);
+
+        Track::create([
+            'user_id' => $visibleUser->id,
+            'artist_profile_id' => $visibleProfile->id,
+            'title' => 'Live Artist Track',
+            'slug' => 'live-artist-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Live Artist')
+            ->assertDontSee('Limbo Artist');
     }
 
     #[Test]

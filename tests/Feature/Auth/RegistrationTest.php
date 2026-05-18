@@ -142,6 +142,7 @@ class RegistrationTest extends TestCase
             ->set('captcha', '7')
             ->set('hasAcceptedPolicies', false)
             ->call('register')
-            ->assertHasErrors(['hasAcceptedPolicies' => 'accepted']);
+            ->assertHasErrors(['hasAcceptedPolicies' => 'accepted'])
+            ->assertSee('Please accept the terms of service before you proceed');
     }
 }

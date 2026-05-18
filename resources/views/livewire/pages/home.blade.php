@@ -71,8 +71,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 ->get())
             : collect();
 
-        $featuredArtists = Cache::remember('home.featured-artists.v2', now()->addMinutes(5), fn () => ArtistProfile::with('user')
-            ->approved()
+        $featuredArtists = Cache::remember('home.featured-artists.v3', now()->addMinutes(5), fn () => ArtistProfile::with('user')
+            ->publiclyDiscoverable()
             ->when(ArtistProfile::supportsFeaturedCuration(), fn ($query) => $query->orderByDesc('is_featured'))
             ->orderByDesc('followers_count')
             ->take(6)
@@ -88,9 +88,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
             ->take(12)
             ->get());
 
-        $stats = Cache::remember('home.stats.v1', now()->addMinutes(5), fn () => [
+        $stats = Cache::remember('home.stats.v2', now()->addMinutes(5), fn () => [
             'tracks' => Track::where('is_published', true)->count(),
-            'artists' => ArtistProfile::where('is_approved', true)->count(),
+            'artists' => ArtistProfile::query()->publiclyDiscoverable()->count(),
             'genres' => Genre::where('is_active', true)->count(),
             'playlists' => Playlist::where('is_public', true)->count(),
         ]);

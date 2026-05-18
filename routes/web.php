@@ -172,7 +172,7 @@ Route::get('/sitemap.xml', function () {
         ]);
 
     $artists = ArtistProfile::query()
-        ->where('is_approved', true)
+        ->publiclyDiscoverable()
         ->select(['slug', 'updated_at'])
         ->latest('updated_at')
         ->get()

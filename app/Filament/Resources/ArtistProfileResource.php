@@ -93,7 +93,9 @@ class ArtistProfileResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('user'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->with('user')
+                ->withCount(['tracks as published_tracks_count' => fn (Builder $trackQuery): Builder => $trackQuery->published()]))
             ->columns([
                 Tables\Columns\TextColumn::make('stage_name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('user.name')->label('User')->searchable(),
@@ -105,6 +107,43 @@ class ArtistProfileResource extends Resource
                 Tables\Columns\TextColumn::make('last_seen_status')
                     ->label('Last Seen')
                     ->state(fn (ArtistProfile $record): string => $record->user?->last_seen_at?->diffForHumans() ?? 'No recent activity'),
+                Tables\Columns\TextColumn::make('public_listing_status')
+                    ->label('Public Listing')
+                    ->badge()
+                    ->state(function (ArtistProfile $record): string {
+                        if ($record->is_approved && $record->is_active && ((int) ($record->published_tracks_count ?? 0) === 0)) {
+                            return 'In limbo';
+                        }
+
+                        if ($record->is_approved && $record->is_active) {
+                            return 'Live';
+                        }
+
+                        if (! $record->is_approved) {
+                            return 'Pending approval';
+                        }
+
+                        return 'Inactive';
+                    })
+                    ->color(function (ArtistProfile $record): string {
+                        if ($record->is_approved && $record->is_active && ((int) ($record->published_tracks_count ?? 0) === 0)) {
+                            return 'warning';
+                        }
+
+                        if ($record->is_approved && $record->is_active) {
+                            return 'success';
+                        }
+
+                        if (! $record->is_approved) {
+                            return 'gray';
+                        }
+
+                        return 'danger';
+                    }),
+                Tables\Columns\TextColumn::make('published_tracks_count')
+                    ->label('Published Tracks')
+                    ->numeric()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('total_plays')->numeric()->sortable(),
                 Tables\Columns\TextColumn::make('followers_count')->numeric()->sortable(),
                 Tables\Columns\TextColumn::make('total_donations')->money('USD')->sortable(),
@@ -121,6 +160,9 @@ class ArtistProfileResource extends Resource
                 Tables\Filters\Filter::make('online_now')
                     ->label('Online now')
                     ->query(fn (Builder $query): Builder => $query->whereHas('user', fn (Builder $userQuery): Builder => $userQuery->online())),
+                Tables\Filters\Filter::make('in_limbo')
+                    ->label('In limbo')
+                    ->query(fn (Builder $query): Builder => $query->inLimbo()),
                 ...(ArtistProfile::supportsFeaturedCuration()
                     ? [Tables\Filters\TernaryFilter::make('is_featured')]
                     : []),

@@ -60,8 +60,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             $artists = ArtistProfile::search($query)
                 ->query(fn ($builder) => $builder
                     ->with('user')
-                    ->where('is_approved', true)
-                    ->where('is_active', true))
+                    ->publiclyDiscoverable())
                 ->get()
                 ->take(12)
                 ->values();
@@ -69,8 +68,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             if ($artists->isEmpty()) {
                 $artists = ArtistProfile::query()
                     ->with('user')
-                    ->where('is_approved', true)
-                    ->where('is_active', true)
+                    ->publiclyDiscoverable()
                     ->where(function ($builder) use ($query): void {
                         $term = '%' . $query . '%';
 
@@ -112,10 +110,10 @@ new #[Layout('layouts.glass-app')] class extends Component
             'relatedArtists' => $relatedArtists,
             'tracksSummary' => $tracksSummary,
             'artistsSummary' => $artistsSummary,
-            'suggestedSearches' => Cache::remember('search.suggested-terms.v1', now()->addMinutes(15), function () {
+            'suggestedSearches' => Cache::remember('search.suggested-terms.v2', now()->addMinutes(15), function () {
                 $terms = collect()
                     ->merge(Genre::query()->where('is_active', true)->orderByDesc('sort_order')->orderBy('name')->take(5)->pluck('name'))
-                    ->merge(ArtistProfile::query()->where('is_approved', true)->where('is_active', true)->orderByDesc('followers_count')->take(5)->pluck('stage_name'))
+                    ->merge(ArtistProfile::query()->publiclyDiscoverable()->orderByDesc('followers_count')->take(5)->pluck('stage_name'))
                     ->merge(Track::query()->where('is_published', true)->orderByDesc('play_count')->take(5)->pluck('title'));
 
                 return $terms
@@ -135,10 +133,9 @@ new #[Layout('layouts.glass-app')] class extends Component
                     ->get())
                 : collect(),
             'featuredArtists' => $showSearchPopularArtists
-                ? Cache::remember('search.featured-artists.v1', now()->addMinutes(10), fn () => ArtistProfile::query()
+                ? Cache::remember('search.featured-artists.v2', now()->addMinutes(10), fn () => ArtistProfile::query()
                     ->with('user')
-                    ->where('is_approved', true)
-                    ->where('is_active', true)
+                    ->publiclyDiscoverable()
                     ->when(ArtistProfile::supportsFeaturedCuration(), fn ($query) => $query->orderByDesc('is_featured'))
                     ->orderByDesc('followers_count')
                     ->take(4)

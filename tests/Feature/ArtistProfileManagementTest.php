@@ -108,6 +108,15 @@ class ArtistProfileManagementTest extends TestCase
         $profile->addMedia(UploadedFile::fake()->image('artist-avatar.jpg'))
             ->toMediaCollection('avatar');
 
+        Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Social Artist Track',
+            'slug' => 'social-artist-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
+
         $avatarUrl = $profile->fresh()->getAvatarMediaUrl();
 
         $this->get(route('artist.page', $profile))

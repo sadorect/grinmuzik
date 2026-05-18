@@ -212,9 +212,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
             : collect();
 
         $topArtists = $showBrowseArtistsToWatch
-            ? Cache::remember("browse.top-artists.{$filterKey}.v1", now()->addMinutes(5), function () use ($selectedGenre) {
+            ? Cache::remember("browse.top-artists.{$filterKey}.v2", now()->addMinutes(5), function () use ($selectedGenre) {
                 return ArtistProfile::query()
-                    ->approved()
+                    ->publiclyDiscoverable()
                     ->with('user')
                     ->when($selectedGenre, fn (Builder $query) => $query->whereHas('genres', fn (Builder $genreQuery) => $genreQuery->whereKey($selectedGenre->id)))
                     ->when(ArtistProfile::supportsFeaturedCuration(), fn (Builder $query) => $query->orderByDesc('is_featured'))
@@ -226,10 +226,10 @@ new #[Layout('layouts.glass-app')] class extends Component {
             })
             : collect();
 
-        $stats = Cache::remember("browse.stats.{$filterKey}.v1", now()->addMinutes(5), fn () => [
+        $stats = Cache::remember("browse.stats.{$filterKey}.v2", now()->addMinutes(5), fn () => [
             'tracks' => (clone $this->baseTrackQuery())->count(),
             'artists' => ArtistProfile::query()
-                ->approved()
+                ->publiclyDiscoverable()
                 ->when($selectedGenre, fn (Builder $query) => $query->whereHas('genres', fn (Builder $genreQuery) => $genreQuery->whereKey($selectedGenre->id)))
                 ->count(),
             'support' => (clone $this->baseTrackQuery())->where('is_free', false)->count(),

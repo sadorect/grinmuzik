@@ -65,6 +65,15 @@ class SeoMetadataTest extends TestCase
         $profile->addMedia(UploadedFile::fake()->image('artist-avatar.jpg'))
             ->toMediaCollection('avatar');
 
+        Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Avatar Artist Track',
+            'slug' => 'avatar-artist-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
+
         $avatarUrl = $this->absoluteUrl($profile->fresh()->getShareImageUrl());
 
         $this->get(route('artist.page', $profile))
@@ -96,6 +105,15 @@ class SeoMetadataTest extends TestCase
 
         $profile->addMedia(UploadedFile::fake()->image('artist-banner.jpg'))
             ->toMediaCollection('banner');
+
+        Track::create([
+            'user_id' => $user->id,
+            'artist_profile_id' => $profile->id,
+            'title' => 'Banner Artist Track',
+            'slug' => 'banner-artist-track',
+            'is_published' => true,
+            'is_free' => true,
+        ]);
 
         $siteLogoUrl = $this->absoluteUrl(SiteSetting::current()->fresh()->site_logo_url);
 

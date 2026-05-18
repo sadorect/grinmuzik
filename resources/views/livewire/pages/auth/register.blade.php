@@ -76,6 +76,13 @@ new #[Layout('layouts.guest')] class extends Component
         return $rules;
     }
 
+    protected function messages(): array
+    {
+        return [
+            'hasAcceptedPolicies.accepted' => 'Please accept the terms of service before you proceed',
+        ];
+    }
+
     public function updatedAvatar(): void
     {
         if ($this->role !== 'artist') {
@@ -340,15 +347,47 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         {{-- ── Password ──────────────────────────────────────────────────────── --}}
-        <div class="mt-4">
+        <div class="mt-4" x-data="{ showPassword: false }">
             <x-input-label for="password" :value="__('Password')" />
-            <x-text-input wire:model="password" id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
+            <div class="relative mt-1">
+                <x-text-input wire:model="password" id="password" class="block w-full pr-12" x-bind:type="showPassword ? 'text' : 'password'" name="password" required autocomplete="new-password" />
+                <button type="button"
+                    x-on:click="showPassword = !showPassword"
+                    x-bind:aria-label="showPassword ? 'Hide password' : 'Show password'"
+                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition hover:text-gray-600 focus:outline-none focus:text-gray-600">
+                    <svg x-show="!showPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <circle cx="12" cy="12" r="3" stroke-width="1.75" />
+                    </svg>
+                    <svg x-show="showPassword" x-cloak class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3l18 18" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.585 10.587A2 2 0 0012 14a2 2 0 001.414-.586" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.88 5.09A10.94 10.94 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.96 10.96 0 01-4.132 5.411M6.228 6.228A10.957 10.957 0 002.458 12c1.274 4.057 5.065 7 9.542 7 1.566 0 3.055-.36 4.385-1.004" />
+                    </svg>
+                </button>
+            </div>
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4" x-data="{ showPasswordConfirmation: false }">
             <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input wire:model="password_confirmation" id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
+            <div class="relative mt-1">
+                <x-text-input wire:model="password_confirmation" id="password_confirmation" class="block w-full pr-12" x-bind:type="showPasswordConfirmation ? 'text' : 'password'" name="password_confirmation" required autocomplete="new-password" />
+                <button type="button"
+                    x-on:click="showPasswordConfirmation = !showPasswordConfirmation"
+                    x-bind:aria-label="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 transition hover:text-gray-600 focus:outline-none focus:text-gray-600">
+                    <svg x-show="!showPasswordConfirmation" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <circle cx="12" cy="12" r="3" stroke-width="1.75" />
+                    </svg>
+                    <svg x-show="showPasswordConfirmation" x-cloak class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3l18 18" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.585 10.587A2 2 0 0012 14a2 2 0 001.414-.586" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.88 5.09A10.94 10.94 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.96 10.96 0 01-4.132 5.411M6.228 6.228A10.957 10.957 0 002.458 12c1.274 4.057 5.065 7 9.542 7 1.566 0 3.055-.36 4.385-1.004" />
+                    </svg>
+                </button>
+            </div>
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 

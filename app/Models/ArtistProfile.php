@@ -241,6 +241,20 @@ class ArtistProfile extends Model implements HasMedia
         return $query->where('is_approved', true)->where('is_active', true);
     }
 
+    public function scopePubliclyDiscoverable($query)
+    {
+        return $query
+            ->approved()
+            ->whereHas('tracks', fn ($trackQuery) => $trackQuery->published());
+    }
+
+    public function scopeInLimbo($query)
+    {
+        return $query
+            ->approved()
+            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
+    }
+
     public function scopeVerified($query)
     {
         return $query->where('is_verified', true);

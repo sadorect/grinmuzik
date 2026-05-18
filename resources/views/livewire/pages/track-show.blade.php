@@ -84,7 +84,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
         );
 
         $recommendedArtists = Cache::remember(
-            "track-page.{$this->track->id}.recommended-artists.v1",
+            "track-page.{$this->track->id}.recommended-artists.v2",
             now()->addMinutes(10),
             function () {
                 $genreIds = collect([$this->track->genre_id])
@@ -94,7 +94,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     ->values();
 
                 $query = ArtistProfile::query()
-                    ->approved()
+                    ->publiclyDiscoverable()
                     ->with(['user', 'genres'])
                     ->whereKeyNot($this->track->artist_profile_id);
 
@@ -115,7 +115,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 }
 
                 return ArtistProfile::query()
-                    ->approved()
+                    ->publiclyDiscoverable()
                     ->with('user')
                     ->whereKeyNot($this->track->artist_profile_id)
                     ->when(ArtistProfile::supportsFeaturedCuration(), fn ($artistsQuery) => $artistsQuery->orderByDesc('is_featured'))

@@ -15,7 +15,10 @@ new #[Layout('layouts.glass-app')] class extends Component {
 
     public function mount(ArtistProfile $profile): void
     {
-        abort_if(!$profile->is_approved, 404);
+        abort_if(
+            ! ArtistProfile::query()->publiclyDiscoverable()->whereKey($profile->getKey())->exists(),
+            404,
+        );
 
         $this->profile = $profile->load([
             'user',
@@ -47,11 +50,11 @@ new #[Layout('layouts.glass-app')] class extends Component {
         $genreIds = $this->profile->genres->pluck('id')->filter()->values();
 
         $relatedArtists = Cache::remember(
-            "artist-page.{$this->profile->id}.related-artists.v1",
+            "artist-page.{$this->profile->id}.related-artists.v2",
             now()->addMinutes(10),
             function () use ($genreIds) {
                 $query = ArtistProfile::query()
-                    ->approved()
+                    ->publiclyDiscoverable()
                     ->with(['user', 'genres'])
                     ->whereKeyNot($this->profile->id);
 
@@ -72,7 +75,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 }
 
                 return ArtistProfile::query()
-                    ->approved()
+                    ->publiclyDiscoverable()
                     ->with('user')
                     ->whereKeyNot($this->profile->id)
                     ->when(ArtistProfile::supportsFeaturedCuration(), fn ($artistsQuery) => $artistsQuery->orderByDesc('is_featured'))
