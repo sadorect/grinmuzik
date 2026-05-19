@@ -12,10 +12,13 @@
     @download-unavailable.window="showStatusToast($event.detail.message || 'Download unavailable.')"
     @start-download.window="startBackgroundDownload($event.detail)"
     class="fixed bottom-0 left-0 right-0 z-50"
+    x-show="hasActiveTrack"
+    x-cloak
+    style="display:none"
 >
     {{-- ── Queue Panel (slides up above the bar) ───────────────────────────── --}}
     <div
-        x-show="showQueue"
+        x-show="showQueue && hasActiveTrack && queueTracks.length > 1"
         x-transition:enter="transition ease-out duration-250"
         x-transition:enter-start="opacity-0 translate-y-4"
         x-transition:enter-end="opacity-100 translate-y-0"
@@ -75,10 +78,21 @@
                             :alt="t.title"
                         >
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-semibold truncate"
-                               :class="idx === queueIndex ? 'text-primary-600' : 'text-gray-800'"
-                               x-text="t.title"></p>
-                            <p class="text-xs text-gray-400 truncate" x-text="t.artist"></p>
+                            <a
+                                :href="t.url || '#'"
+                                wire:navigate
+                                @click.stop
+                                class="block text-xs font-semibold truncate transition hover:text-primary"
+                                :class="idx === queueIndex ? 'text-primary-600' : 'text-gray-800'"
+                                x-text="t.title"
+                            ></a>
+                            <a
+                                :href="t.artist_url || '#'"
+                                wire:navigate
+                                @click.stop
+                                class="block text-xs text-gray-400 truncate transition hover:text-primary"
+                                x-text="t.artist"
+                            ></a>
                         </div>
                         <button @click.stop="removeFromQueue(idx)"
                                 class="text-gray-300 hover:text-primary-500 transition shrink-0"
@@ -239,160 +253,493 @@
     </div>
 
     <div
-        x-show="track"
+        x-show="hasActiveTrack"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="translate-y-full opacity-0"
         x-transition:enter-end="translate-y-0 opacity-100"
-        class="glass-mini-player"
-        :class="{ 'glass-mini-player-playing': playing }"
+        x-cloak
         style="display: none;"
     >
-        <div class="max-w-7xl mx-auto flex items-center gap-4 flex-wrap sm:flex-nowrap">
-
-            {{-- ── Cover + Info ──────────────────────────────────────────────── --}}
-            <div class="flex items-center gap-3 min-w-0 w-44 shrink-0">
-                <img
-                    :src="track?.cover || '/images/placeholder-track.svg'"
-                    :alt="track?.title"
-                    class="h-11 w-11 rounded-lg object-cover shadow-sm ring-1 ring-white/30 shrink-0"
-                >
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 truncate" x-text="track?.title"></p>
-                    <p class="text-xs text-gray-500 truncate" x-text="track?.artist"></p>
-                    <button
-                        type="button"
-                        x-show="track?.can_gift_artist"
-                        @click="openGiftModal()"
-                        class="mt-1 inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700 transition hover:border-primary-200 hover:bg-primary-100"
-                        style="display:none"
-                    >
-                        Gift artist
-                    </button>
-                </div>
+        <div
+            x-show="mobileExpanded && isMobileViewport"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-6"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-6"
+            @keydown.escape.window="toggleMobilePlayer(false)"
+            class="fixed inset-0 z-[55] sm:hidden"
+            style="display:none; padding-top: calc(env(safe-area-inset-top) + 1.25rem); padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);"
+        >
+            <div class="absolute inset-0 overflow-hidden bg-gradient-to-b from-white via-gray-100 to-gray-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+                <div
+                    class="absolute inset-0 scale-110 bg-cover bg-center opacity-20 blur-3xl dark:opacity-25"
+                    :style="track?.cover ? `background-image: url('${track.cover}')` : ''"
+                ></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-white/80 via-white/88 to-gray-100/96 dark:from-slate-950/70 dark:via-slate-950/88 dark:to-slate-950"></div>
             </div>
 
-            {{-- ── Controls ──────────────────────────────────────────────────── --}}
-            <div class="flex flex-col items-center gap-1 flex-1">
-                <div class="flex items-center gap-5">
-                    {{-- Prev --}}
-                    <button @click="playPrev()"
-                            :class="queueIndex > 0 ? 'text-gray-600 hover:text-gray-900' : 'text-gray-300 cursor-default'"
-                            class="transition" title="Previous">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z"/></svg>
+            <div class="relative h-full overflow-y-auto px-5 text-gray-900 dark:text-white">
+                <div class="mx-auto flex min-h-full w-full max-w-sm flex-col">
+                    <div class="shrink-0 flex items-center justify-between">
+                        <button
+                            type="button"
+                            @click="toggleMobilePlayer(false)"
+                            class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/5 bg-white/75 text-gray-700 backdrop-blur-xl transition hover:bg-white/95 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white"
+                            title="Collapse player"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 9l7 7 7-7"/>
+                            </svg>
+                        </button>
+
+                        <div class="text-center">
+                            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-gray-500 dark:text-white/45">Now playing</p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-white/60" x-text="queue.length > 1 ? `${queueIndex + 1} of ${queue.length}` : 'Single track'"></p>
+                        </div>
+
+                        <div class="h-11 w-11"></div>
+                    </div>
+
+                    <div class="flex flex-1 min-h-0 flex-col pb-4 pt-3">
+                        <div class="flex min-h-0 flex-1 items-center justify-center py-2">
+                            <div class="flex flex-col items-center justify-center gap-3">
+                                <div
+                                    class="overflow-hidden rounded-[2rem] border border-black/5 bg-white/70 shadow-2xl shadow-gray-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:shadow-black/30"
+                                    style="width:min(68vw, 17rem, 31vh); height:min(68vw, 17rem, 31vh);"
+                                >
+                                    <img
+                                        :src="track?.cover || '/images/placeholder-track.svg'"
+                                        :alt="track?.title"
+                                        class="h-full w-full object-cover"
+                                    >
+                                </div>
+
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.34em] text-gray-500/80 animate-[pulse_7s_ease-in-out_infinite] dark:text-white/45">
+                                    GrinMuzik
+                                </p>
+                            </div>
+                        </div>
+
+                        @if($track)
+                        <div class="mt-3 grid shrink-0 grid-cols-4 gap-3">
+                            <button
+                                type="button"
+                                wire:click="likeToggle"
+                                class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
+                                title="{{ $liked ? 'Unlike' : 'Like' }}"
+                            >
+                                <svg class="h-5 w-5 {{ $liked ? 'fill-current text-primary' : 'text-gray-700 dark:text-white/75' }}" viewBox="0 0 24 24" fill="{{ $liked ? 'currentColor' : 'none' }}" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                <span class="mt-2 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.14em] leading-tight">Like</span>
+                                <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" wire:key="mobile-like-count-hero-{{ $trackId }}">{{ $likesCount > 0 ? $likesCount : 'Save' }}</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="shareTrack()"
+                                class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
+                                :title="shareCopied ? 'Link copied!' : 'Share track'"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                                </svg>
+                                <span class="mt-2 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.14em] leading-tight">Share</span>
+                                <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" x-text="shareCopied ? 'Copied' : 'Track'"></span>
+                            </button>
+
+                            <button
+                                type="button"
+                                wire:click="downloadTrack"
+                                class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
+                                title="Download"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                <span class="mt-2 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.14em] leading-tight">Download</span>
+                                <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" x-text="new Intl.NumberFormat().format(track?.downloads_count ?? 0)"></span>
+                            </button>
+
+                            <div class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/75">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.868v4.264a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+                                </svg>
+                                <span class="mt-2 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.14em] leading-tight">Plays</span>
+                                <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" x-text="new Intl.NumberFormat().format(track?.play_count ?? 0)"></span>
+                            </div>
+                        </div>
+                        @endif
+
+                        <div class="mt-3 shrink-0 pb-1 text-center">
+                            <a
+                                :href="track?.url || '#'"
+                                wire:navigate
+                                class="block truncate text-xl font-semibold tracking-tight text-gray-900 transition hover:text-primary dark:text-white dark:hover:text-primary-300"
+                                x-text="track?.title"
+                            ></a>
+                            <a
+                                :href="track?.artist_url || '#'"
+                                wire:navigate
+                                class="mt-1.5 block truncate text-sm text-gray-500 transition hover:text-primary dark:text-white/60 dark:hover:text-primary-300"
+                                x-text="track?.artist"
+                            ></a>
+                            <button
+                                type="button"
+                                x-show="track?.can_gift_artist"
+                                @click="openGiftModal()"
+                                class="mt-3 inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700 transition hover:border-primary-200 hover:bg-primary-100 dark:border-primary-400/30 dark:bg-primary-500/15 dark:text-primary-200 dark:hover:border-primary-300/40 dark:hover:bg-primary-500/20"
+                                style="display:none"
+                            >
+                                Gift artist
+                            </button>
+                        </div>
+
+                        <div class="mt-3 shrink-0 rounded-[1.75rem] border border-black/5 bg-white/75 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+                            <div class="flex items-center gap-3">
+                                <span class="w-10 text-right text-xs tabular-nums text-gray-500 dark:text-white/55" x-text="formatTime(currentTime)"></span>
+                                <div class="group relative h-2.5 flex-1 cursor-pointer rounded-full bg-gray-300/70 dark:bg-white/15" @click="seek($event)">
+                                    <div class="h-full rounded-full bg-primary-400 transition-all" :style="`width: ${progress}%`"></div>
+                                    <div class="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-primary-400 shadow-lg shadow-primary-900/30 transition" :style="`left: calc(${progress}% - 8px)`"></div>
+                                </div>
+                                <span class="w-10 text-xs tabular-nums text-gray-500 dark:text-white/55" x-text="formatTime(duration)"></span>
+                            </div>
+
+                            <div class="mt-6 flex items-center justify-center gap-6">
+                                <button
+                                    type="button"
+                                    @click="playPrev()"
+                                    :class="queueIndex > 0 || currentTime > 3 ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-white/30 cursor-default'"
+                                    class="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/5 bg-white/70 transition dark:border-white/10 dark:bg-white/5"
+                                    title="Previous"
+                                >
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M7.75 5.75a.75.75 0 00-1.5 0v12.5a.75.75 0 001.5 0V5.75Zm9.97.297a.75.75 0 00-1.017-.267l-6.25 3.75a2.25 2.25 0 000 3.86l6.25 3.75a.75.75 0 10.771-1.287l-6.25-3.75a.75.75 0 010-1.286l6.25-3.75a.75.75 0 00.246-1.02Z"/></svg>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="togglePlay"
+                                    class="inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary-500 text-white shadow-2xl shadow-primary-900/40 transition active:scale-95"
+                                    :title="playing ? 'Pause' : 'Play'"
+                                >
+                                    <template x-if="!playing">
+                                        <svg class="ml-1 h-9 w-9" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                                    </template>
+                                    <template x-if="playing">
+                                        <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"/></svg>
+                                    </template>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="playNext()"
+                                    :class="queueIndex < queue.length - 1 ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-white/30 cursor-default'"
+                                    class="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/5 bg-white/70 transition dark:border-white/10 dark:bg-white/5"
+                                    title="Next"
+                                >
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M16.25 5.75a.75.75 0 011.5 0v12.5a.75.75 0 01-1.5 0V5.75Zm-9.97.297a.75.75 0 011.017-.267l6.25 3.75a2.25 2.25 0 010 3.86l-6.25 3.75a.75.75 0 11-.771-1.287l6.25-3.75a.75.75 0 000-1.286l-6.25-3.75a.75.75 0 01-.246-1.02Z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mx-auto w-full max-w-sm space-y-5 pb-6 pt-4">
+                        <div class="mt-5 overflow-hidden rounded-[1.75rem] border border-black/5 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+                            <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                                <div>
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-white/45">Queue</p>
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-white/70" x-text="`${queueTracks.length} track${queueTracks.length === 1 ? '' : 's'} ready`"></p>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="clearQueue()"
+                                    x-show="queueTracks.length > 0"
+                                    class="rounded-full border border-black/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-600 transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white"
+                                    style="display:none"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+
+                            <div class="max-h-64 overflow-y-auto">
+                                <template x-if="queueTracks.length === 0">
+                                    <div class="px-4 py-8 text-center text-sm text-gray-500 dark:text-white/45">
+                                        Queue is empty.
+                                    </div>
+                                </template>
+
+                                <template x-for="(t, idx) in queueTracks" :key="`${t.id}-${idx}`">
+                                    <div
+                                        @click="jumpTo(idx)"
+                                        class="flex items-center gap-3 px-4 py-3 transition"
+                                        :class="idx === queueIndex ? 'bg-gray-900/5 dark:bg-white/10' : 'hover:bg-black/5 dark:hover:bg-white/5'"
+                                    >
+                                        <img
+                                            :src="t.cover || '/images/placeholder-track.svg'"
+                                            :alt="t.title"
+                                            class="h-11 w-11 rounded-2xl object-cover"
+                                        >
+                                        <div class="min-w-0 flex-1">
+                                            <a
+                                                :href="t.url || '#'"
+                                                wire:navigate
+                                                @click.stop
+                                                class="block truncate text-sm font-semibold transition hover:text-primary"
+                                                :class="idx === queueIndex ? 'text-gray-900 dark:text-white dark:hover:text-primary-300' : 'text-gray-700 dark:text-white/75 dark:hover:text-primary-300'"
+                                                x-text="t.title"
+                                            ></a>
+                                            <a
+                                                :href="t.artist_url || '#'"
+                                                wire:navigate
+                                                @click.stop
+                                                class="block truncate text-xs text-gray-500 transition hover:text-primary dark:text-white/45 dark:hover:text-primary-300"
+                                                x-text="t.artist"
+                                            ></a>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-[11px] font-semibold uppercase tracking-[0.18em]" :class="idx === queueIndex ? 'text-primary-500 dark:text-primary-300' : 'text-gray-400 dark:text-white/35'" x-text="idx === queueIndex ? 'Live' : `#${idx + 1}`"></span>
+                                            <button
+                                                type="button"
+                                                @click.stop="removeFromQueue(idx)"
+                                                class="rounded-full p-2 text-gray-400 transition hover:bg-black/5 hover:text-gray-900 dark:text-white/35 dark:hover:bg-white/10 dark:hover:text-white"
+                                                title="Remove"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sm:hidden">
+            <div class="mx-3 mb-3 rounded-[1.75rem] border border-white/20 bg-white/85 px-4 py-3 shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/90">
+                <div class="flex items-center gap-3">
+                    <button
+                        type="button"
+                        @click="toggleMobilePlayer(true)"
+                        class="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                        <img
+                            :src="track?.cover || '/images/placeholder-track.svg'"
+                            :alt="track?.title"
+                            class="h-12 w-12 rounded-2xl object-cover shadow-sm ring-1 ring-white/30"
+                        >
+                        <div class="min-w-0 flex-1">
+                            <a
+                                :href="track?.url || '#'"
+                                wire:navigate
+                                class="block truncate text-sm font-semibold text-gray-900 transition hover:text-primary dark:text-slate-100 dark:hover:text-primary-300"
+                                x-text="track?.title"
+                            ></a>
+                            <a
+                                :href="track?.artist_url || '#'"
+                                wire:navigate
+                                class="mt-0.5 block truncate text-xs text-gray-500 transition hover:text-primary dark:text-slate-400 dark:hover:text-primary-300"
+                                x-text="track?.artist"
+                            ></a>
+                            <div class="mt-2 h-1 overflow-hidden rounded-full bg-gray-200 dark:bg-slate-800">
+                                <div class="h-full rounded-full bg-primary-500 transition-all" :style="`width: ${progress}%`"></div>
+                            </div>
+                        </div>
                     </button>
 
-                    {{-- Play / Pause --}}
                     <button
-                        @click="togglePlay"
-                        class="w-10 h-10 rounded-full bg-primary-500 text-white shadow-lg flex items-center justify-center hover:bg-primary-600 transition active:scale-95"
+                        type="button"
+                        @click="togglePlay()"
+                        class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition active:scale-95"
                         :title="playing ? 'Pause' : 'Play'"
                     >
                         <template x-if="!playing">
-                            <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                            <svg class="ml-0.5 h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
                         </template>
                         <template x-if="playing">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"/></svg>
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"/></svg>
                         </template>
                     </button>
 
-                    {{-- Next --}}
-                    <button @click="playNext()"
-                            :class="queueIndex < queue.length - 1 ? 'text-gray-600 hover:text-gray-900' : 'text-gray-300 cursor-default'"
-                            class="transition" title="Next">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 6a1 1 0 011.555-.832L10 9.202V6a1 1 0 011.555-.832l6 4a1 1 0 010 1.664l-6 4A1 1 0 0110 14v-2.798l-5.445 3.63A1 1 0 013 14V6z"/></svg>
+                    <button
+                        type="button"
+                        @click="toggleMobilePlayer(true)"
+                        class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary-200 hover:text-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
+                        title="Expand player"
+                    >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7-7-7 7"/>
+                        </svg>
                     </button>
-                </div>
-
-                {{-- Progress bar --}}
-                <div class="flex items-center gap-2 w-full max-w-md">
-                    <span class="text-xs tabular-nums text-gray-500 w-8 text-right" x-text="formatTime(currentTime)"></span>
-                    <div class="flex-1 h-1.5 bg-gray-200 rounded-full cursor-pointer relative group" @click="seek($event)">
-                        <div class="h-full bg-primary-500 rounded-full transition-all" :style="`width: ${progress}%`"></div>
-                        <div class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-primary-500 rounded-full shadow opacity-0 group-hover:opacity-100 transition" :style="`left: calc(${progress}% - 6px)`"></div>
-                    </div>
-                    <span class="text-xs tabular-nums text-gray-500 w-8" x-text="formatTime(duration)"></span>
                 </div>
             </div>
+        </div>
 
-            {{-- ── Like / Share / Download + Volume + Queue toggle ──────────── --}}
-            <div class="hidden sm:flex items-center gap-3 shrink-0">
+        <div class="hidden sm:block glass-mini-player" :class="{ 'glass-mini-player-playing': playing }">
+            <div class="max-w-7xl mx-auto flex items-center gap-4 flex-wrap sm:flex-nowrap">
 
-                {{-- Like --}}
-                @if($track)
-                <button
-                    wire:click="likeToggle"
-                    class="flex items-center gap-1 transition group"
-                    title="{{ $liked ? 'Unlike' : 'Like' }}"
-                >
-                    <svg class="w-4 h-4 transition {{ $liked ? 'text-primary fill-current' : 'text-gray-400 group-hover:text-primary' }}"
-                         viewBox="0 0 24 24" fill="{{ $liked ? 'currentColor' : 'none' }}" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                    </svg>
-                    <span class="text-xs tabular-nums {{ $liked ? 'text-primary' : 'text-gray-400 group-hover:text-primary' }}"
-                          wire:key="like-count-{{ $trackId }}">{{ $likesCount > 0 ? $likesCount : '' }}</span>
-                </button>
-
-                {{-- Share --}}
-                <button
-                    @click="shareTrack()"
-                    class="relative text-gray-400 hover:text-primary transition"
-                    :title="shareCopied ? 'Link copied!' : 'Share track'"
-                >
-                    <svg x-show="!shareCopied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-                    </svg>
-                    <svg x-show="shareCopied" class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </button>
-
-                {{-- Download --}}
-                <button
-                    wire:click="downloadTrack"
-                    class="text-gray-400 hover:text-primary transition"
-                    title="Download"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                </button>
-
-                <div class="w-px h-4 bg-gray-200 mx-1"></div>
-                @endif
-                <div class="flex items-center gap-2 w-28">
-                    <button @click="toggleMute()" class="text-gray-500 hover:text-gray-800 transition">
-                        <template x-if="muted || volume === 0">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM14.78 7.22a.75.75 0 00-1.06 1.06L14.94 9.5l-1.22 1.22a.75.75 0 001.06 1.06l1.22-1.22 1.22 1.22a.75.75 0 101.06-1.06L17.06 9.5l1.22-1.22a.75.75 0 10-1.06-1.06L16 8.44l-1.22-1.22z"/></svg>
-                        </template>
-                        <template x-if="!muted && volume > 0">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM13.28 6.22a.75.75 0 10-1.06 1.06A3.5 3.5 0 0113.5 10a3.5 3.5 0 01-1.28 2.72.75.75 0 101.06 1.06A5 5 0 0015 10a5 5 0 00-1.72-3.78zM16.72 4.22a.75.75 0 00-1.06 1.06A6.5 6.5 0 0117.5 10a6.5 6.5 0 01-1.84 4.72.75.75 0 101.06 1.06A8 8 0 0019 10a8 8 0 00-2.28-5.78z"/></svg>
-                        </template>
-                    </button>
-                    <input
-                        type="range" min="0" max="100"
-                        x-model="volume"
-                        @input="setVolume()"
-                        class="w-full accent-primary-500 h-1 cursor-pointer"
+                {{-- ── Cover + Info ──────────────────────────────────────────────── --}}
+                <div class="flex items-center gap-3 min-w-0 w-44 shrink-0">
+                    <img
+                        :src="track?.cover || '/images/placeholder-track.svg'"
+                        :alt="track?.title"
+                        class="h-11 w-11 rounded-lg object-cover shadow-sm ring-1 ring-white/30 shrink-0"
                     >
+                    <div class="min-w-0">
+                        <a
+                            :href="track?.url || '#'"
+                            wire:navigate
+                            class="block truncate text-sm font-semibold text-gray-800 transition hover:text-primary dark:text-slate-200 dark:hover:text-primary-300"
+                            x-text="track?.title"
+                        ></a>
+                        <a
+                            :href="track?.artist_url || '#'"
+                            wire:navigate
+                            class="block truncate text-xs text-gray-500 transition hover:text-primary dark:text-slate-400 dark:hover:text-primary-300"
+                            x-text="track?.artist"
+                        ></a>
+                        <button
+                            type="button"
+                            x-show="track?.can_gift_artist"
+                            @click="openGiftModal()"
+                            class="mt-1 inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700 transition hover:border-primary-200 hover:bg-primary-100"
+                            style="display:none"
+                        >
+                            Gift artist
+                        </button>
+                    </div>
                 </div>
 
-                {{-- Queue toggle button --}}
-                <button
-                    @click="showQueue = !showQueue"
-                    :class="showQueue ? 'text-primary-500 bg-primary-50' : 'text-gray-500 hover:text-gray-800'"
-                    class="relative p-1.5 rounded-lg transition"
-                    title="Queue"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10"/>
-                    </svg>
-                    <span x-show="queue.length > 1"
-                          class="absolute -top-1 -right-1 bg-primary-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none"
-                          x-text="queue.length"></span>
-                </button>
+                {{-- ── Controls ──────────────────────────────────────────────────── --}}
+                <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="flex items-center gap-5">
+                        {{-- Prev --}}
+                        <button @click="playPrev()"
+                                :class="queueIndex > 0 ? 'text-gray-600 hover:text-gray-900' : 'text-gray-300 cursor-default'"
+                                class="transition" title="Previous">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7.75 5.75a.75.75 0 00-1.5 0v12.5a.75.75 0 001.5 0V5.75Zm9.97.297a.75.75 0 00-1.017-.267l-6.25 3.75a2.25 2.25 0 000 3.86l6.25 3.75a.75.75 0 10.771-1.287l-6.25-3.75a.75.75 0 010-1.286l6.25-3.75a.75.75 0 00.246-1.02Z"/></svg>
+                        </button>
+
+                        {{-- Play / Pause --}}
+                        <button
+                            @click="togglePlay"
+                            class="w-10 h-10 rounded-full bg-primary-500 text-white shadow-lg flex items-center justify-center hover:bg-primary-600 transition active:scale-95"
+                            :title="playing ? 'Pause' : 'Play'"
+                        >
+                            <template x-if="!playing">
+                                <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                            </template>
+                            <template x-if="playing">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"/></svg>
+                            </template>
+                        </button>
+
+                        {{-- Next --}}
+                        <button @click="playNext()"
+                                :class="queueIndex < queue.length - 1 ? 'text-gray-600 hover:text-gray-900' : 'text-gray-300 cursor-default'"
+                                class="transition" title="Next">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M16.25 5.75a.75.75 0 011.5 0v12.5a.75.75 0 01-1.5 0V5.75Zm-9.97.297a.75.75 0 011.017-.267l6.25 3.75a2.25 2.25 0 010 3.86l-6.25 3.75a.75.75 0 11-.771-1.287l6.25-3.75a.75.75 0 000-1.286l-6.25-3.75a.75.75 0 01-.246-1.02Z"/></svg>
+                        </button>
+                    </div>
+
+                    {{-- Progress bar --}}
+                    <div class="flex items-center gap-2 w-full max-w-md">
+                        <span class="text-xs tabular-nums text-gray-500 w-8 text-right" x-text="formatTime(currentTime)"></span>
+                        <div class="flex-1 h-1.5 bg-gray-200 rounded-full cursor-pointer relative group" @click="seek($event)">
+                            <div class="h-full bg-primary-500 rounded-full transition-all" :style="`width: ${progress}%`"></div>
+                            <div class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-primary-500 rounded-full shadow opacity-0 group-hover:opacity-100 transition" :style="`left: calc(${progress}% - 6px)`"></div>
+                        </div>
+                        <span class="text-xs tabular-nums text-gray-500 w-8" x-text="formatTime(duration)"></span>
+                    </div>
+                </div>
+
+                {{-- ── Like / Share / Download + Volume + Queue toggle ──────────── --}}
+                <div class="hidden sm:flex items-center gap-3 shrink-0">
+
+                    {{-- Like --}}
+                    @if($track)
+                    <button
+                        wire:click="likeToggle"
+                        class="flex items-center gap-1 transition group"
+                        title="{{ $liked ? 'Unlike' : 'Like' }}"
+                    >
+                        <svg class="w-4 h-4 transition {{ $liked ? 'text-primary fill-current' : 'text-gray-400 group-hover:text-primary' }}"
+                             viewBox="0 0 24 24" fill="{{ $liked ? 'currentColor' : 'none' }}" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                        <span class="text-xs tabular-nums {{ $liked ? 'text-primary' : 'text-gray-400 group-hover:text-primary' }}"
+                              wire:key="like-count-{{ $trackId }}">{{ $likesCount > 0 ? $likesCount : '' }}</span>
+                    </button>
+
+                    {{-- Share --}}
+                    <button
+                        @click="shareTrack()"
+                        class="relative text-gray-400 hover:text-primary transition"
+                        :title="shareCopied ? 'Link copied!' : 'Share track'"
+                    >
+                        <svg x-show="!shareCopied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        <svg x-show="shareCopied" class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </button>
+
+                    {{-- Download --}}
+                    <button
+                        wire:click="downloadTrack"
+                        class="text-gray-400 hover:text-primary transition"
+                        title="Download"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                    </button>
+
+                    <div class="w-px h-4 bg-gray-200 mx-1"></div>
+                    @endif
+                    <div class="flex items-center gap-2 w-28">
+                        <button @click="toggleMute()" class="text-gray-500 hover:text-gray-800 transition">
+                            <template x-if="muted || volume === 0">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM14.78 7.22a.75.75 0 00-1.06 1.06L14.94 9.5l-1.22 1.22a.75.75 0 001.06 1.06l1.22-1.22 1.22 1.22a.75.75 0 101.06-1.06L17.06 9.5l1.22-1.22a.75.75 0 10-1.06-1.06L16 8.44l-1.22-1.22z"/></svg>
+                            </template>
+                            <template x-if="!muted && volume > 0">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM13.28 6.22a.75.75 0 10-1.06 1.06A3.5 3.5 0 0113.5 10a3.5 3.5 0 01-1.28 2.72.75.75 0 101.06 1.06A5 5 0 0015 10a5 5 0 00-1.72-3.78zM16.72 4.22a.75.75 0 00-1.06 1.06A6.5 6.5 0 0117.5 10a6.5 6.5 0 01-1.84 4.72.75.75 0 101.06 1.06A8 8 0 0019 10a8 8 0 00-2.28-5.78z"/></svg>
+                            </template>
+                        </button>
+                        <input
+                            type="range" min="0" max="100"
+                            x-model="volume"
+                            @input="setVolume()"
+                            class="w-full accent-primary-500 h-1 cursor-pointer"
+                        >
+                    </div>
+
+                    {{-- Queue toggle button --}}
+                    <button
+                        @click="showQueue = !showQueue"
+                        :class="showQueue ? 'text-primary-500 bg-primary-50' : 'text-gray-500 hover:text-gray-800'"
+                        class="relative p-1.5 rounded-lg transition"
+                        title="Queue"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10"/>
+                        </svg>
+                        <span x-show="queue.length > 1"
+                              class="absolute -top-1 -right-1 bg-primary-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none"
+                              x-text="queue.length"></span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -416,6 +763,8 @@ function miniPlayer() {
         queueTracks: P.queueTracks,
         queueIndex:  P.queueIndex,
         showQueue:   false,
+        mobileExpanded: false,
+        isMobileViewport: window.matchMedia('(max-width: 639px)').matches,
         queueToast:  false,
         statusToastMessage: '',
         shareCopied: false,
@@ -433,7 +782,14 @@ function miniPlayer() {
         _toastTimer: null,
         _statusToastTimer: null,
         _shareTimer: null,
+        _mobileMediaQuery: null,
+        _syncMobileViewport: null,
+        _syncThemeState: null,
         _handlers:   {},
+
+        get hasActiveTrack() {
+            return Boolean(this.track?.audio_url);
+        },
 
         get progress() {
             if (!this.duration) return 0;
@@ -442,10 +798,36 @@ function miniPlayer() {
 
         // ── Lifecycle ──────────────────────────────────────────────────
         init() {
+            if (!P.audio.src && !P.audio.currentTime) {
+                P.track = null;
+                P.queue = [];
+                P.queueTracks = [];
+                P.queueIndex = -1;
+            }
+
+            this.track = P.track;
+            this.queue = P.queue;
+            this.queueTracks = P.queueTracks;
+            this.queueIndex = P.queueIndex;
             this.playing  = !P.audio.paused && !!P.audio.src && !P.audio.ended;
             this.duration = Math.floor(P.audio.duration) || 0;
             P.audio.volume = this.volume / 100;
             P.audio.muted  = this.muted;
+            this._mobileMediaQuery = window.matchMedia('(max-width: 639px)');
+            this._syncMobileViewport = (event) => {
+                this.isMobileViewport = event.matches;
+
+                if (!this.isMobileViewport) {
+                    this.mobileExpanded = false;
+                }
+            };
+            this._syncMobileViewport(this._mobileMediaQuery);
+            this._mobileMediaQuery.addEventListener?.('change', this._syncMobileViewport);
+
+            this._syncThemeState = () => {
+                this.track = P.track;
+            };
+            window.addEventListener('grin-theme-changed', this._syncThemeState);
 
             if (this.hasStripeKey && window.Stripe) {
                 this.giftStripe = Stripe('{{ config('cashier.key') }}');
@@ -474,6 +856,10 @@ function miniPlayer() {
             for (const [evt, fn] of Object.entries(this._handlers)) {
                 P.audio.removeEventListener(evt, fn);
             }
+
+            this._mobileMediaQuery?.removeEventListener?.('change', this._syncMobileViewport);
+            window.removeEventListener('grin-theme-changed', this._syncThemeState);
+            this.mobileExpanded = false;
         },
 
         // ── Track loading ───────────────────────────────────────────────
@@ -588,7 +974,23 @@ function miniPlayer() {
             this.playing = false; this.track = null;
             this.queue = []; this.queueTracks = []; this.queueIndex = -1;
             P.track = null; P.queue = []; P.queueTracks = []; P.queueIndex = -1;
+            this.mobileExpanded = false;
             this.showQueue = false;
+        },
+
+        toggleMobilePlayer(force = null) {
+            if (!this.track || !this.isMobileViewport) {
+                this.mobileExpanded = false;
+                return;
+            }
+
+            this.mobileExpanded = typeof force === 'boolean'
+                ? force
+                : !this.mobileExpanded;
+
+            if (this.mobileExpanded) {
+                this.showQueue = false;
+            }
         },
 
         // ── Playback controls ─────────────────────────────────────────────

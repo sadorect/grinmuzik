@@ -277,9 +277,14 @@ class MiniPlayer extends Component
             'artist' => $model->artistProfile?->stage_name
                 ?? $model->artistProfile?->user?->name
                 ?? 'Unknown',
+            'artist_url' => $model->artistProfile
+                ? route('artist.page', $model->artistProfile)
+                : null,
             'cover' => $model->getCoverUrl(),
             'audio_url' => $audioUrl,
             'url' => route('track.show', $model->slug),
+            'play_count' => (int) $model->play_count,
+            'downloads_count' => (int) $model->downloads_count,
             'gift_intent_url' => route('donation.intent', $model),
             'duration' => $model->duration ?? 0,
             'requires_donation' => $model->requires_donation,
