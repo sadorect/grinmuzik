@@ -408,11 +408,25 @@
                                 <span class="w-10 text-xs tabular-nums text-gray-500 dark:text-white/55" x-text="formatTime(duration)"></span>
                             </div>
 
-                            <div class="mt-6 flex items-center justify-center gap-6">
+                            <div class="mt-6 flex items-center justify-center gap-4">
+                                <button
+                                    type="button"
+                                    @click="toggleShuffle()"
+                                    :aria-pressed="shuffleEnabled"
+                                    :class="shuffleEnabled ? 'border-primary-200 bg-primary-50 text-primary-600 dark:border-primary-400/40 dark:bg-primary-500/15 dark:text-primary-300' : 'text-gray-400 dark:text-white/35'"
+                                    class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white/70 transition hover:text-gray-900 dark:border-white/10 dark:bg-white/5 dark:hover:text-white"
+                                    :title="shuffleEnabled ? 'Shuffle on' : 'Sequential play'"
+                                >
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13.47 3.47a.75.75 0 011.06 0l2 2a.75.75 0 010 1.06l-2 2a.75.75 0 01-1.06-1.06l.72-.72h-1.95a2.75 2.75 0 00-2.18 1.07l-1.72 2.3a4.25 4.25 0 01-3.4 1.7H3.75a.75.75 0 010-1.5h1.14a2.75 2.75 0 002.2-1.1l1.73-2.29a4.25 4.25 0 013.39-1.68h1.98l-.72-.72a.75.75 0 010-1.06Z"/>
+                                        <path d="M3 5.5a.75.75 0 01.75-.75h1.69A4.25 4.25 0 018.83 6.4l.84 1.12a.75.75 0 11-1.2.9l-.83-1.11a2.75 2.75 0 00-2.2-1.06H3.75A.75.75 0 013 5.5Zm6.84 6.16a.75.75 0 011.05.1l1.1 1.47a2.75 2.75 0 002.2 1.11h.01l-.73-.72a.75.75 0 011.06-1.06l2 2a.75.75 0 010 1.06l-2 2a.75.75 0 11-1.06-1.06l.72-.72h-.03a4.25 4.25 0 01-3.39-1.69l-1.1-1.47a.75.75 0 01.11-1.06Z"/>
+                                    </svg>
+                                </button>
+
                                 <button
                                     type="button"
                                     @click="playPrev()"
-                                    :class="queueIndex > 0 || currentTime > 3 ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-white/30 cursor-default'"
+                                    :class="canPlayPrev ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-white/30 cursor-default'"
                                     class="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/5 bg-white/70 transition dark:border-white/10 dark:bg-white/5"
                                     title="Previous"
                                 >
@@ -436,11 +450,31 @@
                                 <button
                                     type="button"
                                     @click="playNext()"
-                                    :class="queueIndex < queue.length - 1 ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-white/30 cursor-default'"
+                                    :class="canPlayNext ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-white/30 cursor-default'"
                                     class="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/5 bg-white/70 transition dark:border-white/10 dark:bg-white/5"
                                     title="Next"
                                 >
                                     <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M16.25 5.75a.75.75 0 011.5 0v12.5a.75.75 0 01-1.5 0V5.75Zm-9.97.297a.75.75 0 011.017-.267l6.25 3.75a2.25 2.25 0 010 3.86l-6.25 3.75a.75.75 0 11-.771-1.287l6.25-3.75a.75.75 0 000-1.286l-6.25-3.75a.75.75 0 01-.246-1.02Z"/></svg>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="cycleRepeatMode()"
+                                    :aria-pressed="repeatMode !== 'off'"
+                                    :class="repeatMode !== 'off' ? 'border-primary-200 bg-primary-50 text-primary-600 dark:border-primary-400/40 dark:bg-primary-500/15 dark:text-primary-300' : 'text-gray-400 dark:text-white/35'"
+                                    class="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white/70 transition hover:text-gray-900 dark:border-white/10 dark:bg-white/5 dark:hover:text-white"
+                                    :title="repeatTitle"
+                                >
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13.28 2.97a.75.75 0 011.06 0l1.97 1.97a.75.75 0 010 1.06l-1.97 1.97a.75.75 0 11-1.06-1.06l.7-.69H6.75A2.25 2.25 0 004.5 8.47v.28a.75.75 0 01-1.5 0v-.28a3.75 3.75 0 013.75-3.75h7.23l-.7-.69a.75.75 0 010-1.06Z"/>
+                                        <path d="M5.66 10.97a.75.75 0 011.06 0l.69.69h7.34A2.25 2.25 0 0017 9.41v-.16a.75.75 0 011.5 0v.16a3.75 3.75 0 01-3.75 3.75H7.41l.69.69a.75.75 0 11-1.06 1.06l-1.97-1.97a.75.75 0 010-1.06l1.97-1.97a.75.75 0 011.06 0 .75.75 0 010 1.06l-.69.69h.01-.01Z"/>
+                                    </svg>
+                                    <span
+                                        x-show="repeatMode !== 'off'"
+                                        x-text="repeatMode === 'track' ? '1' : 'ALL'"
+                                        class="absolute -right-1 -top-1 rounded-full bg-primary-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white"
+                                        style="display:none"
+                                    ></span>
                                 </button>
                             </div>
                         </div>
@@ -619,10 +653,22 @@
 
                 {{-- ── Controls ──────────────────────────────────────────────────── --}}
                 <div class="flex flex-col items-center gap-1 flex-1">
-                    <div class="flex items-center gap-5">
+                    <div class="flex items-center gap-4">
+                        <button
+                            @click="toggleShuffle()"
+                            :aria-pressed="shuffleEnabled"
+                            :class="shuffleEnabled ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200'"
+                            class="transition"
+                            :title="shuffleEnabled ? 'Shuffle on' : 'Sequential play'"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l5 5m0 0l4 4m-4-4H4m5 0V4m6 16l5-5m0 0V20m0-5h-5M4 20l5-5"/>
+                            </svg>
+                        </button>
+
                         {{-- Prev --}}
                         <button @click="playPrev()"
-                                :class="queueIndex > 0 ? 'text-gray-600 hover:text-gray-900' : 'text-gray-300 cursor-default'"
+                                :class="canPlayPrev ? 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white' : 'text-gray-300 cursor-default dark:text-slate-600'"
                                 class="transition" title="Previous">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7.75 5.75a.75.75 0 00-1.5 0v12.5a.75.75 0 001.5 0V5.75Zm9.97.297a.75.75 0 00-1.017-.267l-6.25 3.75a2.25 2.25 0 000 3.86l6.25 3.75a.75.75 0 10.771-1.287l-6.25-3.75a.75.75 0 010-1.286l6.25-3.75a.75.75 0 00.246-1.02Z"/></svg>
                         </button>
@@ -643,9 +689,27 @@
 
                         {{-- Next --}}
                         <button @click="playNext()"
-                                :class="queueIndex < queue.length - 1 ? 'text-gray-600 hover:text-gray-900' : 'text-gray-300 cursor-default'"
+                                :class="canPlayNext ? 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white' : 'text-gray-300 cursor-default dark:text-slate-600'"
                                 class="transition" title="Next">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M16.25 5.75a.75.75 0 011.5 0v12.5a.75.75 0 01-1.5 0V5.75Zm-9.97.297a.75.75 0 011.017-.267l6.25 3.75a2.25 2.25 0 010 3.86l-6.25 3.75a.75.75 0 11-.771-1.287l6.25-3.75a.75.75 0 000-1.286l-6.25-3.75a.75.75 0 01-.246-1.02Z"/></svg>
+                        </button>
+
+                        <button
+                            @click="cycleRepeatMode()"
+                            :aria-pressed="repeatMode !== 'off'"
+                            :class="repeatMode !== 'off' ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200'"
+                            class="relative transition"
+                            :title="repeatTitle"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/>
+                            </svg>
+                            <span
+                                x-show="repeatMode !== 'off'"
+                                x-text="repeatMode === 'track' ? '1' : 'ALL'"
+                                class="absolute -right-2 -top-2 rounded-full bg-primary-500 px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none text-white"
+                                style="display:none"
+                            ></span>
                         </button>
                     </div>
 
@@ -762,6 +826,10 @@ function miniPlayer() {
         queue:       P.queue,
         queueTracks: P.queueTracks,
         queueIndex:  P.queueIndex,
+        shuffleEnabled: P.shuffleEnabled ?? false,
+        repeatMode: P.repeatMode ?? 'off',
+        shuffleHistory: Array.isArray(P.shuffleHistory) ? P.shuffleHistory : [],
+        shufflePool: Array.isArray(P.shufflePool) ? P.shufflePool : [],
         showQueue:   false,
         mobileExpanded: false,
         isMobileViewport: window.matchMedia('(max-width: 639px)').matches,
@@ -796,6 +864,50 @@ function miniPlayer() {
             return (this.currentTime / this.duration) * 100;
         },
 
+        get canPlayNext() {
+            if (!this.track || this.queueIndex < 0 || this.queue.length === 0) {
+                return false;
+            }
+
+            if (!this.shuffleEnabled) {
+                return this.queueIndex < this.queue.length - 1 || this.repeatMode === 'playlist';
+            }
+
+            const { pool } = this.getNormalizedShuffleState();
+
+            return pool.length > 0 || this.repeatMode === 'playlist';
+        },
+
+        get canPlayPrev() {
+            if (this.currentTime > 3) {
+                return true;
+            }
+
+            if (!this.track || this.queueIndex < 0 || this.queue.length === 0) {
+                return false;
+            }
+
+            if (!this.shuffleEnabled) {
+                return this.queueIndex > 0 || (this.repeatMode === 'playlist' && this.queue.length > 1);
+            }
+
+            const { history } = this.getNormalizedShuffleState();
+
+            return history.length > 1;
+        },
+
+        get repeatTitle() {
+            if (this.repeatMode === 'track') {
+                return 'Repeat current track';
+            }
+
+            if (this.repeatMode === 'playlist') {
+                return 'Repeat playlist';
+            }
+
+            return 'Repeat off';
+        },
+
         // ── Lifecycle ──────────────────────────────────────────────────
         init() {
             if (!P.audio.src && !P.audio.currentTime) {
@@ -803,16 +915,23 @@ function miniPlayer() {
                 P.queue = [];
                 P.queueTracks = [];
                 P.queueIndex = -1;
+                P.shuffleHistory = [];
+                P.shufflePool = [];
             }
 
             this.track = P.track;
             this.queue = P.queue;
             this.queueTracks = P.queueTracks;
             this.queueIndex = P.queueIndex;
+            this.shuffleEnabled = P.shuffleEnabled ?? false;
+            this.repeatMode = P.repeatMode ?? 'off';
+            this.shuffleHistory = Array.isArray(P.shuffleHistory) ? P.shuffleHistory : [];
+            this.shufflePool = Array.isArray(P.shufflePool) ? P.shufflePool : [];
             this.playing  = !P.audio.paused && !!P.audio.src && !P.audio.ended;
             this.duration = Math.floor(P.audio.duration) || 0;
             P.audio.volume = this.volume / 100;
             P.audio.muted  = this.muted;
+            this.syncShuffleState();
             this._mobileMediaQuery = window.matchMedia('(max-width: 639px)');
             this._syncMobileViewport = (event) => {
                 this.isMobileViewport = event.matches;
@@ -841,10 +960,18 @@ function miniPlayer() {
                 ended:          () => {
                     this.playing = false;
                     this.currentTime = 0;
-                    const nextIdx = this.queueIndex + 1;
-                    if (nextIdx < this.queue.length) {
-                        Livewire.dispatch('play-track', { id: this.queue[nextIdx] });
+                    const nextIdx = this.getNextQueueIndex({ fromEnded: true });
+
+                    if (nextIdx === null) {
+                        return;
                     }
+
+                    if (nextIdx === this.queueIndex) {
+                        this.restartCurrentTrack();
+                        return;
+                    }
+
+                    this.dispatchQueueIndex(nextIdx);
                 },
             };
             for (const [evt, fn] of Object.entries(this._handlers)) {
@@ -881,9 +1008,8 @@ function miniPlayer() {
             if (wasEmptyQueue && Array.isArray(t.auto_queue_tracks) && t.auto_queue_tracks.length) {
                 this.appendTracks(t.auto_queue_tracks);
             }
-            P.queue       = this.queue;
-            P.queueTracks = this.queueTracks;
-            P.queueIndex  = this.queueIndex;
+            this.syncShuffleState();
+            this.syncPlayerState();
             P.track       = t;
             this.track    = t;
 
@@ -905,8 +1031,8 @@ function miniPlayer() {
             if (!this.queue.includes(t.id)) {
                 this.queue.push(t.id);
                 this.queueTracks.push(t);
-                P.queue       = this.queue;
-                P.queueTracks = this.queueTracks;
+                this.syncShuffleState();
+                this.syncPlayerState();
                 this.queueToast = true;
                 clearTimeout(this._toastTimer);
                 this._toastTimer = setTimeout(() => { this.queueToast = false; }, 2000);
@@ -924,28 +1050,57 @@ function miniPlayer() {
                 this.queue.push(candidate.id);
                 this.queueTracks.push(candidate);
             });
+
+            this.syncShuffleState();
+            this.syncPlayerState();
         },
 
         jumpTo(idx) {
             if (idx < 0 || idx >= this.queue.length) return;
-            Livewire.dispatch('play-track', { id: this.queue[idx] });
+            if (this.shuffleEnabled) {
+                const { history, pool } = this.getNormalizedShuffleState();
+                const existingIndex = history.indexOf(idx);
+
+                this.shuffleHistory = existingIndex === -1
+                    ? [...history, idx]
+                    : history.slice(0, existingIndex + 1);
+                this.shufflePool = pool.filter((queueIdx) => queueIdx !== idx);
+                P.shuffleHistory = this.shuffleHistory;
+                P.shufflePool = this.shufflePool;
+            }
+
+            this.dispatchQueueIndex(idx);
         },
 
         playNext() {
-            const nextIdx = this.queueIndex + 1;
-            if (nextIdx < this.queue.length) {
-                Livewire.dispatch('play-track', { id: this.queue[nextIdx] });
+            const nextIdx = this.getNextQueueIndex();
+
+            if (nextIdx === null) {
+                return;
             }
+
+            if (nextIdx === this.queueIndex) {
+                this.restartCurrentTrack();
+                return;
+            }
+
+            this.dispatchQueueIndex(nextIdx);
         },
 
         playPrev() {
-            if (this.currentTime > 3) { P.audio.currentTime = 0; return; }
-            const prevIdx = this.queueIndex - 1;
-            if (prevIdx >= 0) {
-                Livewire.dispatch('play-track', { id: this.queue[prevIdx] });
-            } else {
-                P.audio.currentTime = 0;
+            if (this.currentTime > 3) {
+                this.resetCurrentTrack();
+                return;
             }
+
+            const prevIdx = this.getPrevQueueIndex();
+
+            if (prevIdx === null) {
+                this.resetCurrentTrack();
+                return;
+            }
+
+            this.dispatchQueueIndex(prevIdx);
         },
 
         removeFromQueue(idx) {
@@ -964,16 +1119,17 @@ function miniPlayer() {
             } else if (idx < this.queueIndex) {
                 this.queueIndex--;
             }
-            P.queue       = this.queue;
-            P.queueTracks = this.queueTracks;
-            P.queueIndex  = this.queueIndex;
+            this.syncShuffleState();
+            this.syncPlayerState();
         },
 
         clearQueue() {
             P.audio.pause();
             this.playing = false; this.track = null;
             this.queue = []; this.queueTracks = []; this.queueIndex = -1;
-            P.track = null; P.queue = []; P.queueTracks = []; P.queueIndex = -1;
+            this.shuffleHistory = [];
+            this.shufflePool = [];
+            P.track = null; P.queue = []; P.queueTracks = []; P.queueIndex = -1; P.shuffleHistory = []; P.shufflePool = [];
             this.mobileExpanded = false;
             this.showQueue = false;
         },
@@ -1250,6 +1406,229 @@ function miniPlayer() {
 
             this.closeGiftModal();
             this.showStatusToast('Gift sent to artist.');
+        },
+
+        syncPlayerState() {
+            P.queue = this.queue;
+            P.queueTracks = this.queueTracks;
+            P.queueIndex = this.queueIndex;
+            P.shuffleEnabled = this.shuffleEnabled;
+            P.repeatMode = this.repeatMode;
+            P.shuffleHistory = this.shuffleHistory;
+            P.shufflePool = this.shufflePool;
+        },
+
+        getQueueIndices() {
+            return this.queue.map((_, idx) => idx);
+        },
+
+        shuffleIndices(indices) {
+            const shuffled = [...indices];
+
+            for (let idx = shuffled.length - 1; idx > 0; idx--) {
+                const swapIndex = Math.floor(Math.random() * (idx + 1));
+                [shuffled[idx], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[idx]];
+            }
+
+            return shuffled;
+        },
+
+        getNormalizedShuffleState() {
+            const indices = this.getQueueIndices();
+            const currentIndex = indices.includes(this.queueIndex) ? this.queueIndex : -1;
+
+            if (!this.shuffleEnabled || !indices.length) {
+                return {
+                    history: currentIndex >= 0 ? [currentIndex] : [],
+                    pool: [],
+                };
+            }
+
+            let history = Array.isArray(this.shuffleHistory)
+                ? this.shuffleHistory.filter((idx, position, values) => indices.includes(idx) && values.indexOf(idx) === position)
+                : [];
+
+            if (currentIndex >= 0) {
+                const currentPosition = history.lastIndexOf(currentIndex);
+
+                history = currentPosition === -1
+                    ? [...history, currentIndex]
+                    : history.slice(0, currentPosition + 1);
+            } else {
+                history = [];
+            }
+
+            let pool = Array.isArray(this.shufflePool)
+                ? this.shufflePool.filter((idx, position, values) => indices.includes(idx) && !history.includes(idx) && values.indexOf(idx) === position)
+                : [];
+
+            const missing = indices.filter((idx) => idx !== currentIndex && !history.includes(idx) && !pool.includes(idx));
+
+            if (missing.length) {
+                pool = [...pool, ...this.shuffleIndices(missing)];
+            }
+
+            return { history, pool };
+        },
+
+        syncShuffleState() {
+            const { history, pool } = this.getNormalizedShuffleState();
+
+            this.shuffleHistory = history;
+            this.shufflePool = pool;
+            P.shuffleHistory = history;
+            P.shufflePool = pool;
+        },
+
+        dispatchQueueIndex(idx) {
+            if (idx < 0 || idx >= this.queue.length) {
+                return;
+            }
+
+            Livewire.dispatch('play-track', { id: this.queue[idx] });
+        },
+
+        getNextQueueIndex({ fromEnded = false } = {}) {
+            if (this.queueIndex < 0 || this.queue.length === 0) {
+                return null;
+            }
+
+            if (fromEnded && this.repeatMode === 'track') {
+                return this.queueIndex;
+            }
+
+            if (!this.shuffleEnabled) {
+                const nextIdx = this.queueIndex + 1;
+
+                if (nextIdx < this.queue.length) {
+                    return nextIdx;
+                }
+
+                if (this.repeatMode === 'playlist') {
+                    return this.queue.length === 1 ? this.queueIndex : 0;
+                }
+
+                return null;
+            }
+
+            const { history, pool } = this.getNormalizedShuffleState();
+
+            if (pool.length > 0) {
+                const [nextIdx, ...remainingPool] = pool;
+
+                this.shuffleHistory = [...history, nextIdx];
+                this.shufflePool = remainingPool;
+                P.shuffleHistory = this.shuffleHistory;
+                P.shufflePool = this.shufflePool;
+
+                return nextIdx;
+            }
+
+            if (this.repeatMode !== 'playlist') {
+                return null;
+            }
+
+            const remaining = this.getQueueIndices().filter((idx) => idx !== this.queueIndex);
+
+            if (!remaining.length) {
+                return this.queueIndex;
+            }
+
+            const [nextIdx, ...remainingPool] = this.shuffleIndices(remaining);
+
+            this.shuffleHistory = [this.queueIndex, nextIdx];
+            this.shufflePool = remainingPool;
+            P.shuffleHistory = this.shuffleHistory;
+            P.shufflePool = this.shufflePool;
+
+            return nextIdx;
+        },
+
+        getPrevQueueIndex() {
+            if (this.queueIndex < 0 || this.queue.length === 0) {
+                return null;
+            }
+
+            if (!this.shuffleEnabled) {
+                const prevIdx = this.queueIndex - 1;
+
+                if (prevIdx >= 0) {
+                    return prevIdx;
+                }
+
+                if (this.repeatMode === 'playlist' && this.queue.length > 1) {
+                    return this.queue.length - 1;
+                }
+
+                return null;
+            }
+
+            const { history, pool } = this.getNormalizedShuffleState();
+
+            if (history.length <= 1) {
+                return null;
+            }
+
+            const previousIndex = history[history.length - 2];
+            const currentIndex = history[history.length - 1];
+
+            this.shuffleHistory = history.slice(0, -1);
+            this.shufflePool = [currentIndex, ...pool.filter((idx) => idx !== currentIndex)];
+            P.shuffleHistory = this.shuffleHistory;
+            P.shufflePool = this.shufflePool;
+
+            return previousIndex;
+        },
+
+        resetCurrentTrack() {
+            P.audio.currentTime = 0;
+            this.currentTime = 0;
+        },
+
+        restartCurrentTrack() {
+            this.resetCurrentTrack();
+            P.audio.play()
+                .then(() => { this.playing = true; })
+                .catch(err => { console.error('Play failed:', err.message); });
+        },
+
+        toggleShuffle() {
+            this.shuffleEnabled = !this.shuffleEnabled;
+
+            if (this.shuffleEnabled) {
+                const remaining = this.getQueueIndices().filter((idx) => idx !== this.queueIndex);
+                this.shuffleHistory = this.queueIndex >= 0 ? [this.queueIndex] : [];
+                this.shufflePool = this.shuffleIndices(remaining);
+                this.showStatusToast('Shuffle on.');
+            } else {
+                this.shuffleHistory = this.queueIndex >= 0 ? [this.queueIndex] : [];
+                this.shufflePool = [];
+                this.showStatusToast('Sequential play.');
+            }
+
+            this.syncPlayerState();
+        },
+
+        cycleRepeatMode() {
+            this.repeatMode = this.repeatMode === 'off'
+                ? 'track'
+                : this.repeatMode === 'track'
+                    ? 'playlist'
+                    : 'off';
+
+            this.syncPlayerState();
+
+            if (this.repeatMode === 'track') {
+                this.showStatusToast('Repeat current track.');
+                return;
+            }
+
+            if (this.repeatMode === 'playlist') {
+                this.showStatusToast('Repeat playlist.');
+                return;
+            }
+
+            this.showStatusToast('Repeat off.');
         },
 
         togglePlay() {

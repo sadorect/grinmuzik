@@ -13,6 +13,10 @@ if (!window.GrinPlayer) {
         queue: [], // array of track IDs (for dispatch)
         queueTracks: [], // array of full track objects (for display)
         queueIndex: -1,
+        shuffleEnabled: false,
+        repeatMode: "off",
+        shuffleHistory: [],
+        shufflePool: [],
         volume: 80,
         muted: false,
     };
