@@ -19,10 +19,15 @@ class SiteSetting extends Model
     protected static ?bool $supportsThemeCustomizationCache = null;
     protected static ?bool $supportsPublicThemeToggleControlCache = null;
     protected static ?bool $supportsAutoPlaylistControlsCache = null;
+    protected static ?bool $supportsAutoQueueLimitsCache = null;
     protected static ?bool $supportsRegistrationRoleGuideControlCache = null;
     protected static ?bool $supportsRegistrationVerificationControlCache = null;
     protected static ?bool $paymentsEnabledCache = null;
     protected static ?bool $autoPlaylistEnabledCache = null;
+    protected static ?int $autoQueueTotalLimitCache = null;
+    protected static ?int $autoQueueAlbumLimitCache = null;
+    protected static ?int $autoQueueArtistLimitCache = null;
+    protected static ?int $autoQueueGenreLimitCache = null;
     protected static ?bool $registrationRequiresEmailVerificationCache = null;
 
     protected $fillable = [
@@ -57,6 +62,10 @@ class SiteSetting extends Model
         'secondary_color',
         'show_public_theme_toggle',
         'auto_playlist_enabled',
+        'auto_queue_total_limit',
+        'auto_queue_album_limit',
+        'auto_queue_artist_limit',
+        'auto_queue_genre_limit',
         'show_registration_role_guide',
         'registration_requires_email_verification',
     ];
@@ -80,6 +89,10 @@ class SiteSetting extends Model
         'payments_enabled' => 'boolean',
         'show_public_theme_toggle' => 'boolean',
         'auto_playlist_enabled' => 'boolean',
+        'auto_queue_total_limit' => 'integer',
+        'auto_queue_album_limit' => 'integer',
+        'auto_queue_artist_limit' => 'integer',
+        'auto_queue_genre_limit' => 'integer',
         'show_registration_role_guide' => 'boolean',
         'registration_requires_email_verification' => 'boolean',
     ];
@@ -215,6 +228,23 @@ class SiteSetting extends Model
         }
     }
 
+    public static function supportsAutoQueueLimits(): bool
+    {
+        if (static::$supportsAutoQueueLimitsCache !== null) {
+            return static::$supportsAutoQueueLimitsCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsAutoQueueLimitsCache = false;
+            }
+
+            return static::$supportsAutoQueueLimitsCache = Schema::hasColumn('site_settings', 'auto_queue_total_limit');
+        } catch (Throwable) {
+            return static::$supportsAutoQueueLimitsCache = false;
+        }
+    }
+
     public static function supportsRegistrationRoleGuideControl(): bool
     {
         if (static::$supportsRegistrationRoleGuideControlCache !== null) {
@@ -280,6 +310,74 @@ class SiteSetting extends Model
             return static::$autoPlaylistEnabledCache = (bool) (static::current()->auto_playlist_enabled ?? true);
         } catch (Throwable) {
             return static::$autoPlaylistEnabledCache = false;
+        }
+    }
+
+    public static function autoQueueTotalLimit(): int
+    {
+        if (static::$autoQueueTotalLimitCache !== null) {
+            return static::$autoQueueTotalLimitCache;
+        }
+
+        if (! static::supportsAutoQueueLimits()) {
+            return static::$autoQueueTotalLimitCache = 10;
+        }
+
+        try {
+            return static::$autoQueueTotalLimitCache = max(1, (int) (static::current()->auto_queue_total_limit ?? 10));
+        } catch (Throwable) {
+            return static::$autoQueueTotalLimitCache = 10;
+        }
+    }
+
+    public static function autoQueueAlbumLimit(): int
+    {
+        if (static::$autoQueueAlbumLimitCache !== null) {
+            return static::$autoQueueAlbumLimitCache;
+        }
+
+        if (! static::supportsAutoQueueLimits()) {
+            return static::$autoQueueAlbumLimitCache = 2;
+        }
+
+        try {
+            return static::$autoQueueAlbumLimitCache = max(0, (int) (static::current()->auto_queue_album_limit ?? 2));
+        } catch (Throwable) {
+            return static::$autoQueueAlbumLimitCache = 2;
+        }
+    }
+
+    public static function autoQueueArtistLimit(): int
+    {
+        if (static::$autoQueueArtistLimitCache !== null) {
+            return static::$autoQueueArtistLimitCache;
+        }
+
+        if (! static::supportsAutoQueueLimits()) {
+            return static::$autoQueueArtistLimitCache = 3;
+        }
+
+        try {
+            return static::$autoQueueArtistLimitCache = max(0, (int) (static::current()->auto_queue_artist_limit ?? 3));
+        } catch (Throwable) {
+            return static::$autoQueueArtistLimitCache = 3;
+        }
+    }
+
+    public static function autoQueueGenreLimit(): int
+    {
+        if (static::$autoQueueGenreLimitCache !== null) {
+            return static::$autoQueueGenreLimitCache;
+        }
+
+        if (! static::supportsAutoQueueLimits()) {
+            return static::$autoQueueGenreLimitCache = 4;
+        }
+
+        try {
+            return static::$autoQueueGenreLimitCache = max(0, (int) (static::current()->auto_queue_genre_limit ?? 4));
+        } catch (Throwable) {
+            return static::$autoQueueGenreLimitCache = 4;
         }
     }
 
@@ -514,10 +612,15 @@ class SiteSetting extends Model
         static::$supportsThemeCustomizationCache = null;
         static::$supportsPublicThemeToggleControlCache = null;
         static::$supportsAutoPlaylistControlsCache = null;
+        static::$supportsAutoQueueLimitsCache = null;
         static::$supportsRegistrationRoleGuideControlCache = null;
         static::$supportsRegistrationVerificationControlCache = null;
         static::$paymentsEnabledCache = null;
         static::$autoPlaylistEnabledCache = null;
+        static::$autoQueueTotalLimitCache = null;
+        static::$autoQueueAlbumLimitCache = null;
+        static::$autoQueueArtistLimitCache = null;
+        static::$autoQueueGenreLimitCache = null;
         static::$registrationRequiresEmailVerificationCache = null;
 
         return true;

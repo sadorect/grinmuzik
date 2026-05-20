@@ -315,8 +315,13 @@ class MiniPlayer extends Component
         return $payload;
     }
 
-    protected function buildAutoQueueTracks(Track $seedTrack, int $limit = 10): array
+    protected function buildAutoQueueTracks(Track $seedTrack): array
     {
+        $totalLimit  = SiteSetting::autoQueueTotalLimit();
+        $albumLimit  = SiteSetting::autoQueueAlbumLimit();
+        $artistLimit = SiteSetting::autoQueueArtistLimit();
+        $genreLimit  = SiteSetting::autoQueueGenreLimit();
+
         $queue = [];
         $seenIds = [$seedTrack->id];
         $baseQuery = fn () => Track::query()
@@ -332,7 +337,7 @@ class MiniPlayer extends Component
                 $baseQuery()->where('album_id', $seedTrack->album_id),
                 $queue,
                 $seenIds,
-                $limit,
+                min(count($queue) + $albumLimit, $totalLimit),
             );
         }
 
@@ -341,7 +346,7 @@ class MiniPlayer extends Component
                 $baseQuery()->where('artist_profile_id', $seedTrack->artist_profile_id),
                 $queue,
                 $seenIds,
-                $limit,
+                min(count($queue) + $artistLimit, $totalLimit),
             );
         }
 
@@ -350,7 +355,7 @@ class MiniPlayer extends Component
                 $baseQuery()->where('genre_id', $seedTrack->genre_id),
                 $queue,
                 $seenIds,
-                $limit,
+                min(count($queue) + $genreLimit, $totalLimit),
             );
         }
 
@@ -358,7 +363,7 @@ class MiniPlayer extends Component
             $baseQuery(),
             $queue,
             $seenIds,
-            $limit,
+            $totalLimit,
         );
 
         return $queue;

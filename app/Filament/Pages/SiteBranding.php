@@ -259,13 +259,51 @@ class SiteBranding extends Page implements HasForms
                     ])
                     ->visible(fn (): bool => SiteSetting::supportsMonetizationControls()),
                 Section::make('Playback')
-                    ->description('Control whether the player automatically builds an Up Next queue when someone starts playback from a single track.')
+                    ->description('Control whether the player automatically builds an Up Next queue when someone starts playback from a single track, and how many tracks each source tier may contribute.')
                     ->schema([
                         Forms\Components\Toggle::make('auto_playlist_enabled')
                             ->label('Enable auto playlist after first play')
                             ->helperText('When on, the first track a listener plays seeds an Up Next queue using album, artist, genre, and popularity signals.')
-                            ->default(true),
+                            ->default(true)
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('auto_queue_total_limit')
+                            ->label('Total queue size')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(50)
+                            ->default(10)
+                            ->suffix('tracks')
+                            ->helperText('Maximum number of tracks the auto-queue will hold in total.')
+                            ->visible(fn (): bool => SiteSetting::supportsAutoQueueLimits()),
+                        Forms\Components\TextInput::make('auto_queue_album_limit')
+                            ->label('Album tier cap')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(50)
+                            ->default(2)
+                            ->suffix('tracks')
+                            ->helperText('Max tracks pulled from the same album as the seed track.')
+                            ->visible(fn (): bool => SiteSetting::supportsAutoQueueLimits()),
+                        Forms\Components\TextInput::make('auto_queue_artist_limit')
+                            ->label('Artist tier cap')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(50)
+                            ->default(3)
+                            ->suffix('tracks')
+                            ->helperText('Max additional tracks from the same artist after the album tier fills.')
+                            ->visible(fn (): bool => SiteSetting::supportsAutoQueueLimits()),
+                        Forms\Components\TextInput::make('auto_queue_genre_limit')
+                            ->label('Genre tier cap')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(50)
+                            ->default(4)
+                            ->suffix('tracks')
+                            ->helperText('Max additional tracks from the same genre after the artist tier fills. Any remaining slots are filled globally.')
+                            ->visible(fn (): bool => SiteSetting::supportsAutoQueueLimits()),
                     ])
+                    ->columns(2)
                     ->visible(fn (): bool => SiteSetting::supportsAutoPlaylistControls()),
                 Section::make('Discovery Ordering')
                     ->description('Control where the editorial rails appear relative to personalized sections.')
@@ -368,6 +406,15 @@ class SiteBranding extends Page implements HasForms
         if (SiteSetting::supportsAutoPlaylistControls()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'auto_playlist_enabled',
+            ]));
+        }
+
+        if (SiteSetting::supportsAutoQueueLimits()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'auto_queue_total_limit',
+                'auto_queue_album_limit',
+                'auto_queue_artist_limit',
+                'auto_queue_genre_limit',
             ]));
         }
 
@@ -479,6 +526,15 @@ class SiteBranding extends Page implements HasForms
 
         if (SiteSetting::supportsAutoPlaylistControls()) {
             $keys[] = 'auto_playlist_enabled';
+        }
+
+        if (SiteSetting::supportsAutoQueueLimits()) {
+            $keys = array_merge($keys, [
+                'auto_queue_total_limit',
+                'auto_queue_album_limit',
+                'auto_queue_artist_limit',
+                'auto_queue_genre_limit',
+            ]);
         }
 
         if (SiteSetting::supportsDiscoveryOrdering()) {
