@@ -229,15 +229,67 @@ class Track extends Model implements HasMedia
     }
 
     // ─── Accessors ────────────────────────────────────────────────────────────
+    public function getDurationInSecondsAttribute(): int
+    {
+        return self::normalizeDurationValue($this->getRawOriginal('duration') ?? $this->duration);
+    }
+
     public function getFormattedDurationAttribute(): string
     {
-        if (!$this->duration) {
+        $duration = $this->duration_in_seconds;
+
+        if ($duration < 1) {
             return '0:00';
         }
-        $minutes = intdiv($this->duration, 60);
-        $seconds = $this->duration % 60;
+
+        $hours = intdiv($duration, 3600);
+        $minutes = intdiv($duration % 3600, 60);
+        $seconds = $duration % 60;
+
+        if ($hours > 0) {
+            return sprintf('%d:%02d:%02d', $hours, $minutes, $seconds);
+        }
 
         return sprintf('%d:%02d', $minutes, $seconds);
+    }
+
+    protected static function normalizeDurationValue(mixed $value): int
+    {
+        if (is_int($value) || is_float($value) || (is_string($value) && is_numeric($value))) {
+            return max(0, (int) round((float) $value));
+        }
+
+        if (! is_string($value)) {
+            return 0;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '' || ! str_contains($trimmed, ':')) {
+            return 0;
+        }
+
+        $segments = array_map('trim', explode(':', $trimmed));
+
+        if (count($segments) < 2 || count($segments) > 3) {
+            return 0;
+        }
+
+        if (collect($segments)->contains(fn ($segment) => $segment === '' || ! ctype_digit($segment))) {
+            return 0;
+        }
+
+        $segments = array_map('intval', $segments);
+
+        if (count($segments) === 2) {
+            [$minutes, $seconds] = $segments;
+
+            return ($minutes * 60) + $seconds;
+        }
+
+        [$hours, $minutes, $seconds] = $segments;
+
+        return ($hours * 3600) + ($minutes * 60) + $seconds;
     }
 
     public function getCoverUrl(string $conversion = 'thumb'): string

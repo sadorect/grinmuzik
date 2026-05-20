@@ -23,6 +23,164 @@ if (!window.GrinPlayer) {
     window.GrinPlayer.audio.preload = "metadata";
 }
 
+const PLAYER_STORAGE_KEY = "grinmuzik-player-state";
+
+const readPersistedPlayerState = () => {
+    try {
+        const rawState = window.sessionStorage.getItem(PLAYER_STORAGE_KEY);
+
+        if (!rawState) {
+            return null;
+        }
+
+        const parsedState = JSON.parse(rawState);
+
+        return parsedState && typeof parsedState === "object"
+            ? parsedState
+            : null;
+    } catch (_) {
+        return null;
+    }
+};
+
+const persistPlayerState = () => {
+    try {
+        const player = window.GrinPlayer;
+
+        if (!player) {
+            return;
+        }
+
+        const hasTrack = Boolean(player.track?.audio_url);
+        const hasQueue = Array.isArray(player.queue) && player.queue.length > 0;
+
+        if (!hasTrack && !hasQueue) {
+            window.sessionStorage.removeItem(PLAYER_STORAGE_KEY);
+            return;
+        }
+
+        window.sessionStorage.setItem(
+            PLAYER_STORAGE_KEY,
+            JSON.stringify({
+                track: player.track,
+                queue: Array.isArray(player.queue) ? player.queue : [],
+                queueTracks: Array.isArray(player.queueTracks)
+                    ? player.queueTracks
+                    : [],
+                queueIndex:
+                    typeof player.queueIndex === "number" ? player.queueIndex : -1,
+                shuffleEnabled: Boolean(player.shuffleEnabled),
+                repeatMode: player.repeatMode || "off",
+                shuffleHistory: Array.isArray(player.shuffleHistory)
+                    ? player.shuffleHistory
+                    : [],
+                shufflePool: Array.isArray(player.shufflePool)
+                    ? player.shufflePool
+                    : [],
+                volume: typeof player.volume === "number" ? player.volume : 80,
+                muted: Boolean(player.muted),
+                currentTime: Number.isFinite(player.audio.currentTime)
+                    ? player.audio.currentTime
+                    : 0,
+                playing:
+                    Boolean(player.audio.src) &&
+                    !player.audio.paused &&
+                    !player.audio.ended,
+            }),
+        );
+    } catch (_) {
+    }
+};
+
+const hydratePlayerState = () => {
+    const persistedState = readPersistedPlayerState();
+
+    if (!persistedState) {
+        return;
+    }
+
+    const player = window.GrinPlayer;
+
+    player.track = persistedState.track ?? null;
+    player.queue = Array.isArray(persistedState.queue) ? persistedState.queue : [];
+    player.queueTracks = Array.isArray(persistedState.queueTracks)
+        ? persistedState.queueTracks
+        : [];
+    player.queueIndex =
+        typeof persistedState.queueIndex === "number"
+            ? persistedState.queueIndex
+            : -1;
+    player.shuffleEnabled = Boolean(persistedState.shuffleEnabled);
+    player.repeatMode = persistedState.repeatMode || "off";
+    player.shuffleHistory = Array.isArray(persistedState.shuffleHistory)
+        ? persistedState.shuffleHistory
+        : [];
+    player.shufflePool = Array.isArray(persistedState.shufflePool)
+        ? persistedState.shufflePool
+        : [];
+    player.volume =
+        typeof persistedState.volume === "number" ? persistedState.volume : 80;
+    player.muted = Boolean(persistedState.muted);
+    player.audio.volume = player.volume / 100;
+    player.audio.muted = player.muted;
+
+    if (!player.track?.audio_url) {
+        return;
+    }
+
+    player.audio.src = player.track.audio_url;
+
+    const restorePlaybackPosition = () => {
+        if (
+            Number.isFinite(persistedState.currentTime) &&
+            persistedState.currentTime > 0
+        ) {
+            try {
+                player.audio.currentTime = persistedState.currentTime;
+            } catch (_) {
+            }
+        }
+    };
+
+    if (player.audio.readyState >= 1) {
+        restorePlaybackPosition();
+    } else {
+        player.audio.addEventListener("loadedmetadata", restorePlaybackPosition, {
+            once: true,
+        });
+    }
+
+    if (persistedState.playing) {
+        const resumePlayback = () => {
+            player.audio.play().catch(() => {});
+        };
+
+        if (player.audio.readyState >= 1) {
+            resumePlayback();
+        } else {
+            player.audio.addEventListener("loadedmetadata", resumePlayback, {
+                once: true,
+            });
+        }
+    }
+};
+
+window.GrinPlayerPersist = window.GrinPlayerPersist || {
+    save: persistPlayerState,
+    clear: () => window.sessionStorage.removeItem(PLAYER_STORAGE_KEY),
+};
+
+hydratePlayerState();
+
+["timeupdate", "play", "pause", "loadedmetadata", "volumechange", "ended"].forEach(
+    (eventName) => {
+        window.GrinPlayer.audio.addEventListener(eventName, persistPlayerState);
+    },
+);
+
+window.addEventListener("pagehide", persistPlayerState);
+window.addEventListener("beforeunload", persistPlayerState);
+
 const THEME_STORAGE_KEY = "grinmuzik-theme";
 const THEME_DARK = "dark";
 const THEME_LIGHT = "light";

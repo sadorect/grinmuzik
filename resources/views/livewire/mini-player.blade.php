@@ -1416,6 +1416,7 @@ function miniPlayer() {
             P.repeatMode = this.repeatMode;
             P.shuffleHistory = this.shuffleHistory;
             P.shufflePool = this.shufflePool;
+            window.GrinPlayerPersist?.save?.();
         },
 
         getQueueIndices() {

@@ -3,7 +3,7 @@
     'icon' => true,
 ])
 
-@if(($track?->duration ?? 0) > 0)
+@if(($track?->duration_in_seconds ?? 0) > 0)
     <span {{ $attributes->class(['inline-flex items-center gap-1 tabular-nums']) }}>
         @if($icon)
             <svg class="h-3.5 w-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
