@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\TrackDownloadController;
+use App\Models\Album;
 use App\Models\ArtistProfile;
 use App\Models\Playlist;
 use App\Models\SiteSetting;
@@ -161,6 +162,16 @@ Route::get('/sitemap.xml', function () {
             'lastmod' => $track->updated_at,
         ]);
 
+    $albums = Album::query()
+        ->publiclyVisible()
+        ->select(['slug', 'updated_at'])
+        ->latest('updated_at')
+        ->get()
+        ->map(fn (Album $album) => [
+            'loc' => route('album.show', $album->slug),
+            'lastmod' => $album->updated_at,
+        ]);
+
     $playlists = Playlist::query()
         ->where('is_public', true)
         ->select(['slug', 'updated_at'])
@@ -185,6 +196,7 @@ Route::get('/sitemap.xml', function () {
         ->view('sitemap', [
             'urls' => $staticPages
                 ->concat($tracks)
+                ->concat($albums)
                 ->concat($playlists)
                 ->concat($artists),
         ])
@@ -197,6 +209,7 @@ Volt::route('/search', 'pages.search')->name('search');
 Volt::route('/charts', 'pages.charts')->name('charts');
 Volt::route('/new-releases', 'pages.new-releases')->name('new-releases');
 Volt::route('/playlists', 'pages.public-playlists')->name('playlists.public');
+Volt::route('/album/{album:slug}', 'pages.album-show')->name('album.show');
 Volt::route('/track/{track:slug}', 'pages.track-show')->name('track.show');
 Volt::route('/playlist/{playlist:slug}', 'pages.playlist-show')->name('playlist.show');
 
@@ -236,10 +249,13 @@ Route::middleware(['auth'])->prefix('artist')->name('artist.')->group(function (
     Volt::route('/tracks/{track}/edit', 'pages.artist.edit-track')->name('edit-track');
     Volt::route('/albums', 'pages.artist.albums')->name('albums');
     Volt::route('/albums/create', 'pages.artist.create-album')->name('create-album');
+    Volt::route('/albums/{album}/edit', 'pages.artist.edit-album')->name('edit-album');
 });
 
 // ── Public artist profile — registered AFTER the /artist/* group so static paths win
 Volt::route('/artist/{profile:slug}', 'pages.artist-page')->name('artist.page');
+
+Volt::route('/my-playlists', 'pages.listener.playlists')->middleware(['auth'])->name('playlists.mine');
 
 // ── Listener area ──────────────────────────────────────────────────────────
 Route::middleware(['auth'])->prefix('me')->name('listener.')->group(function () {

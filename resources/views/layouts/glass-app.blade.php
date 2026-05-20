@@ -280,9 +280,7 @@
                         @if(Auth::user()->isAdmin())
                             <a href="{{ url('/musicdirector') }}" class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Admin Panel</a>
                         @endif
-                        @if(Auth::user()->isListener())
-                            <a href="{{ route('listener.playlists') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Playlists</a>
-                        @endif
+                        <a href="{{ route('playlists.mine') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Playlists</a>
                         @if(Auth::user()->isArtist())
                             <a href="{{ route('artist.tracks') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">My Music</a>
                         @endif
@@ -350,7 +348,7 @@
                         <li><a href="{{ route('playlists.public') }}" wire:navigate class="hover:text-primary-400 transition">Public Playlists</a></li>
                         @auth
                             <li><a href="{{ route('listener.liked') }}" class="hover:text-primary-400 transition">Liked Tracks</a></li>
-                            <li><a href="{{ route('listener.playlists') }}" class="hover:text-primary-400 transition">My Playlists</a></li>
+                            <li><a href="{{ route('playlists.mine') }}" class="hover:text-primary-400 transition">My Playlists</a></li>
                         @endauth
                     </ul>
                 </div>
@@ -383,6 +381,48 @@
                         <li><a href="{{ route('terms') }}" wire:navigate class="hover:text-primary-400 transition">Terms of Service</a></li>
                         <li><a href="{{ route('contact') }}" wire:navigate class="hover:text-primary-400 transition">Contact</a></li>
                     </ul>
+
+                    <div class="mt-5 hidden space-y-3 sm:block">
+                        <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90">
+                            <svg class="h-6 w-6 text-emerald-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M3.5 2.5 14.8 13 3.5 21.5c-.3-.6-.5-1.2-.5-1.9V4.4c0-.7.2-1.3.5-1.9Zm12.9 12 3.7 2.2c1.2.7 1.2 2.4 0 3.1l-4.1 2.3-4.8-4.5 5.2-3.1Zm3.7-7.2c1.2.7 1.2 2.4 0 3.1l-2.9 1.7-5.2-4.8 4.5-2.7 3.6 2.7ZM11.2 8.1l4.7 4.4-5.2 3.1L4.3 9.4l6.9-1.3Z"/>
+                            </svg>
+                            <div>
+                                <p class="text-[11px] uppercase tracking-[0.18em] text-white/50">Coming Soon</p>
+                                <p class="font-semibold">Google Play</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90">
+                            <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M16.7 12.7c0-2.1 1.7-3.1 1.8-3.2-1-1.5-2.6-1.7-3.1-1.7-1.3-.1-2.5.8-3.2.8s-1.7-.8-2.8-.8c-1.5 0-2.8.9-3.5 2.2-1.5 2.6-.4 6.5 1 8.5.7 1 1.5 2.1 2.6 2.1s1.5-.7 2.9-.7 1.8.7 2.9.7 1.9-1 2.5-2c.8-1.1 1.1-2.2 1.1-2.2-.1 0-2.2-.8-2.2-3.7Zm-2.1-6.3c.5-.7.9-1.6.8-2.6-.8 0-1.8.6-2.4 1.3-.5.6-.9 1.5-.8 2.5.9.1 1.8-.5 2.4-1.2Z"/>
+                            </svg>
+                            <div>
+                                <p class="text-[11px] uppercase tracking-[0.18em] text-white/50">Coming Soon</p>
+                                <p class="font-semibold">App Store</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 sm:hidden">
+                    <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90">
+                        <svg class="h-6 w-6 text-emerald-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M3.5 2.5 14.8 13 3.5 21.5c-.3-.6-.5-1.2-.5-1.9V4.4c0-.7.2-1.3.5-1.9Zm12.9 12 3.7 2.2c1.2.7 1.2 2.4 0 3.1l-4.1 2.3-4.8-4.5 5.2-3.1Zm3.7-7.2c1.2.7 1.2 2.4 0 3.1l-2.9 1.7-5.2-4.8 4.5-2.7 3.6 2.7ZM11.2 8.1l4.7 4.4-5.2 3.1L4.3 9.4l6.9-1.3Z"/>
+                        </svg>
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-white/50">Coming Soon</p>
+                            <p class="font-semibold">Google Play</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90">
+                        <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M16.7 12.7c0-2.1 1.7-3.1 1.8-3.2-1-1.5-2.6-1.7-3.1-1.7-1.3-.1-2.5.8-3.2.8s-1.7-.8-2.8-.8c-1.5 0-2.8.9-3.5 2.2-1.5 2.6-.4 6.5 1 8.5.7 1 1.5 2.1 2.6 2.1s1.5-.7 2.9-.7 1.8.7 2.9.7 1.9-1 2.5-2c.8-1.1 1.1-2.2 1.1-2.2-.1 0-2.2-.8-2.2-3.7Zm-2.1-6.3c.5-.7.9-1.6.8-2.6-.8 0-1.8.6-2.4 1.3-.5.6-.9 1.5-.8 2.5.9.1 1.8-.5 2.4-1.2Z"/>
+                        </svg>
+                        <div>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-white/50">Coming Soon</p>
+                            <p class="font-semibold">App Store</p>
+                        </div>
+                    </div>
                 </div>
 
             </div>

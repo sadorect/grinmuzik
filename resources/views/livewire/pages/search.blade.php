@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Album;
 use App\Models\ArtistProfile;
 use App\Models\Genre;
 use App\Models\SiteSetting;
@@ -29,6 +30,7 @@ new #[Layout('layouts.glass-app')] class extends Component
         $query = trim($this->q);
         $tracks = collect();
         $artists = collect();
+        $albums = collect();
 
         if (mb_strlen($query) >= 2) {
             $tracks = Track::search($query)
@@ -82,6 +84,34 @@ new #[Layout('layouts.glass-app')] class extends Component
                     ->take(12)
                     ->get();
             }
+
+            $albums = Album::search($query)
+                ->query(fn ($builder) => $builder
+                    ->with(['artist.user', 'genre'])
+                    ->withPublicTrackCount()
+                    ->publiclyVisible())
+                ->get()
+                ->take(12)
+                ->values();
+
+            if ($albums->isEmpty()) {
+                $albums = Album::query()
+                    ->with(['artist.user', 'genre'])
+                    ->withPublicTrackCount()
+                    ->publiclyVisible()
+                    ->where(function ($builder) use ($query): void {
+                        $term = '%' . $query . '%';
+
+                        $builder
+                            ->where('title', 'like', $term)
+                            ->orWhere('description', 'like', $term)
+                            ->orWhereHas('artist', fn ($artistQuery) => $artistQuery->where('stage_name', 'like', $term));
+                    })
+                    ->orderByDesc('release_date')
+                    ->orderByDesc('created_at')
+                    ->take(12)
+                    ->get();
+            }
         }
 
         $relatedArtists = $tracks
@@ -98,18 +128,25 @@ new #[Layout('layouts.glass-app')] class extends Component
         $artistsSummary = $query === ''
             ? 'Artist picks are weighted toward the profiles people are finding most often right now.'
             : 'Artist matches are pulled from direct name/bio relevance and then tightened by audience traction.';
+        $albumsSummary = $query === ''
+            ? 'Albums and EPs surface the strongest public releases so discovery is not limited to single tracks.'
+            : 'Album matches prioritize direct title relevance first, then recent public releases with stronger track depth.';
 
         return [
             'tracks' => $tracks,
             'artists' => $artists,
+            'albums' => $albums,
             'resultCounts' => [
                 'tracks' => $tracks->count(),
                 'artists' => $artists->count(),
+                'albums' => $albums->count(),
             ],
             'topTrack' => $tracks->first(),
+            'topAlbum' => $albums->first(),
             'relatedArtists' => $relatedArtists,
             'tracksSummary' => $tracksSummary,
             'artistsSummary' => $artistsSummary,
+            'albumsSummary' => $albumsSummary,
             'suggestedSearches' => Cache::remember('search.suggested-terms.v2', now()->addMinutes(15), function () {
                 $terms = collect()
                     ->merge(Genre::query()->where('is_active', true)->orderByDesc('sort_order')->orderBy('name')->take(5)->pluck('name'))
@@ -143,13 +180,21 @@ new #[Layout('layouts.glass-app')] class extends Component
                     ->get()
                     ->pipe(fn ($artists) => ArtistProfile::rankForFeaturedListing($artists)->take(4)->values()))
                 : collect(),
+            'featuredAlbums' => Cache::remember('search.featured-albums.v1', now()->addMinutes(10), fn () => Album::query()
+                ->with(['artist.user', 'genre'])
+                ->withPublicTrackCount()
+                ->publiclyVisible()
+                ->orderByDesc('release_date')
+                ->orderByDesc('created_at')
+                ->take(4)
+                ->get()),
             'showSearchTrendingTracks' => $showSearchTrendingTracks,
             'showSearchPopularArtists' => $showSearchPopularArtists,
             'seo' => [
                 'title' => $queryLabel,
                 'description' => $query === ''
-                    ? 'Search GrinMuzik for tracks, artists, genres, and fresh discoveries.'
-                    : 'Search results for ' . $query . ' across tracks and artist profiles on GrinMuzik.',
+                    ? 'Search GrinMuzik for tracks, albums, artists, genres, and fresh discoveries.'
+                    : 'Search results for ' . $query . ' across tracks, albums, and artist profiles on GrinMuzik.',
                 'canonical' => route('search', $query !== '' ? ['q' => $query, 'tab' => $this->tab] : []),
                 'robots' => 'noindex,follow',
             ],
@@ -158,7 +203,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public function switchTab(string $tab): void
     {
-        if (! in_array($tab, ['tracks', 'artists'], true)) {
+        if (! in_array($tab, ['tracks', 'albums', 'artists'], true)) {
             return;
         }
 
@@ -190,6 +235,12 @@ new #[Layout('layouts.glass-app')] class extends Component
                         Artists
                         <span class="ml-1 opacity-80">{{ $resultCounts['artists'] }}</span>
                     </button>
+                    <button
+                        wire:click="switchTab('albums')"
+                        class="rounded-full px-4 py-2 text-sm font-semibold transition {{ $tab === 'albums' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-900' }}">
+                        Albums
+                        <span class="ml-1 opacity-80">{{ $resultCounts['albums'] }}</span>
+                    </button>
                 </div>
             </div>
 
@@ -200,7 +251,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                 <input
                     wire:model.live.debounce.300ms="q"
                     type="search"
-                    placeholder="Search tracks, artists, genres..."
+                    placeholder="Search tracks, albums, artists, genres..."
                     autofocus
                     class="w-full rounded-[1.6rem] border border-white/60 bg-white/85 py-4 pl-14 pr-5 text-base text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-primary/40 focus:ring-4 focus:ring-primary/10 sm:text-lg">
             </div>
@@ -224,6 +275,8 @@ new #[Layout('layouts.glass-app')] class extends Component
                     <span class="font-semibold text-gray-800">"{{ $q }}"</span>
                     <span>&middot;</span>
                     <span>{{ $resultCounts['tracks'] }} tracks</span>
+                    <span>&middot;</span>
+                    <span>{{ $resultCounts['albums'] }} albums</span>
                     <span>&middot;</span>
                     <span>{{ $resultCounts['artists'] }} artists</span>
                 </div>
@@ -298,6 +351,27 @@ new #[Layout('layouts.glass-app')] class extends Component
                     </div>
                 </div>
                 @endif
+
+                <div class="glass-card rounded-[2rem] p-6 sm:p-8">
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Featured Albums</p>
+                    <p class="mt-2 text-sm text-gray-500">{{ $albumsSummary }}</p>
+                    <div class="mt-5 grid grid-cols-2 gap-3">
+                        @foreach($featuredAlbums as $album)
+                            <a href="{{ route('album.show', $album) }}"
+                               wire:navigate
+                               class="rounded-[1.4rem] border border-white/40 bg-white/60 p-3 transition hover:bg-white/85">
+                                <div class="aspect-square overflow-hidden rounded-[1.2rem] bg-gradient-to-br from-primary-100 to-primary-200">
+                                    @if($album->getCoverUrl())
+                                        <img src="{{ $album->getCoverUrl() }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
+                                    @endif
+                                </div>
+                                <p class="mt-3 truncate text-sm font-semibold text-gray-900">{{ $album->title }}</p>
+                                <p class="mt-1 truncate text-xs text-gray-500">{{ $album->artist?->display_name ?? 'Unknown artist' }}</p>
+                                <p class="mt-2 text-[11px] text-gray-400">{{ $album->public_tracks_count }} track{{ $album->public_tracks_count === 1 ? '' : 's' }} · {{ $album->release_status_label }}</p>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
             </section>
             @endif
         @elseif($tab === 'tracks')
@@ -410,6 +484,70 @@ new #[Layout('layouts.glass-app')] class extends Component
                         <div class="glass-card rounded-[2rem] px-6 py-14 text-center">
                             <p class="text-lg font-semibold text-gray-800">No tracks found</p>
                             <p class="mt-2 text-sm text-gray-500">Nothing matched "{{ $q }}". Try another title, artist, or spelling.</p>
+                        </div>
+                    @endforelse
+                </section>
+            </section>
+        @elseif($tab === 'albums')
+            <section class="space-y-6">
+                @if($topAlbum)
+                    <article class="glass-card overflow-hidden rounded-[2rem]">
+                        <div class="grid gap-0 md:grid-cols-[14rem_minmax(0,1fr)]">
+                            <a href="{{ route('album.show', $topAlbum) }}" wire:navigate class="min-h-[14rem] bg-gradient-to-br from-primary-100 to-primary-200">
+                                @if($topAlbum->getCoverUrl('large'))
+                                    <img src="{{ $topAlbum->getCoverUrl('large') }}" alt="{{ $topAlbum->cover_alt }}" class="h-full w-full object-cover">
+                                @elseif($topAlbum->getCoverUrl())
+                                    <img src="{{ $topAlbum->getCoverUrl() }}" alt="{{ $topAlbum->cover_alt }}" class="h-full w-full object-cover">
+                                @endif
+                            </a>
+                            <div class="p-6">
+                                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Top Album Match</p>
+                                <a href="{{ route('album.show', $topAlbum) }}" wire:navigate class="mt-3 block text-3xl font-black tracking-tight text-gray-900 transition hover:text-primary">{{ $topAlbum->title }}</a>
+                                <p class="mt-2 text-sm text-gray-500">{{ $topAlbum->artist?->display_name ?? 'Unknown artist' }} @if($topAlbum->genre)&middot; {{ $topAlbum->genre->name }}@endif</p>
+                                <p class="mt-2 text-sm text-gray-500">{{ $albumsSummary }}</p>
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ ucfirst($topAlbum->type) }}</span>
+                                    <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $topAlbum->public_tracks_count }} tracks</span>
+                                    <span class="rounded-full {{ $topAlbum->is_upcoming ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} px-3 py-1 text-xs font-semibold">{{ $topAlbum->release_status_label }}</span>
+                                </div>
+                                <div class="mt-5 flex flex-wrap gap-3">
+                                    @if($topAlbum->publicTracks->isNotEmpty())
+                                        <button @click="Livewire.dispatch('play-track', { id: {{ $topAlbum->publicTracks->first()->id }} })" class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600">Play Release</button>
+                                    @endif
+                                    <a href="{{ route('album.show', $topAlbum) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">Open Album</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                @endif
+
+                <section wire:loading.class="opacity-60" class="space-y-3 transition-opacity">
+                    @forelse($albums as $album)
+                        <a href="{{ route('album.show', $album) }}" wire:navigate class="glass-card group flex items-center gap-4 rounded-[1.6rem] p-4 transition hover:-translate-y-0.5 hover:bg-white/85 hover:shadow-lg">
+                            <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
+                                @if($album->getCoverUrl())
+                                    <img src="{{ $album->getCoverUrl() }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
+                                @endif
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-base font-semibold text-gray-900 group-hover:text-primary">{{ $album->title }}</p>
+                                <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
+                                    <span class="truncate">{{ $album->artist?->display_name ?? 'Unknown artist' }}</span>
+                                    @if($album->genre)
+                                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $album->genre->name }}</span>
+                                    @endif
+                                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $album->public_tracks_count }} tracks</span>
+                                    <span class="rounded-full {{ $album->is_upcoming ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} px-2 py-0.5 text-[11px] font-medium">{{ $album->release_status_label }}</span>
+                                </div>
+                            </div>
+
+                            <div class="shrink-0 text-xs font-semibold text-primary transition group-hover:text-primary-600">Open album</div>
+                        </a>
+                    @empty
+                        <div class="glass-card rounded-[2rem] px-6 py-14 text-center">
+                            <p class="text-lg font-semibold text-gray-800">No albums found</p>
+                            <p class="mt-2 text-sm text-gray-500">Nothing matched "{{ $q }}". Try another release title, artist, or spelling.</p>
                         </div>
                     @endforelse
                 </section>

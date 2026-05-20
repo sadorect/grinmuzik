@@ -32,8 +32,8 @@ new #[Layout('layouts.glass-app')] class extends Component
             ->paginate(24, pageName: 'tracksPage');
 
         $recentAlbums = Album::with(['artist', 'genre'])
-            ->withCount('tracks')
-            ->where('is_published', true)
+            ->withPublicTrackCount()
+            ->publiclyVisible()
             ->orderByDesc('release_date')
             ->orderByDesc('created_at')
             ->paginate(16, pageName: 'albumsPage');
@@ -54,7 +54,7 @@ new #[Layout('layouts.glass-app')] class extends Component
         $releaseStats = Cache::remember('new-releases.stats.v1', now()->addMinutes(5), fn () => [
             'today' => Track::where('is_published', true)->whereDate('created_at', today())->count(),
             'thisWeek' => Track::where('is_published', true)->where('created_at', '>=', now()->startOfWeek())->count(),
-            'albums' => Album::where('is_published', true)->count(),
+            'albums' => Album::publiclyVisible()->count(),
         ]);
 
         return [
@@ -62,7 +62,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             'tracks' => $tracks,
             'trackGroups' => $this->groupByRecency($tracks->getCollection()),
             'recentAlbums' => $recentAlbums,
-            'albumGroups' => $this->groupByRecency($recentAlbums->getCollection(), 'release_date'),
+            'albumGroups' => $this->groupAlbumReleases($recentAlbums->getCollection()),
             'featuredAlbums' => $recentAlbums->getCollection()->take(2),
             'followedFresh' => $followedFresh,
             'releaseStats' => $releaseStats,
@@ -86,6 +86,16 @@ new #[Layout('layouts.glass-app')] class extends Component
             'Today' => $items->filter(fn ($item) => optional($item->{$dateField})->isToday()),
             'This Week' => $items->filter(fn ($item) => optional($item->{$dateField})->isCurrentWeek() && ! optional($item->{$dateField})->isToday()),
             'Earlier' => $items->filter(fn ($item) => optional($item->{$dateField})->lt(now()->startOfWeek())),
+        ])->filter(fn (Collection $group) => $group->isNotEmpty());
+    }
+
+    protected function groupAlbumReleases(Collection $albums): Collection
+    {
+        return collect([
+            'Upcoming' => $albums->filter(fn ($album) => $album->is_upcoming),
+            'Today' => $albums->filter(fn ($album) => ! $album->is_upcoming && optional($album->release_date ?? $album->created_at)->isToday()),
+            'This Week' => $albums->filter(fn ($album) => ! $album->is_upcoming && optional($album->release_date ?? $album->created_at)->isCurrentWeek() && ! optional($album->release_date ?? $album->created_at)->isToday()),
+            'Earlier' => $albums->filter(fn ($album) => ! $album->is_upcoming && optional($album->release_date ?? $album->created_at)->lt(now()->startOfWeek())),
         ])->filter(fn (Collection $group) => $group->isNotEmpty());
     }
 };
@@ -318,32 +328,34 @@ new #[Layout('layouts.glass-app')] class extends Component
                         @foreach($featuredAlbums as $album)
                             <article class="glass-card overflow-hidden rounded-[2rem] transition hover:-translate-y-0.5 hover:bg-white/90 hover:shadow-lg">
                                 <div class="grid gap-0 md:grid-cols-[12rem_minmax(0,1fr)]">
-                                    <div class="min-h-[12rem] bg-gradient-to-br from-primary-100 to-primary-200">
+                                    <a href="{{ route('album.show', $album) }}" wire:navigate class="min-h-[12rem] bg-gradient-to-br from-primary-100 to-primary-200">
                                         @if($album->getCoverUrl('large'))
                                             <img src="{{ $album->getCoverUrl('large') }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
                                         @elseif($album->getCoverUrl())
                                             <img src="{{ $album->getCoverUrl() }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
                                         @endif
-                                    </div>
+                                    </a>
                                     <div class="p-5">
                                         <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Album Spotlight</p>
-                                        <h3 class="mt-3 text-2xl font-black tracking-tight text-gray-900">{{ $album->title }}</h3>
+                                        <a href="{{ route('album.show', $album) }}" wire:navigate class="mt-3 block text-2xl font-black tracking-tight text-gray-900 transition hover:text-primary">{{ $album->title }}</a>
                                         <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
                                             <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="font-medium transition hover:text-primary">
                                                 {{ $album->artist?->stage_name ?? 'Unknown Artist' }}
                                             </a>
                                             <span>&middot;</span>
                                             <span>{{ ucfirst($album->type) }}</span>
+                                            <span>&middot;</span>
+                                            <span class="font-semibold {{ $album->is_upcoming ? 'text-amber-600' : 'text-emerald-600' }}">{{ $album->release_status_label }}</span>
                                         </div>
                                         <div class="mt-4 flex flex-wrap gap-2">
-                                            <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $album->tracks_count }} tracks</span>
+                                            <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $album->public_tracks_count }} tracks</span>
                                             @if($album->genre)
                                                 <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ $album->genre->name }}</span>
                                             @endif
                                             <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">{{ optional($album->release_date ?? $album->created_at)->diffForHumans() }}</span>
                                         </div>
                                         <div class="mt-5">
-                                            <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">View Artist</a>
+                                            <a href="{{ route('album.show', $album) }}" wire:navigate class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-primary hover:text-primary">Open Album</a>
                                         </div>
                                     </div>
                                 </div>
@@ -362,26 +374,27 @@ new #[Layout('layouts.glass-app')] class extends Component
                         <div class="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
                             @foreach($group as $album)
                                 <article class="glass-card rounded-[1.6rem] p-4 transition hover:-translate-y-0.5 hover:bg-white/90 hover:shadow-lg">
-                                    <div class="aspect-[1.1/1] overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
+                                    <a href="{{ route('album.show', $album) }}" wire:navigate class="block aspect-[1.1/1] overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
                                         @if($album->getCoverUrl())
                                             <img src="{{ $album->getCoverUrl() }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
                                         @endif
-                                    </div>
+                                    </a>
                                     <div class="mt-4">
-                                        <h4 class="truncate text-base font-semibold text-gray-900">{{ $album->title }}</h4>
+                                        <a href="{{ route('album.show', $album) }}" wire:navigate class="block truncate text-base font-semibold text-gray-900 transition hover:text-primary">{{ $album->title }}</a>
                                         <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="mt-1 block truncate text-sm text-gray-500 transition hover:text-primary">
                                             {{ $album->artist?->stage_name ?? 'Unknown Artist' }}
                                         </a>
                                         <div class="mt-3 flex flex-wrap gap-2">
                                             <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ ucfirst($album->type) }}</span>
-                                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ $album->tracks_count }} tracks</span>
+                                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ $album->public_tracks_count }} tracks</span>
+                                            <span class="rounded-full {{ $album->is_upcoming ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} px-2.5 py-1 text-[11px] font-semibold">{{ $album->release_status_label }}</span>
                                             @if($album->genre)
                                                 <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">{{ $album->genre->name }}</span>
                                             @endif
                                         </div>
                                         <div class="mt-4 flex items-center justify-between">
                                             <span class="text-xs text-gray-400">{{ optional($album->release_date ?? $album->created_at)->diffForHumans() }}</span>
-                                            <a href="{{ route('artist.page', $album->artist) }}" wire:navigate class="text-xs font-semibold text-primary transition hover:text-primary-600">Artist page</a>
+                                            <a href="{{ route('album.show', $album) }}" wire:navigate class="text-xs font-semibold text-primary transition hover:text-primary-600">Open album</a>
                                         </div>
                                     </div>
                                 </article>

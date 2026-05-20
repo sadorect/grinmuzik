@@ -389,7 +389,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             <div class="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                 <div class="max-w-3xl">
                     <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/65 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
-                        <a href="{{ route('listener.dashboard') }}" wire:navigate class="text-gray-500 transition hover:text-primary">Library</a>
+                        <a href="{{ route('home') }}" wire:navigate class="text-gray-500 transition hover:text-primary">Home</a>
                         <span>&middot;</span>
                         <span>Playlists</span>
                     </div>

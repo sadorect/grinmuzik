@@ -345,6 +345,13 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                 {{ $track->genre->name }}
                             </a>
                         @endif
+                        @if($track->album && $track->album->is_published && in_array($track->album->type, \App\Models\Album::PUBLIC_TYPES, true))
+                            <a href="{{ route('album.show', $track->album) }}"
+                               wire:navigate
+                               class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full hover:bg-gray-200 transition">
+                                {{ $track->album->title }}
+                            </a>
+                        @endif
                     </div>
                     <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-1">{{ $track->title }}</h1>
                     <a href="{{ route('artist.page', $track->artistProfile) }}"
@@ -380,6 +387,18 @@ new #[Layout('layouts.glass-app')] class extends Component {
 
                     @if($track->description)
                         <p class="text-gray-600 mt-3 text-sm leading-relaxed">{{ $track->description }}</p>
+                    @endif
+
+                    @if($track->album && $track->album->is_published && in_array($track->album->type, \App\Models\Album::PUBLIC_TYPES, true))
+                        <p class="mt-3 text-sm text-gray-500">
+                            From the release
+                            <a href="{{ route('album.show', $track->album) }}" wire:navigate class="font-semibold text-primary transition hover:text-primary-600">
+                                {{ $track->album->title }}
+                            </a>
+                            @if($track->album->is_upcoming)
+                                <span class="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">Upcoming</span>
+                            @endif
+                        </p>
                     @endif
                 </div>
 

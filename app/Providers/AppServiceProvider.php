@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Album;
 use App\Models\ArtistProfile;
 use App\Models\Playlist;
 use App\Models\SiteSetting;
@@ -273,6 +274,28 @@ class AppServiceProvider extends ServiceProvider
                             'image_width' => $track->getShareImageUrl() !== '' ? 1200 : null,
                             'image_height' => $track->getShareImageUrl() !== '' ? 1200 : null,
                             'image_alt' => $track->cover_alt,
+                        ]);
+                    }
+                } elseif ($routeName === 'album.show') {
+                    $album = request()->route('album');
+
+                    if ($album instanceof Album) {
+                        $album->loadMissing('artist.user', 'genre');
+
+                        $description = $album->description
+                            ?: 'Explore the ' . $album->title . ' release by ' . ($album->artist?->display_name ?? 'Unknown artist') . ' on GrinMuzik.';
+
+                        $activeRouteSeo = array_merge($activeRouteSeo, [
+                            'title' => $album->title,
+                            'description' => Str::limit(strip_tags($description), 160),
+                            'canonical' => route('album.show', $album),
+                            'type' => 'website',
+                            'image' => $album->getShareImageUrl(),
+                            'image_type' => $album->getShareImageUrl() !== '' ? 'image/jpeg' : null,
+                            'image_width' => $album->getShareImageUrl() !== '' ? 1200 : null,
+                            'image_height' => $album->getShareImageUrl() !== '' ? 1200 : null,
+                            'image_alt' => $album->cover_alt,
+                            'robots' => 'index,follow',
                         ]);
                     }
                 } elseif ($routeName === 'playlist.show') {

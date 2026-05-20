@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Album;
 use App\Models\ArtistProfile;
 use App\Models\Follow;
 use App\Models\Track;
@@ -24,7 +25,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             'user',
             'genres',
             'tracks' => fn ($q) => $q->where('is_published', true)->with('genre')->orderByDesc('play_count')->take(20),
-            'albums' => fn ($q) => $q->where('is_published', true)->orderByDesc('release_date'),
+            'albums' => fn ($q) => $q->publiclyVisible()->withPublicTrackCount()->orderByDesc('release_date')->orderByDesc('created_at'),
         ]);
 
         if (auth()->check()) {
@@ -296,15 +297,22 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 <h2 class="mb-4 text-xl font-bold text-gray-800">Albums &amp; EPs</h2>
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                     @foreach($profile->albums as $album)
-                        <div class="overflow-hidden rounded-xl transition hover:bg-white/50 glass-card">
+                        <a href="{{ route('album.show', $album) }}" wire:navigate class="overflow-hidden rounded-xl transition hover:bg-white/50 glass-card">
                             <div class="aspect-square">
                                 <img src="{{ $album->getCoverUrl('large') }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
                             </div>
                             <div class="p-2">
                                 <p class="truncate text-sm font-semibold text-gray-800">{{ $album->title }}</p>
-                                <p class="text-xs text-gray-400">{{ ucfirst($album->type) }} · {{ $album->release_date?->year }}</p>
+                                <p class="text-xs text-gray-400">
+                                    {{ ucfirst($album->type) }}
+                                    @if($album->release_date)
+                                        &middot; {{ $album->release_date->year }}
+                                    @endif
+                                    &middot; {{ $album->public_tracks_count }} track{{ $album->public_tracks_count === 1 ? '' : 's' }}
+                                </p>
+                                <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] {{ $album->is_upcoming ? 'text-amber-600' : 'text-emerald-600' }}">{{ $album->release_status_label }}</p>
                             </div>
-                        </div>
+                        </a>
                     @endforeach
                 </div>
             </section>

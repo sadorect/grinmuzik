@@ -17,6 +17,8 @@ class Album extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, Searchable;
 
+    public const PUBLIC_TYPES = ['album', 'ep'];
+
     protected $fillable = [
         'user_id',
         'artist_profile_id',
@@ -40,7 +42,7 @@ class Album extends Model implements HasMedia
     {
         static::creating(function (Album $album) {
             if (empty($album->slug)) {
-                $album->slug = Str::slug($album->title);
+                $album->slug = static::generateUniqueSlug($album->title);
             }
         });
     }
@@ -101,6 +103,11 @@ class Album extends Model implements HasMedia
         return $this->hasMany(Track::class)->orderBy('track_number');
     }
 
+    public function publicTracks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->tracks()->where('is_published', true);
+    }
+
     // ─── Scout ────────────────────────────────────────────────────────────────
     public function toSearchableArray(): array
     {
@@ -137,8 +144,52 @@ class Album extends Model implements HasMedia
         return 'slug';
     }
 
+    public function getIsUpcomingAttribute(): bool
+    {
+        return $this->release_date?->isFuture() ?? false;
+    }
+
+    public function getReleaseStatusLabelAttribute(): string
+    {
+        if (! $this->is_published) {
+            return 'Draft';
+        }
+
+        if ($this->is_upcoming) {
+            return 'Upcoming';
+        }
+
+        return 'Live';
+    }
+
     public function scopePublished($query)
     {
         return $query->where('is_published', true);
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        return $query
+            ->published()
+            ->whereIn('type', self::PUBLIC_TYPES);
+    }
+
+    public function scopeWithPublicTrackCount($query)
+    {
+        return $query->withCount(['publicTracks as public_tracks_count']);
+    }
+
+    protected static function generateUniqueSlug(string $title): string
+    {
+        $base = Str::slug($title) ?: 'album';
+        $slug = $base;
+        $suffix = 1;
+
+        while (static::where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 }

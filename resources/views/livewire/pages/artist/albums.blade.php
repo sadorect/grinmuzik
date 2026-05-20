@@ -30,7 +30,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     {
         $profile = auth()->user()->artistProfile;
         return [
-            'albums' => $profile->albums()->with('genre')->withCount('tracks')->orderByDesc('release_date')->get(),
+            'albums' => $profile->albums()->with('genre')->withCount('tracks')->orderByDesc('release_date')->orderByDesc('created_at')->get(),
         ];
     }
 }; ?>
@@ -74,15 +74,27 @@ new #[Layout('layouts.glass-app')] class extends Component
                     {{ $album->tracks_count }} track{{ $album->tracks_count !== 1 ? 's' : '' }}
                     @if($album->release_date) · {{ $album->release_date->format('Y') }} @endif
                 </p>
-                <div class="flex items-center justify-between mt-3">
-                    <span class="text-xs {{ $album->is_published ? 'text-green-600' : 'text-yellow-600' }} font-medium">
-                        {{ $album->is_published ? 'Published' : 'Draft' }}
-                    </span>
-                    <button wire:click="deleteAlbum({{ $album->id }})"
-                            wire:confirm="Delete album '{{ addslashes($album->title) }}'?"
-                            class="text-red-400 hover:text-red-600 transition opacity-0 group-hover:opacity-100">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                <div class="mt-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs {{ $album->is_published ? ($album->is_upcoming ? 'text-amber-600' : 'text-green-600') : 'text-yellow-600' }} font-medium">
+                            {{ $album->release_status_label }}
+                        </span>
+                        <button wire:click="deleteAlbum({{ $album->id }})"
+                                wire:confirm="Delete album '{{ addslashes($album->title) }}'?"
+                                class="text-red-400 hover:text-red-600 transition opacity-0 group-hover:opacity-100">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <a href="{{ route('artist.edit-album', $album) }}" wire:navigate class="text-xs font-semibold text-red-500 transition hover:text-red-600">
+                            Manage album
+                        </a>
+                        @if($album->is_published && in_array($album->type, \App\Models\Album::PUBLIC_TYPES, true))
+                            <a href="{{ route('album.show', $album) }}" wire:navigate class="text-xs font-semibold text-gray-500 transition hover:text-gray-700">
+                                View public page
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

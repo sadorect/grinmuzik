@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Album;
 use App\Models\ArtistProfile;
 use App\Models\Genre;
 use App\Models\SiteSetting;
@@ -202,6 +203,16 @@ new #[Layout('layouts.glass-app')] class extends Component {
                 ->get())
             : collect();
 
+        $freshAlbums = Cache::remember("browse.albums.{$filterKey}.v1", now()->addMinutes(5), fn () => Album::query()
+            ->with(['artist.user', 'genre'])
+            ->withPublicTrackCount()
+            ->publiclyVisible()
+            ->when($selectedGenre, fn (Builder $query) => $query->where('genre_id', $selectedGenre->id))
+            ->orderByDesc('release_date')
+            ->orderByDesc('created_at')
+            ->take(6)
+            ->get());
+
         $supportTracks = $showBrowseSupportDirect
             ? Cache::remember("browse.support-direct.{$filterKey}.v1", now()->addMinutes(5), fn () => $this->baseTrackQuery()
                 ->where('is_free', false)
@@ -228,6 +239,10 @@ new #[Layout('layouts.glass-app')] class extends Component {
 
         $stats = Cache::remember("browse.stats.{$filterKey}.v2", now()->addMinutes(5), fn () => [
             'tracks' => (clone $this->baseTrackQuery())->count(),
+            'albums' => Album::query()
+                ->publiclyVisible()
+                ->when($selectedGenre, fn (Builder $query) => $query->where('genre_id', $selectedGenre->id))
+                ->count(),
             'artists' => ArtistProfile::query()
                 ->publiclyDiscoverable()
                 ->when($selectedGenre, fn (Builder $query) => $query->whereHas('genres', fn (Builder $genreQuery) => $genreQuery->whereKey($selectedGenre->id)))
@@ -256,6 +271,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             'heroTrack' => $heroTrack,
             'editorPicks' => $editorPicks,
             'freshTracks' => $freshTracks,
+            'freshAlbums' => $freshAlbums,
             'supportTracks' => $supportTracks,
             'topArtists' => $topArtists,
             'stats' => $stats,
@@ -351,9 +367,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         @foreach([
                             ['label' => 'Tracks', 'value' => number_format($stats['tracks'])],
+                            ['label' => 'Albums', 'value' => number_format($stats['albums'])],
                             ['label' => 'Artists', 'value' => number_format($stats['artists'])],
                             ['label' => $paymentsEnabled ? 'Support Unlocks' : 'Downloads', 'value' => $paymentsEnabled ? number_format($stats['support']) : 'Free'],
-                            ['label' => 'Lens', 'value' => $selectedMood['label'] ?? ($sort === 'popular' ? 'Popular' : 'Latest')],
                         ] as $stat)
                             <div class="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
                                 <p class="text-xl font-black text-gray-900">{{ $stat['value'] }}</p>
@@ -688,6 +704,42 @@ new #[Layout('layouts.glass-app')] class extends Component {
                         @empty
                             <p class="col-span-full text-sm text-gray-500">Fresh releases will appear here once more tracks are published.</p>
                         @endforelse
+                    </div>
+                </div>
+                @endif
+
+                @if($freshAlbums->isNotEmpty())
+                <div class="rounded-[2rem] glass-card p-5 sm:p-6 {{ $showBrowseArtistsToWatch ? '' : 'xl:col-span-full' }}">
+                    <div class="flex items-end justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Albums &amp; EPs</p>
+                            <h2 class="mt-2 text-2xl font-black tracking-tight text-gray-900">Public releases with more to explore</h2>
+                        </div>
+                        <a href="{{ route('search', ['tab' => 'albums']) }}" wire:navigate class="text-sm font-semibold text-primary transition hover:text-primary-600">Search albums</a>
+                    </div>
+
+                    <div class="mt-5 space-y-3">
+                        @foreach($freshAlbums as $album)
+                            <a href="{{ route('album.show', $album) }}" wire:navigate class="flex items-center gap-3 rounded-[1.5rem] border border-white/60 bg-white/75 p-3 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-md">
+                                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200">
+                                    @if($album->getCoverUrl())
+                                        <img src="{{ $album->getCoverUrl() }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
+                                    @endif
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <p class="truncate text-sm font-semibold text-gray-900">{{ $album->title }}</p>
+                                        <span class="rounded-full {{ $album->is_upcoming ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700' }} px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]">{{ $album->release_status_label }}</span>
+                                    </div>
+                                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                                        <span class="truncate">{{ $album->artist?->display_name ?? 'Unknown artist' }}</span>
+                                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ ucfirst($album->type) }}</span>
+                                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">{{ $album->public_tracks_count }} tracks</span>
+                                    </div>
+                                    <p class="mt-3 text-[11px] font-medium text-gray-400">{{ optional($album->release_date ?? $album->created_at)->diffForHumans() }}</p>
+                                </div>
+                            </a>
+                        @endforeach
                     </div>
                 </div>
                 @endif

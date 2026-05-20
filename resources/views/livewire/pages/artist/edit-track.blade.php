@@ -9,6 +9,7 @@ use App\Support\ArtistActivityNotifier;
 use App\Support\UploadLimits;
 use App\Models\SiteSetting;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -86,12 +87,14 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     protected function rules(): array
     {
+        $profileId = auth()->user()?->artistProfile?->id;
+
         $rules = [
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:2000'],
             'lyrics' => ['nullable', 'string', 'max:10000'],
             'genre_id' => ['nullable', 'exists:genres,id'],
-            'album_id' => ['nullable', 'exists:albums,id'],
+            'album_id' => ['nullable', Rule::exists('albums', 'id')->where(fn ($query) => $query->where('artist_profile_id', $profileId))],
             'mood' => ['nullable', 'string', 'max:50'],
             'track_number' => ['nullable', 'integer', 'min:1'],
             'is_published' => ['boolean'],
