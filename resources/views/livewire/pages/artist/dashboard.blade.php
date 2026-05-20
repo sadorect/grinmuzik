@@ -193,11 +193,11 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                     <div class="flex flex-wrap gap-3">
                         <a href="{{ route('artist.edit-profile') }}" wire:navigate
-                           class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                           class="rounded-full border border-white/70 bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-500">
                             Edit Artist Profile
                         </a>
                         <a href="{{ route('profile') }}" wire:navigate
-                           class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                           class="rounded-full border border-white/70 bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-500">
                             Account Settings
                         </a>
                         <a href="{{ route('artist.tracks') }}" wire:navigate
@@ -209,7 +209,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                             Upload Track
                         </a>
                         <a href="{{ route('artist.create-album') }}" wire:navigate
-                           class="rounded-full border border-white/70 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white">
+                           class="rounded-full border border-white/70 bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-500">
                             New Album
                         </a>
                     </div>
