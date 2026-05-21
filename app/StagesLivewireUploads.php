@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileCannotBeAdded;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 trait StagesLivewireUploads
@@ -66,6 +67,36 @@ trait StagesLivewireUploads
             if ($stagedPath) {
                 Storage::disk('local')->delete($stagedPath);
             }
+        }
+    }
+
+    /**
+     * Extract the duration in seconds from an uploaded audio file using ffprobe.
+     * Returns 0 if ffprobe is unavailable or extraction fails.
+     */
+    protected function extractAudioDuration(TemporaryUploadedFile|UploadedFile $file): int
+    {
+        try {
+            $path = $file->getRealPath();
+
+            if (! $path || ! file_exists($path)) {
+                return 0;
+            }
+
+            $process = new Process([
+                'ffprobe', '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                $path,
+            ]);
+            $process->setTimeout(15);
+            $process->run();
+
+            $output = trim($process->getOutput());
+
+            return $output !== '' ? max(0, (int) round((float) $output)) : 0;
+        } catch (Throwable) {
+            return 0;
         }
     }
 }

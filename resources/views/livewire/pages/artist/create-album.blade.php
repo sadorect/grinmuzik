@@ -157,7 +157,8 @@ new #[Layout('layouts.glass-app')] class extends Component
                     $album,
                     $this->coverFile,
                     'cover',
-                    'cover.' . strtolower($this->coverFile->getClientOriginalExtension())
+                    'cover.' . strtolower($this->coverFile->getClientOriginalExtension()),
+                    'coverFile'
                 );
             }
 

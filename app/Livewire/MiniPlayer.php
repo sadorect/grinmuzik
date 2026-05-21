@@ -402,7 +402,7 @@ class MiniPlayer extends Component
             ->keyBy('id');
 
         return collect($orderedIds)
-            ->map(fn ($id) => $this->makeQueueTrackPayload($tracks->get($id)))
+            ->map(fn ($id) => ($track = $tracks->get($id)) ? $this->makeQueueTrackPayload($track) : null)
             ->filter()
             ->values()
             ->all();

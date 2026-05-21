@@ -151,8 +151,13 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                 $audioExt = strtolower($this->audioFile->getClientOriginalExtension());
                 $audioFileName = (Str::slug($this->title) ?: 'track') . '.' . $audioExt;
+                $audioDuration = $this->extractAudioDuration($this->audioFile);
 
                 $this->addStagedMedia($track, $this->audioFile, 'audio', $audioFileName, 'audioFile');
+
+                if ($audioDuration > 0) {
+                    $track->update(['duration' => $audioDuration]);
+                }
 
                 if ($this->coverFile) {
                     $coverExt = strtolower($this->coverFile->getClientOriginalExtension());
@@ -203,12 +208,12 @@ new #[Layout('layouts.glass-app')] class extends Component
     <form wire:submit="save" class="space-y-6" enctype="multipart/form-data">
         <div
             class="glass-card rounded-2xl p-6 space-y-4"
-            x-data="{ drag: false, uploading: false, progress: 0 }"
-            x-on:livewire-upload-start="if ($event.detail.property !== 'audioFile') return; uploading = true; progress = 0"
-            x-on:livewire-upload-progress="if ($event.detail.property !== 'audioFile') return; progress = $event.detail.progress"
-            x-on:livewire-upload-finish="if ($event.detail.property !== 'audioFile') return; uploading = false; progress = 100"
-            x-on:livewire-upload-error="if ($event.detail.property !== 'audioFile') return; uploading = false"
-            x-on:livewire-upload-cancel="if ($event.detail.property !== 'audioFile') return; uploading = false; progress = 0"
+        x-data="{ drag: false, uploading: false, progress: 0, done: false }"
+        x-on:livewire-upload-start="if ($event.detail.property !== 'audioFile') return; uploading = true; progress = 0; done = false"
+        x-on:livewire-upload-progress="progress = $event.detail.progress"
+        x-on:livewire-upload-finish="if ($event.detail.property !== 'audioFile') return; uploading = false; progress = 100; done = true"
+        x-on:livewire-upload-error="if ($event.detail.property !== 'audioFile') return; uploading = false; done = false"
+        x-on:livewire-upload-cancel="if ($event.detail.property !== 'audioFile') return; uploading = false; progress = 0; done = false"
         >
             <h2 class="font-semibold text-gray-700">Audio File <span class="text-red-500">*</span></h2>
             <div
@@ -237,6 +242,10 @@ new #[Layout('layouts.glass-app')] class extends Component
                 <div class="h-2 overflow-hidden rounded-full bg-gray-200">
                     <div class="h-full rounded-full bg-red-500 transition-all duration-200" :style="`width: ${progress}%`"></div>
                 </div>
+            </div>
+            <div x-show="done && !uploading" class="flex items-center gap-2 text-sm text-green-600 font-medium">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                File received — click <span class="font-semibold ml-1">Upload Track</span> to save.
             </div>
             <x-input-error :messages="$errors->get('audioFile')" />
         </div>
@@ -305,7 +314,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             class="glass-card rounded-2xl p-6 space-y-3"
             x-data="{ uploading: false, progress: 0 }"
             x-on:livewire-upload-start="if ($event.detail.property !== 'coverFile') return; uploading = true; progress = 0"
-            x-on:livewire-upload-progress="if ($event.detail.property !== 'coverFile') return; progress = $event.detail.progress"
+            x-on:livewire-upload-progress="progress = $event.detail.progress"
             x-on:livewire-upload-finish="if ($event.detail.property !== 'coverFile') return; uploading = false; progress = 100"
             x-on:livewire-upload-error="if ($event.detail.property !== 'coverFile') return; uploading = false"
             x-on:livewire-upload-cancel="if ($event.detail.property !== 'coverFile') return; uploading = false; progress = 0"
@@ -385,4 +394,18 @@ new #[Layout('layouts.glass-app')] class extends Component
             </button>
         </div>
     </form>
+
+    <div wire:loading wire:target="save"
+         class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-card rounded-2xl p-8 text-center space-y-4 max-w-xs mx-4 shadow-2xl">
+            <svg class="mx-auto w-12 h-12 text-red-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <div>
+                <p class="font-semibold text-gray-800">Saving to cloud…</p>
+                <p class="text-sm text-gray-500 mt-1">Please don’t close this page.</p>
+            </div>
+        </div>
+    </div>
 </div>

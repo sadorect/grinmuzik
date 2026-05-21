@@ -38,7 +38,7 @@ new #[Layout('layouts.glass-app')] class extends Component
         return [
             'tracks' => $tracks,
             'trackIds' => $trackIds,
-            'totalDuration' => (int) $tracks->sum('duration'),
+            'totalDuration' => (int) $tracks->sum(fn ($track) => $track->duration_in_seconds),
             'shareUrl' => route('album.show', $this->album),
             'seo' => [
                 'title' => $this->album->title,
@@ -200,7 +200,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                             <button
                                 onclick="Livewire.dispatch('queue-playlist', { ids: {{ json_encode($trackIds) }} })"
-                                class="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white"
+                                class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-500"
                             >
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10"/>
@@ -211,7 +211,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                         <button
                             @click="share()"
-                            class="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white"
+                            class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-500"
                         >
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.173 13.13 9.713 13 10.286 13c.573 0 1.113.13 1.602.342m-3.204 0a3 3 0 110-2.684m3.204 2.684a3 3 0 100-2.684m0 0L15.5 8m-5.214 5.342L6.5 16"/>
@@ -221,7 +221,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                         <button
                             @click="copy()"
-                            class="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white"
+                            class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-500"
                         >
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -286,7 +286,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                             <button
                                 @click="Livewire.dispatch('queue-track', { id: {{ $track->id }} })"
-                                class="hidden rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition hover:bg-white sm:inline-flex"
+                                class="hidden rounded-full bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-500 sm:inline-flex"
                             >
                                 Queue
                             </button>
