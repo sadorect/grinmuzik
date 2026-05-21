@@ -8,6 +8,7 @@ use App\Models\SiteSetting;
 use App\Models\Track;
 use App\Support\ArtistActivityNotifier;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -322,51 +323,89 @@ class MiniPlayer extends Component
         $artistLimit = SiteSetting::autoQueueArtistLimit();
         $genreLimit  = SiteSetting::autoQueueGenreLimit();
 
-        $queue = [];
-        $seenIds = [$seedTrack->id];
-        $baseQuery = fn () => Track::query()
-            ->with(['artistProfile.user'])
-            ->published()
-            ->orderByDesc('is_featured')
-            ->orderByDesc('play_count')
-            ->orderByDesc('downloads_count')
-            ->orderByDesc('created_at');
+        $seedId   = $seedTrack->id;
+        $albumId  = $seedTrack->album_id;
+        $artistId = $seedTrack->artist_profile_id;
+        $genreId  = $seedTrack->genre_id;
 
-        if ($seedTrack->album_id) {
-            $this->appendAutoQueueCandidates(
-                $baseQuery()->where('album_id', $seedTrack->album_id),
-                $queue,
-                $seenIds,
-                min(count($queue) + $albumLimit, $totalLimit),
-            );
+        $orderCols  = 'is_featured DESC, play_count DESC, downloads_count DESC, created_at DESC';
+        $subqueries = [];
+        $bindings   = [];
+
+        // Tier 1 – same album
+        if ($albumId && $albumLimit > 0) {
+            $subqueries[] = "(SELECT id, 1 AS tier, is_featured, play_count, downloads_count, created_at
+                FROM tracks WHERE is_published = 1 AND album_id = ? AND id != ?
+                ORDER BY {$orderCols} LIMIT ?)";
+            $bindings = array_merge($bindings, [$albumId, $seedId, $albumLimit]);
         }
 
-        if ($seedTrack->artist_profile_id) {
-            $this->appendAutoQueueCandidates(
-                $baseQuery()->where('artist_profile_id', $seedTrack->artist_profile_id),
-                $queue,
-                $seenIds,
-                min(count($queue) + $artistLimit, $totalLimit),
-            );
+        // Tier 2 – same artist, excluding tracks already covered by the album tier
+        if ($artistId && $artistLimit > 0) {
+            $albumExclude = $albumId ? 'AND (album_id IS NULL OR album_id != ?)' : '';
+            $subqueries[] = "(SELECT id, 2 AS tier, is_featured, play_count, downloads_count, created_at
+                FROM tracks WHERE is_published = 1 AND artist_profile_id = ? {$albumExclude} AND id != ?
+                ORDER BY {$orderCols} LIMIT ?)";
+            $bindings = $albumId
+                ? array_merge($bindings, [$artistId, $albumId, $seedId, $artistLimit])
+                : array_merge($bindings, [$artistId, $seedId, $artistLimit]);
         }
 
-        if ($seedTrack->genre_id) {
-            $this->appendAutoQueueCandidates(
-                $baseQuery()->where('genre_id', $seedTrack->genre_id),
-                $queue,
-                $seenIds,
-                min(count($queue) + $genreLimit, $totalLimit),
-            );
+        // Tier 3 – same genre, excluding tracks already covered by the artist tier
+        if ($genreId && $genreLimit > 0) {
+            $artistExclude = $artistId ? 'AND (artist_profile_id IS NULL OR artist_profile_id != ?)' : '';
+            $subqueries[] = "(SELECT id, 3 AS tier, is_featured, play_count, downloads_count, created_at
+                FROM tracks WHERE is_published = 1 AND genre_id = ? {$artistExclude} AND id != ?
+                ORDER BY {$orderCols} LIMIT ?)";
+            $bindings = $artistId
+                ? array_merge($bindings, [$genreId, $artistId, $seedId, $genreLimit])
+                : array_merge($bindings, [$genreId, $seedId, $genreLimit]);
         }
 
-        $this->appendAutoQueueCandidates(
-            $baseQuery(),
-            $queue,
-            $seenIds,
-            $totalLimit,
-        );
+        // Tier 4 – global remainder, excluding everything already covered
+        $globalWhereParts = ['id != ?'];
+        $globalBindings   = [$seedId];
+        if ($albumId) {
+            $globalWhereParts[] = '(album_id IS NULL OR album_id != ?)';
+            $globalBindings[]   = $albumId;
+        }
+        if ($artistId) {
+            $globalWhereParts[] = '(artist_profile_id IS NULL OR artist_profile_id != ?)';
+            $globalBindings[]   = $artistId;
+        }
+        if ($genreId) {
+            $globalWhereParts[] = '(genre_id IS NULL OR genre_id != ?)';
+            $globalBindings[]   = $genreId;
+        }
+        $globalBindings[] = $totalLimit;
+        $globalWhere      = implode(' AND ', $globalWhereParts);
+        $subqueries[]     = "(SELECT id, 4 AS tier, is_featured, play_count, downloads_count, created_at
+            FROM tracks WHERE is_published = 1 AND {$globalWhere}
+            ORDER BY {$orderCols} LIMIT ?)";
+        $bindings         = array_merge($bindings, $globalBindings);
 
-        return $queue;
+        // Single UNION ALL — outer query applies tier ordering and the total cap
+        $union      = implode(' UNION ALL ', $subqueries);
+        $sql        = "SELECT id FROM ({$union}) AS combined ORDER BY tier, {$orderCols} LIMIT ?";
+        $bindings[] = $totalLimit;
+
+        $orderedIds = array_column(DB::select($sql, $bindings), 'id');
+
+        if (empty($orderedIds)) {
+            return [];
+        }
+
+        // One eager-load pass, then restore the UNION ordering
+        $tracks = Track::with(['artistProfile.user'])
+            ->whereIn('id', $orderedIds)
+            ->get()
+            ->keyBy('id');
+
+        return collect($orderedIds)
+            ->map(fn ($id) => $this->makeQueueTrackPayload($tracks->get($id)))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     protected function appendAutoQueueCandidates($query, array &$queue, array &$seenIds, int $limit): void

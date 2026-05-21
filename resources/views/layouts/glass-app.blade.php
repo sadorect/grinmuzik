@@ -238,8 +238,8 @@
 
     {{-- â”€â”€ Mobile Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
     <div x-data="{ open: false }" x-on:toggle-mobile-nav.window="open = !open" class="md:hidden">
-        <div x-show="open" x-transition @click="open = false" class="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm" style="display:none"></div>
-        <div x-show="open" x-transition class="fixed inset-y-0 left-0 flex h-[100dvh] w-[86vw] max-w-xs flex-col overflow-hidden glass-panel z-50 p-6 text-sm shadow-xl" style="display:none">
+        <div x-show="open" x-transition @click="open = false" class="fixed inset-0 bg-black/30 z-[59] backdrop-blur-sm" style="display:none"></div>
+        <div x-show="open" x-transition class="fixed inset-y-0 left-0 flex h-[100dvh] w-[86vw] max-w-xs flex-col overflow-hidden glass-panel z-[60] p-6 text-sm shadow-xl" style="display:none">
             <div class="mb-6 flex items-center justify-between gap-3">
                 <a href="{{ route('home') }}" class="flex items-center text-gray-800" wire:navigate>
                     <x-application-logo class="h-7 w-auto object-contain" />
