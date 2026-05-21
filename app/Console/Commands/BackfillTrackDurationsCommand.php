@@ -19,6 +19,28 @@ class BackfillTrackDurationsCommand extends Command
 
     public function handle(): int
     {
+        // Pre-flight: confirm ffprobe is reachable
+        $whichProcess = new Process(['which', 'ffprobe']);
+        $whichProcess->run();
+        $ffprobeBin = trim($whichProcess->getOutput()) ?: null;
+
+        if (! $ffprobeBin) {
+            // Try common fixed paths
+            foreach (['/usr/bin/ffprobe', '/usr/local/bin/ffprobe'] as $candidate) {
+                if (file_exists($candidate)) {
+                    $ffprobeBin = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if (! $ffprobeBin) {
+            $this->components->error('ffprobe not found. Install ffmpeg on this server.');
+            return self::FAILURE;
+        }
+
+        $this->components->info("Using ffprobe: {$ffprobeBin}");
+
         $query = Track::query()->with('media');
 
         if ($this->option('id')) {
@@ -89,7 +111,7 @@ class BackfillTrackDurationsCommand extends Command
                     }
                 }
 
-                $duration = $this->ffprobeDuration($sourcePath);
+                [$duration, $ffError] = $this->ffprobeDuration($sourcePath, $ffprobeBin);
 
                 if ($needsCleanup && file_exists($tempPath)) {
                     @unlink($tempPath);
@@ -101,6 +123,15 @@ class BackfillTrackDurationsCommand extends Command
                     $updated++;
                 } else {
                     $this->getOutput()->writeln('<comment>0s — ffprobe returned nothing</comment>');
+                    $this->getOutput()->writeln("      path: {$sourcePath}");
+                    if ($ffError) {
+                        $this->getOutput()->writeln('      ffprobe stderr: ' . trim($ffError));
+                    }
+                    if (! file_exists($sourcePath)) {
+                        $this->getOutput()->writeln('      WARNING: file does not exist at that path');
+                    } else {
+                        $this->getOutput()->writeln('      file size: ' . filesize($sourcePath) . ' bytes');
+                    }
                     $skipped++;
                 }
             } catch (Throwable $e) {
@@ -118,10 +149,11 @@ class BackfillTrackDurationsCommand extends Command
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
-    private function ffprobeDuration(string $path): int
+    /** @return array{int, string} [duration_seconds, stderr] */
+    private function ffprobeDuration(string $path, string $bin): array
     {
         $process = new Process([
-            'ffprobe', '-v', 'error',
+            $bin, '-v', 'error',
             '-show_entries', 'format=duration',
             '-of', 'default=noprint_wrappers=1:nokey=1',
             $path,
@@ -130,7 +162,10 @@ class BackfillTrackDurationsCommand extends Command
         $process->run();
 
         $output = trim($process->getOutput());
+        $stderr = $process->getErrorOutput();
 
-        return $output !== '' ? max(0, (int) round((float) $output)) : 0;
+        $duration = $output !== '' ? max(0, (int) round((float) $output)) : 0;
+
+        return [$duration, $stderr];
     }
 }

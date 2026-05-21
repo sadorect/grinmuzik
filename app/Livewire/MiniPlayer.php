@@ -181,6 +181,11 @@ class MiniPlayer extends Component
                 }
 
                 $model->incrementPlayCount();
+
+                $this->trackId = $model->id;
+                $this->track   = $trackData;
+                $this->refreshLikeState();
+
                 $this->dispatch('player-track-loaded', track: $trackData);
                 $first = false;
 

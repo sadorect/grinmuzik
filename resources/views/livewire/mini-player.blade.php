@@ -322,19 +322,18 @@
                             </div>
                         </div>
 
-                        @if($track)
-                        <div class="mt-3 grid shrink-0 grid-cols-4 gap-3">
+                        <div x-show="hasActiveTrack" class="mt-3 grid shrink-0 grid-cols-4 gap-3" style="display:none">
                             <button
                                 type="button"
-                                wire:click="likeToggle"
+                                @click="$wire.likeToggle()"
                                 class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
-                                title="{{ $liked ? 'Unlike' : 'Like' }}"
+                                :title="$wire.liked ? 'Unlike' : 'Like'"
                             >
-                                <svg class="h-5 w-5 {{ $liked ? 'fill-current text-primary' : 'text-gray-700 dark:text-white/75' }}" viewBox="0 0 24 24" fill="{{ $liked ? 'currentColor' : 'none' }}" stroke="currentColor">
+                                <svg :class="$wire.liked ? 'h-5 w-5 fill-current text-primary' : 'h-5 w-5 text-gray-700 dark:text-white/75'" viewBox="0 0 24 24" :fill="$wire.liked ? 'currentColor' : 'none'" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                                 </svg>
                                 <span class="mt-2 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.14em] leading-tight">Like</span>
-                                <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" wire:key="mobile-like-count-hero-{{ $trackId }}">{{ $likesCount > 0 ? $likesCount : 'Save' }}</span>
+                                <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" x-text="Number($wire.likesCount) > 0 ? $wire.likesCount : 'Save'"></span>
                             </button>
 
                             <button
@@ -372,7 +371,6 @@
                                 <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" x-text="new Intl.NumberFormat().format(track?.play_count ?? 0)"></span>
                             </div>
                         </div>
-                        @endif
 
                         <div class="mt-3 shrink-0 pb-1 text-center">
                             <a
@@ -728,19 +726,20 @@
                 <div class="hidden sm:flex items-center gap-3 shrink-0">
 
                     {{-- Like --}}
-                    @if($track)
                     <button
-                        wire:click="likeToggle"
+                        x-show="hasActiveTrack"
+                        @click="$wire.likeToggle()"
                         class="flex items-center gap-1 transition group"
-                        title="{{ $liked ? 'Unlike' : 'Like' }}"
+                        :title="$wire.liked ? 'Unlike' : 'Like'"
+                        style="display:none"
                     >
-                        <svg class="w-4 h-4 transition {{ $liked ? 'text-primary fill-current' : 'text-gray-400 group-hover:text-primary' }}"
-                             viewBox="0 0 24 24" fill="{{ $liked ? 'currentColor' : 'none' }}" stroke="currentColor">
+                        <svg :class="$wire.liked ? 'w-4 h-4 transition text-primary fill-current' : 'w-4 h-4 transition text-gray-400 group-hover:text-primary'"
+                             viewBox="0 0 24 24" :fill="$wire.liked ? 'currentColor' : 'none'" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                         </svg>
-                        <span class="text-xs tabular-nums {{ $liked ? 'text-primary' : 'text-gray-400 group-hover:text-primary' }}"
-                              wire:key="like-count-{{ $trackId }}">{{ $likesCount > 0 ? $likesCount : '' }}</span>
+                        <span :class="$wire.liked ? 'text-xs tabular-nums text-primary' : 'text-xs tabular-nums text-gray-400 group-hover:text-primary'"
+                              x-text="Number($wire.likesCount) > 0 ? $wire.likesCount : ''"></span>
                     </button>
 
                     {{-- Share --}}
@@ -771,7 +770,6 @@
                     </button>
 
                     <div class="w-px h-4 bg-gray-200 mx-1"></div>
-                    @endif
                     <div class="flex items-center gap-2 w-28">
                         <button @click="toggleMute()" class="text-gray-500 hover:text-gray-800 transition">
                             <template x-if="muted || volume === 0">
