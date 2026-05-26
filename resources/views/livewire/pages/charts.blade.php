@@ -1,10 +1,14 @@
 <?php
 
+use App\Models\ChartSnapshot;
+use App\Models\ChartSnapshotEntry;
 use App\Models\Genre;
 use App\Models\Track;
+use App\Support\Charts\ChartRankingService;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -21,60 +25,85 @@ new #[Layout('layouts.glass-app')] class extends Component
     #[Url]
     public ?string $genre = null;
 
+    #[Url]
+    public ?string $snapshot = null;
+
     public function with(): array
     {
         $genres = Cache::remember('charts.genres.v1', now()->addMinutes(15), fn () => Genre::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get());
-        [$start, $end, $previousStart, $previousEnd] = $this->timeframeWindow();
+        $historySnapshots = $this->historySnapshots();
+        $selectedSnapshot = $this->selectedSnapshot($historySnapshots);
 
-        $currentRankings = Cache::remember(
-            'charts.rankings.current.' . md5(json_encode([$this->timeframe, $this->genre, optional($start)?->toDateTimeString(), optional($end)?->toDateTimeString()])),
-            now()->addMinutes(5),
-            fn () => $this->rankingIds($start, $end)
-        );
-        $previousRankings = Cache::remember(
-            'charts.rankings.previous.' . md5(json_encode([$this->timeframe, $this->genre, optional($previousStart)?->toDateTimeString(), optional($previousEnd)?->toDateTimeString()])),
-            now()->addMinutes(5),
-            fn () => $this->rankingIds($previousStart, $previousEnd)
-        );
-        $movementMap = $this->movementMap($currentRankings, $previousRankings);
-
-        $query = Track::with(['artistProfile.user', 'genre'])
-            ->withCount('likedByUsers as likes_count')
-            ->where('is_published', true)
-            ->when($this->genre, fn (Builder $query) => $query->whereHas('genre', fn (Builder $genreQuery) => $genreQuery->where('slug', $this->genre)));
-
-        if ($start && $end) {
-            $query->withCount([
-                'playHistories as chart_plays' => fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]),
-            ])->orderByDesc('chart_plays');
+        if ($selectedSnapshot) {
+            $tracks = $this->paginateSnapshotTracks($selectedSnapshot);
+            $topTracks = $selectedSnapshot->entries
+                ->take(3)
+                ->map(fn (ChartSnapshotEntry $entry) => $this->hydrateSnapshotTrack($entry))
+                ->filter()
+                ->values();
+            $movementMap = $this->snapshotMovementMap($selectedSnapshot);
+            $stats = [
+                'timeframeLabel' => $selectedSnapshot->period_type === ChartSnapshot::PERIOD_MONTH ? 'Monthly Archive' : 'Weekly Archive',
+                'plays' => (int) $selectedSnapshot->total_plays,
+                'likes' => (int) $selectedSnapshot->total_likes,
+                'downloads' => (int) $selectedSnapshot->total_downloads,
+            ];
         } else {
-            $query->withCount('playHistories as chart_plays')->orderByDesc('play_count');
+            [$start, $end, $previousStart, $previousEnd] = $this->timeframeWindow();
+            $currentRankings = Cache::remember(
+                'charts.rankings.current.' . md5(json_encode([$this->timeframe, $this->genre, optional($start)?->toDateTimeString(), optional($end)?->toDateTimeString()])),
+                now()->addMinutes(5),
+                fn () => $this->rankingService()->rankedTracks($start, $end, $this->genre)->all()
+            );
+            $previousRankings = Cache::remember(
+                'charts.rankings.previous.' . md5(json_encode([$this->timeframe, $this->genre, optional($previousStart)?->toDateTimeString(), optional($previousEnd)?->toDateTimeString()])),
+                now()->addMinutes(5),
+                fn () => $this->rankingService()->rankedTracks($previousStart, $previousEnd, $this->genre)->all()
+            );
+            $movementMap = $this->rankingService()->movementMap($currentRankings, $previousRankings);
+
+            $query = Track::with(['artistProfile.user', 'genre'])
+                ->withCount('likedByUsers as likes_count')
+                ->where('is_published', true)
+                ->when($this->genre, fn (Builder $query) => $query->whereHas('genre', fn (Builder $genreQuery) => $genreQuery->where('slug', $this->genre)));
+
+            if ($start && $end) {
+                $query->withCount([
+                    'playHistories as chart_plays' => fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]),
+                ])->orderByDesc('chart_plays');
+            } else {
+                $query->withCount('playHistories as chart_plays')->orderByDesc('play_count');
+            }
+
+            $query->orderByDesc('likes_count')->orderByDesc('downloads_count')->orderByDesc('id');
+
+            /** @var LengthAwarePaginator $tracks */
+            $tracks = $query->paginate(30);
+            $topTracks = collect($currentRankings)
+                ->take(3)
+                ->map(fn (array $row) => $row['track'])
+                ->filter()
+                ->values();
+            $stats = [
+                'timeframeLabel' => $this->timeframeLabel(),
+                'plays' => (int) $tracks->getCollection()->sum(fn (Track $track) => $start && $end ? $track->chart_plays : $track->play_count),
+                'likes' => (int) $tracks->getCollection()->sum('likes_count'),
+                'downloads' => (int) $tracks->getCollection()->sum('downloads_count'),
+            ];
         }
-
-        $query->orderByDesc('likes_count')->orderByDesc('downloads_count')->orderByDesc('id');
-
-        /** @var LengthAwarePaginator $tracks */
-        $tracks = $query->paginate(30);
-        $topTracks = collect($currentRankings)
-            ->take(3)
-            ->map(fn (array $row) => $row['track'])
-            ->filter();
 
         $heroTrack = $topTracks->first();
         $remainingTopTracks = $topTracks->slice(1)->values();
 
         return [
             'genres' => $genres,
+            'historySnapshots' => $historySnapshots,
+            'selectedSnapshot' => $selectedSnapshot,
             'tracks' => $tracks,
             'heroTrack' => $heroTrack,
             'remainingTopTracks' => $remainingTopTracks,
             'movementMap' => $movementMap,
-            'stats' => [
-                'timeframeLabel' => $this->timeframeLabel(),
-                'plays' => (int) $tracks->getCollection()->sum(fn (Track $track) => $start && $end ? $track->chart_plays : $track->play_count),
-                'likes' => (int) $tracks->getCollection()->sum('likes_count'),
-                'downloads' => (int) $tracks->getCollection()->sum('downloads_count'),
-            ],
+            'stats' => $stats,
         ];
     }
 
@@ -85,12 +114,27 @@ new #[Layout('layouts.glass-app')] class extends Component
         }
 
         $this->timeframe = $value;
+        $this->snapshot = null;
         $this->resetPage();
     }
 
     public function setGenre(?string $slug): void
     {
         $this->genre = $slug;
+        $this->snapshot = null;
+        $this->resetPage();
+    }
+
+    public function setSnapshot(?string $periodKey): void
+    {
+        $this->snapshot = blank($periodKey) ? null : $periodKey;
+        $this->genre = null;
+        $this->resetPage();
+    }
+
+    public function clearSnapshot(): void
+    {
+        $this->snapshot = null;
         $this->resetPage();
     }
 
@@ -124,61 +168,90 @@ new #[Layout('layouts.glass-app')] class extends Component
         };
     }
 
-    protected function rankingIds(?CarbonImmutable $start, ?CarbonImmutable $end): array
+    protected function historySnapshots(): Collection
     {
-        $query = Track::query()
-            ->with(['artistProfile.user', 'genre'])
-            ->withCount('likedByUsers as likes_count')
-            ->where('is_published', true)
-            ->when($this->genre, fn (Builder $query) => $query->whereHas('genre', fn (Builder $genreQuery) => $genreQuery->where('slug', $this->genre)));
-
-        if ($start && $end) {
-            $query->whereHas('playHistories', fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]))
-                ->withCount([
-                    'playHistories as chart_plays' => fn (Builder $plays) => $plays->whereBetween('created_at', [$start, $end]),
-                ])
-                ->orderByDesc('chart_plays');
-        } else {
-            $query->withCount('playHistories as chart_plays')->orderByDesc('play_count');
+        if (! in_array($this->timeframe, [ChartSnapshot::PERIOD_WEEK, ChartSnapshot::PERIOD_MONTH], true)) {
+            return collect();
         }
 
-        return $query
-            ->orderByDesc('likes_count')
-            ->orderByDesc('downloads_count')
-            ->take(100)
-            ->get()
-            ->values()
-            ->map(fn (Track $track, int $index) => [
-                'id' => $track->id,
-                'rank' => $index + 1,
-                'track' => $track,
-            ])
-            ->all();
+        return Cache::remember(
+            'charts.snapshots.' . $this->timeframe,
+            now()->addMinutes(10),
+            fn () => ChartSnapshot::query()
+                ->where('period_type', $this->timeframe)
+                ->latest('period_start')
+                ->take(8)
+                ->get()
+        );
     }
 
-    protected function movementMap(array $currentRankings, array $previousRankings): array
+    protected function selectedSnapshot(Collection $historySnapshots): ?ChartSnapshot
     {
-        $previousRanks = collect($previousRankings)->mapWithKeys(fn (array $row) => [$row['id'] => $row['rank']]);
+        if (! $this->snapshot || ! in_array($this->timeframe, [ChartSnapshot::PERIOD_WEEK, ChartSnapshot::PERIOD_MONTH], true)) {
+            return null;
+        }
 
-        return collect($currentRankings)->mapWithKeys(function (array $row) use ($previousRanks) {
-            $previousRank = $previousRanks->get($row['id']);
+        /** @var ChartSnapshot|null $snapshot */
+        $snapshot = $historySnapshots->firstWhere('period_key', $this->snapshot)
+            ?? ChartSnapshot::query()
+                ->where('period_type', $this->timeframe)
+                ->where('period_key', $this->snapshot)
+                ->first();
 
-            if (! $previousRank) {
-                return [$row['id'] => ['type' => 'new', 'label' => 'New']];
-            }
+        if (! $snapshot) {
+            $this->snapshot = null;
 
-            $delta = $previousRank - $row['rank'];
+            return null;
+        }
 
-            if ($delta > 0) {
-                return [$row['id'] => ['type' => 'up', 'label' => "+{$delta}"]];
-            }
+        return $snapshot->load(['entries.track.artistProfile.user', 'entries.track.genre', 'previousSnapshot']);
+    }
 
-            if ($delta < 0) {
-                return [$row['id'] => ['type' => 'down', 'label' => (string) $delta]];
-            }
+    protected function paginateSnapshotTracks(ChartSnapshot $snapshot): LengthAwarePaginator
+    {
+        $entries = $snapshot->entries()
+            ->with(['track.artistProfile.user', 'track.genre'])
+            ->paginate(30);
 
-            return [$row['id'] => ['type' => 'steady', 'label' => 'Hold']];
-        })->all();
+        $entries->setCollection(
+            $entries->getCollection()
+                ->map(fn (ChartSnapshotEntry $entry) => $this->hydrateSnapshotTrack($entry))
+                ->filter()
+                ->values()
+        );
+
+        return $entries;
+    }
+
+    protected function hydrateSnapshotTrack(ChartSnapshotEntry $entry): ?Track
+    {
+        $track = $entry->track;
+
+        if (! $track) {
+            return null;
+        }
+
+        $track->setAttribute('chart_rank', $entry->rank);
+        $track->setAttribute('chart_plays', $entry->plays);
+        $track->setAttribute('likes_count', $entry->likes_count);
+        $track->setAttribute('downloads_count', $entry->downloads_count);
+
+        return $track;
+    }
+
+    protected function snapshotMovementMap(ChartSnapshot $snapshot): array
+    {
+        return $snapshot->entries->mapWithKeys(fn (ChartSnapshotEntry $entry): array => [
+            $entry->track_id => [
+                'type' => $entry->movement,
+                'label' => $entry->movement_label,
+            ],
+        ])->all();
+    }
+
+    protected function rankingService(): ChartRankingService
+    {
+        return app(ChartRankingService::class);
     }
 };
 ?>
@@ -331,6 +404,84 @@ new #[Layout('layouts.glass-app')] class extends Component
             </div>
         </section>
 
+        @if($timeframe !== 'all')
+            <section class="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(19rem,1fr)]">
+                <article class="glass-card overflow-hidden rounded-[2rem] p-6">
+                    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="max-w-2xl">
+                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">{{ $selectedSnapshot ? 'Historical Record' : 'Live Pulse' }}</p>
+                            <h2 class="mt-3 text-2xl font-black tracking-tight text-gray-900 sm:text-3xl">
+                                {{ $selectedSnapshot?->display_title ?? ($timeframe === 'month' ? 'Live monthly chart' : 'Live weekly chart') }}
+                            </h2>
+                            <p class="mt-3 text-sm leading-6 text-gray-500">
+                                {{ $selectedSnapshot
+                                    ? 'This leaderboard is frozen and will not change. Use it whenever you need a locked chart period for admin review, campaigns, or throwback discovery.'
+                                    : 'Switch between the live chart and archived weekly or monthly records whenever you need a locked period from the past.' }}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+                            <div class="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm">
+                                <p class="text-lg font-black text-gray-900">{{ number_format($stats['plays']) }}</p>
+                                <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Plays</p>
+                            </div>
+                            <div class="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm">
+                                <p class="text-lg font-black text-gray-900">{{ number_format($stats['likes']) }}</p>
+                                <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Likes</p>
+                            </div>
+                            <div class="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm">
+                                <p class="text-lg font-black text-gray-900">{{ number_format($stats['downloads']) }}</p>
+                                <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Downloads</p>
+                            </div>
+                            <div class="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm">
+                                <p class="text-lg font-black text-gray-900">{{ $selectedSnapshot ? $selectedSnapshot->period_key : 'Live' }}</p>
+                                <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Mode</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="glass-card rounded-[2rem] p-6">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Archive Switcher</p>
+                            <h3 class="mt-2 text-lg font-black text-gray-900">Pick a locked {{ $timeframe }}ly chart</h3>
+                        </div>
+                        @if($selectedSnapshot)
+                            <button wire:click="clearSnapshot" class="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 transition hover:border-primary hover:text-primary">
+                                Return to live
+                            </button>
+                        @endif
+                    </div>
+
+                    <div class="mt-5 flex flex-wrap gap-2">
+                        <button wire:click="clearSnapshot"
+                                class="rounded-full px-4 py-2 text-sm font-semibold transition {{ is_null($selectedSnapshot) ? 'bg-primary text-white shadow-sm' : 'bg-white text-gray-500 hover:text-gray-900' }}">
+                            Live now
+                        </button>
+
+                        @forelse($historySnapshots as $historySnapshot)
+                            <button wire:click="setSnapshot('{{ $historySnapshot->period_key }}')"
+                                    class="rounded-full px-4 py-2 text-sm font-semibold transition {{ optional($selectedSnapshot)->period_key === $historySnapshot->period_key ? 'bg-gray-900 text-white shadow-sm' : 'bg-white text-gray-500 hover:text-gray-900' }}">
+                                {{ $historySnapshot->period_type === 'month' ? $historySnapshot->period_start->format('M Y') : $historySnapshot->period_start->format('M j') }}
+                            </button>
+                        @empty
+                            <p class="rounded-2xl border border-dashed border-white/60 bg-white/70 px-4 py-4 text-sm text-gray-500">
+                                No archived {{ $timeframe }}ly charts yet. Snapshot jobs will start filling this rail automatically.
+                            </p>
+                        @endforelse
+                    </div>
+
+                    <div class="mt-5 rounded-[1.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 px-5 py-5 text-white">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Why it matters</p>
+                        <p class="mt-3 text-sm leading-6 text-white/80">
+                            Historical records are immutable after capture, so the rank, movement, and totals you see here remain stable even as new plays keep arriving.
+                        </p>
+                    </div>
+                </article>
+            </section>
+        @endif
+
         <section class="glass-card overflow-hidden rounded-[2rem]">
             @if($tracks->isEmpty())
                 <div class="px-6 py-20 text-center">
@@ -351,7 +502,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                 <div class="divide-y divide-white/40">
                     @foreach($tracks as $index => $track)
                         @php
-                            $rank = ($tracks->currentPage() - 1) * $tracks->perPage() + $index + 1;
+                            $rank = $track->chart_rank ?? (($tracks->currentPage() - 1) * $tracks->perPage() + $index + 1);
                             $movement = $movementMap[$track->id] ?? null;
                             $rankStyles = match (true) {
                                 $rank === 1 => 'from-yellow-300 to-amber-500 text-amber-900',

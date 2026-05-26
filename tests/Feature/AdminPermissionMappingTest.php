@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\SiteBranding;
 use App\Filament\Resources\ArtistProfileResource;
+use App\Filament\Resources\ChartSnapshotResource;
 use App\Filament\Resources\PermissionResource;
 use App\Filament\Resources\RoleResource;
 use App\Filament\Resources\TrackResource;
@@ -41,6 +42,7 @@ class AdminPermissionMappingTest extends TestCase
         $this->assertTrue(UserResource::canViewAny());
         $this->assertFalse(UserResource::canCreate());
         $this->assertTrue(TrackResource::canViewAny());
+        $this->assertFalse(ChartSnapshotResource::canViewAny());
         $this->assertFalse(TrackResource::canCreate());
         $this->assertFalse(SiteBranding::canAccess());
         $this->assertFalse(RoleResource::canViewAny());
@@ -89,9 +91,22 @@ class AdminPermissionMappingTest extends TestCase
         $this->actingAs($superAdmin);
 
         $this->assertTrue(RoleResource::canViewAny());
+        $this->assertTrue(ChartSnapshotResource::canViewAny());
         $this->assertTrue(PermissionResource::canCreate());
         $this->assertTrue(SiteBranding::canAccess());
         $this->assertTrue(AdminStatsOverview::canView());
+    }
+
+    public function test_view_analytics_permission_unlocks_chart_history_resource(): void
+    {
+        $admin = $this->createAdminWithPermissions([
+            'view analytics',
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->assertTrue(ChartSnapshotResource::canViewAny());
+        $this->assertTrue(ChartSnapshotResource::canView(new \App\Models\ChartSnapshot()));
     }
 
     protected function createAdminWithPermissions(array $permissions): User
