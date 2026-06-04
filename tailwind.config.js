@@ -9,6 +9,7 @@ export default {
         "./resources/views/**/*.blade.php",
         "./vendor/filament/**/*.blade.php",
         "./app/Providers/Filament/**/*.php",
+        "./app/Filament/**/*.php",
     ],
 
     darkMode: "class",

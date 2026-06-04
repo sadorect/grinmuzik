@@ -210,7 +210,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                         </a>
                         <a href="{{ route('artist.create-album') }}" wire:navigate
                            class="rounded-full border border-white/70 bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-500">
-                            New Album
+                            Upload Album
                         </a>
                     </div>
                 </div>
