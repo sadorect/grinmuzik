@@ -164,7 +164,7 @@
                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd"/></svg>
                             </button>
                             <div x-show="open" @click.outside="open = false" x-transition
-                                 class="absolute right-0 mt-2 w-44 glass-panel rounded-xl shadow-glass overflow-hidden text-sm" style="display:none">
+                                 class="absolute right-0 mt-2 w-48 glass-panel rounded-xl shadow-glass overflow-hidden text-sm" style="display:none">
                                 @if(Auth::user()->isArtist())
                                 <a href="{{ route('artist.edit-profile') }}" wire:navigate class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h6m-6 4h6m-9 8h8a2 2 0 002-2V7a2 2 0 00-2-2h-2.586a1 1 0 01-.707-.293l-.828-.828A1 1 0 0011.172 3H8a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -196,6 +196,11 @@
                                     My Music
                                 </a>
                                 @endif
+                                <div class="my-1 border-t border-gray-100 dark:border-white/10"></div>
+                                @include('partials.theme-toggle', [
+                                    'showLabel' => true,
+                                    'class' => 'flex w-full items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                                ])
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" class="w-full flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition text-left">
@@ -206,6 +211,10 @@
                             </div>
                         </div>
                     @else
+                        @include('partials.theme-toggle', [
+                            'showLabel' => false,
+                            'class' => 'glass-btn glass-btn-hover p-2 rounded-xl',
+                        ])
                         <a href="{{ route('login') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Login</a>
                         <a href="{{ route('register') }}" class="glass-btn-primary glass-btn-primary-hover px-4 py-2 rounded-xl text-sm font-medium" wire:navigate>Sign Up Free</a>
                     @endauth

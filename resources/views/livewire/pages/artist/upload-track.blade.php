@@ -188,6 +188,123 @@ new #[Layout('layouts.glass-app')] class extends Component
 ?>
 
 <div class="max-w-3xl mx-auto px-4 py-8">
+
+    {{-- Upload type selector modal: shown when arriving from the homepage (?src=home) --}}
+    <div
+        x-data="{
+            open: false,
+            closeAndClean() {
+                this.open = false;
+                history.replaceState({}, '', window.location.pathname);
+            }
+        }"
+        x-init="
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('src') === 'home') {
+                open = true;
+                $nextTick(() => $refs.firstOption && $refs.firstOption.focus());
+            }
+        "
+        x-show="open"
+        x-on:keydown.escape.window="open && closeAndClean()"
+        class="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center"
+        aria-modal="true"
+        role="dialog"
+        aria-labelledby="upload-selector-title"
+        style="display: none;"
+    >
+        {{-- Backdrop --}}
+        <div
+            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            x-transition:enter="transition-opacity ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition-opacity ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="closeAndClean()"
+        ></div>
+
+        {{-- Modal panel --}}
+        <div
+            class="glass-modal relative z-10 w-full max-w-lg"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4 sm:translate-y-0"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-95"
+        >
+            {{-- Icon + Heading --}}
+            <div class="mb-7 text-center">
+                <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                    <svg class="h-7 w-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+                    </svg>
+                </div>
+                <h2 id="upload-selector-title" class="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
+                    Upload Your Music
+                </h2>
+                <p class="mt-1.5 text-sm text-gray-500">What would you like to upload today?</p>
+            </div>
+
+            {{-- Option Cards --}}
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+
+                {{-- Single Track --}}
+                <button
+                    type="button"
+                    x-ref="firstOption"
+                    @click="closeAndClean()"
+                    class="group flex flex-col items-center gap-4 rounded-2xl border-2 border-white/50 bg-white/60 p-7 text-center shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:bg-white hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:border-white/10 dark:bg-slate-800/60 dark:hover:bg-slate-800"
+                >
+                    <span class="text-5xl leading-none" aria-hidden="true">🎵</span>
+                    <div>
+                        <p class="font-bold text-gray-900 transition-colors group-hover:text-primary dark:text-white">Single Track</p>
+                        <p class="mt-1 text-sm text-gray-500">Upload one song for release.</p>
+                    </div>
+                    <span class="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        Choose
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                </button>
+
+                {{-- Album / EP --}}
+                <a
+                    href="{{ route('artist.create-album') }}"
+                    wire:navigate
+                    class="group flex flex-col items-center gap-4 rounded-2xl border-2 border-white/50 bg-white/60 p-7 text-center shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:bg-white hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:border-white/10 dark:bg-slate-800/60 dark:hover:bg-slate-800"
+                >
+                    <span class="text-5xl leading-none" aria-hidden="true">💿</span>
+                    <div>
+                        <p class="font-bold text-gray-900 transition-colors group-hover:text-primary dark:text-white">Album / EP</p>
+                        <p class="mt-1 text-sm text-gray-500">Upload multiple tracks as a project.</p>
+                    </div>
+                    <span class="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        Choose
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                </a>
+            </div>
+
+            {{-- Cancel --}}
+            <div class="mt-6 text-center">
+                <a href="{{ route('home') }}"
+                   wire:navigate
+                   class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-gray-800 dark:hover:text-gray-200">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Go Back
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="flex items-center gap-3 mb-8">
         <a href="{{ route('artist.tracks') }}" wire:navigate class="text-gray-500 hover:text-gray-700 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
