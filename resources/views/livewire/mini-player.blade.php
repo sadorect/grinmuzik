@@ -996,6 +996,9 @@ function miniPlayer() {
             P.audio.volume = this.volume / 100;
             P.audio.muted  = this.muted;
             this.syncShuffleState();
+            if (P.track?.audio_url && !P.audio.src) {
+                P.audio.src = P.track.audio_url;
+            }
             this._mobileMediaQuery = window.matchMedia('(max-width: 639px)');
             this._syncMobileViewport = (event) => {
                 this.isMobileViewport = event.matches;
@@ -1697,7 +1700,12 @@ function miniPlayer() {
         },
 
         togglePlay() {
-            if (!this.track) return;
+            if (!this.track?.audio_url) return;
+            if (!P.audio.src) {
+                P.audio.src    = this.track.audio_url;
+                P.audio.volume = this.volume / 100;
+                P.audio.muted  = this.muted;
+            }
             if (this.playing) {
                 P.audio.pause();
             } else {
