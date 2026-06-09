@@ -372,28 +372,77 @@
                             </div>
                         </div>
 
-                        <div class="mt-3 shrink-0 pb-1 text-center">
-                            <a
-                                :href="track?.url || '#'"
-                                wire:navigate
-                                class="block truncate text-xl font-semibold tracking-tight text-gray-900 transition hover:text-primary dark:text-white dark:hover:text-primary-300"
-                                x-text="track?.title"
-                            ></a>
-                            <a
-                                :href="track?.artist_url || '#'"
-                                wire:navigate
-                                class="mt-1.5 block truncate text-sm text-gray-500 transition hover:text-primary dark:text-white/60 dark:hover:text-primary-300"
-                                x-text="track?.artist"
-                            ></a>
-                            <button
-                                type="button"
-                                x-show="track?.can_gift_artist"
-                                @click="openGiftModal()"
-                                class="mt-3 inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700 transition hover:border-primary-200 hover:bg-primary-100 dark:border-primary-400/30 dark:bg-primary-500/15 dark:text-primary-200 dark:hover:border-primary-300/40 dark:hover:bg-primary-500/20"
-                                style="display:none"
-                            >
-                                Gift artist
-                            </button>
+                        <div class="mt-3 shrink-0 pb-1">
+                            <div class="grid grid-cols-[2rem_1fr_2rem] items-start">
+                                <div></div>
+                                <div class="min-w-0 text-center">
+                                    <a
+                                        :href="track?.url || '#'"
+                                        wire:navigate
+                                        class="block truncate text-xl font-semibold tracking-tight text-gray-900 transition hover:text-primary dark:text-white dark:hover:text-primary-300"
+                                        x-text="track?.title"
+                                    ></a>
+                                    <a
+                                        :href="track?.artist_url || '#'"
+                                        wire:navigate
+                                        class="mt-1.5 block truncate text-sm text-gray-500 transition hover:text-primary dark:text-white/60 dark:hover:text-primary-300"
+                                        x-text="track?.artist"
+                                    ></a>
+                                    <button
+                                        type="button"
+                                        x-show="track?.can_gift_artist"
+                                        @click="openGiftModal()"
+                                        class="mt-3 inline-flex items-center rounded-full border border-primary-100 bg-primary-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700 transition hover:border-primary-200 hover:bg-primary-100 dark:border-primary-400/30 dark:bg-primary-500/15 dark:text-primary-200 dark:hover:border-primary-300/40 dark:hover:bg-primary-500/20"
+                                        style="display:none"
+                                    >
+                                        Gift artist
+                                    </button>
+                                </div>
+
+                                {{-- Floating volume button --}}
+                                <div
+                                    x-data="{ volOpen: false }"
+                                    @click.outside="volOpen = false"
+                                    class="relative flex justify-end pt-1"
+                                >
+                                    <button
+                                        type="button"
+                                        @click.stop="volOpen = !volOpen"
+                                        class="p-1 text-gray-400 transition hover:text-gray-700 dark:text-white/35 dark:hover:text-white/75"
+                                        :title="muted || volume === 0 ? 'Unmute' : 'Volume'"
+                                    >
+                                        <template x-if="muted || volume === 0">
+                                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM14.78 7.22a.75.75 0 00-1.06 1.06L14.94 9.5l-1.22 1.22a.75.75 0 001.06 1.06l1.22-1.22 1.22 1.22a.75.75 0 101.06-1.06L17.06 9.5l1.22-1.22a.75.75 0 10-1.06-1.06L16 8.44l-1.22-1.22z"/></svg>
+                                        </template>
+                                        <template x-if="!(muted || volume === 0)">
+                                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM13.28 6.22a.75.75 0 10-1.06 1.06A3.5 3.5 0 0113.5 10a3.5 3.5 0 01-1.28 2.72.75.75 0 101.06 1.06A5 5 0 0015 10a5 5 0 00-1.72-3.78zM16.72 4.22a.75.75 0 00-1.06 1.06A6.5 6.5 0 0117.5 10a6.5 6.5 0 01-1.84 4.72.75.75 0 101.06 1.06A8 8 0 0019 10a8 8 0 00-2.28-5.78z"/></svg>
+                                        </template>
+                                    </button>
+
+                                    {{-- Volume slider popover --}}
+                                    <div
+                                        x-show="volOpen"
+                                        x-transition:enter="transition ease-out duration-150 origin-top-right"
+                                        x-transition:enter-start="opacity-0 scale-95"
+                                        x-transition:enter-end="opacity-100 scale-100"
+                                        x-transition:leave="transition ease-in duration-100 origin-top-right"
+                                        x-transition:leave-start="opacity-100 scale-100"
+                                        x-transition:leave-end="opacity-0 scale-95"
+                                        class="absolute right-0 top-full z-20 mt-1 w-36 rounded-2xl border border-black/5 bg-white/90 px-3 py-2.5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/85"
+                                        style="display: none;"
+                                    >
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            x-model="volume"
+                                            @input="setVolume()"
+                                            class="h-1.5 w-full cursor-pointer rounded-full accent-primary-500"
+                                            aria-label="Volume"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mt-3 shrink-0 rounded-[1.75rem] border border-black/5 bg-white/75 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
@@ -413,12 +462,20 @@
                                     :aria-pressed="shuffleEnabled"
                                     :class="shuffleEnabled ? 'border-primary-200 bg-primary-50 text-primary-600 dark:border-primary-400/40 dark:bg-primary-500/15 dark:text-primary-300' : 'text-gray-400 dark:text-white/35'"
                                     class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/5 bg-white/70 transition hover:text-gray-900 dark:border-white/10 dark:bg-white/5 dark:hover:text-white"
-                                    :title="shuffleEnabled ? 'Shuffle on' : 'Sequential play'"
+                                    :title="shuffleEnabled ? 'Shuffle on — tap for sequential' : 'Sequential — tap to shuffle'"
                                 >
-                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M13.47 3.47a.75.75 0 011.06 0l2 2a.75.75 0 010 1.06l-2 2a.75.75 0 01-1.06-1.06l.72-.72h-1.95a2.75 2.75 0 00-2.18 1.07l-1.72 2.3a4.25 4.25 0 01-3.4 1.7H3.75a.75.75 0 010-1.5h1.14a2.75 2.75 0 002.2-1.1l1.73-2.29a4.25 4.25 0 013.39-1.68h1.98l-.72-.72a.75.75 0 010-1.06Z"/>
-                                        <path d="M3 5.5a.75.75 0 01.75-.75h1.69A4.25 4.25 0 018.83 6.4l.84 1.12a.75.75 0 11-1.2.9l-.83-1.11a2.75 2.75 0 00-2.2-1.06H3.75A.75.75 0 013 5.5Zm6.84 6.16a.75.75 0 011.05.1l1.1 1.47a2.75 2.75 0 002.2 1.11h.01l-.73-.72a.75.75 0 011.06-1.06l2 2a.75.75 0 010 1.06l-2 2a.75.75 0 11-1.06-1.06l.72-.72h-.03a4.25 4.25 0 01-3.39-1.69l-1.1-1.47a.75.75 0 01.11-1.06Z"/>
-                                    </svg>
+                                    {{-- Sequential: two rows each with a right-pointing chevron --}}
+                                    <template x-if="!shuffleEnabled">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8h12M3 16h12M13 5l4 3-4 3M13 13l4 3-4 3"/>
+                                        </svg>
+                                    </template>
+                                    {{-- Shuffle: two crossing arrows --}}
+                                    <template x-if="shuffleEnabled">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6H7L17 16H21M17 12L21 16L17 20M3 18H7L17 8H21M17 4L21 8L17 12"/>
+                                        </svg>
+                                    </template>
                                 </button>
 
                                 <button
@@ -657,11 +714,20 @@
                             :aria-pressed="shuffleEnabled"
                             :class="shuffleEnabled ? 'text-primary-600 dark:text-primary-300' : 'text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200'"
                             class="transition"
-                            :title="shuffleEnabled ? 'Shuffle on' : 'Sequential play'"
+                            :title="shuffleEnabled ? 'Shuffle on — click for sequential' : 'Sequential — click to shuffle'"
                         >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l5 5m0 0l4 4m-4-4H4m5 0V4m6 16l5-5m0 0V20m0-5h-5M4 20l5-5"/>
-                            </svg>
+                            {{-- Sequential: two rows each with a right-pointing chevron --}}
+                            <template x-if="!shuffleEnabled">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8h12M3 16h12M13 5l4 3-4 3M13 13l4 3-4 3"/>
+                                </svg>
+                            </template>
+                            {{-- Shuffle: two crossing arrows --}}
+                            <template x-if="shuffleEnabled">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6H7L17 16H21M17 12L21 16L17 20M3 18H7L17 8H21M17 4L21 8L17 12"/>
+                                </svg>
+                            </template>
                         </button>
 
                         {{-- Prev --}}
