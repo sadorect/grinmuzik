@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\TrackController;
 use Illuminate\Support\Facades\Route;
 
 // ── Read endpoints (any valid token) ──────────────────────────────────────────
-Route::middleware(['auth:sanctum', 'ability:read', 'throttle:60,1'])->group(function () {
+Route::middleware([ 'throttle:60,1'])->group(function () {
     Route::get('/search', [SearchController::class, 'index']);
 
     Route::get('/tracks', [TrackController::class, 'index']);
