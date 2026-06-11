@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DonationController;
+use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\TrackDownloadController;
 use App\Models\Album;
 use App\Models\ArtistProfile;
@@ -250,6 +251,10 @@ Route::middleware(['auth'])->prefix('artist')->name('artist.')->group(function (
     Volt::route('/albums', 'pages.artist.albums')->name('albums');
     Volt::route('/albums/create', 'pages.artist.create-album')->name('create-album');
     Volt::route('/albums/{album}/edit', 'pages.artist.edit-album')->name('edit-album');
+
+    // Stripe Connect onboarding — gated by paymentsEnabled() inside the controller
+    Route::get('/connect/onboard', [StripeConnectController::class, 'onboard'])->name('connect.onboard');
+    Route::get('/connect/return', [StripeConnectController::class, 'handleReturn'])->name('connect.return');
 });
 
 // ── Public artist profile — registered AFTER the /artist/* group so static paths win

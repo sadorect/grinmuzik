@@ -14,6 +14,8 @@ class Donation extends Model
         'artist_profile_id',
         'track_id',
         'amount',
+        'currency',
+        'payout_currency',
         'stripe_payment_intent_id',
         'type',
         'status',
@@ -22,6 +24,8 @@ class Donation extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'currency' => 'string',
+        'payout_currency' => 'string',
     ];
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -39,17 +43,17 @@ class Donation extends Model
         return $this->belongsTo(Track::class);
     }
 
-    public function scopeCompleted($query)
+    public function scopeCompleted(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', 'completed');
     }
 
-    public function scopeUnlocks($query)
+    public function scopeUnlocks(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('type', 'unlock');
     }
 
-    public function scopeTips($query)
+    public function scopeTips(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('type', 'tip');
     }

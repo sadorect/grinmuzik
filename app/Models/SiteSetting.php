@@ -16,6 +16,10 @@ class SiteSetting extends Model
     protected static ?bool $supportsDiscoveryOrderingCache = null;
     protected static ?bool $supportsUploadLimitsCache = null;
     protected static ?bool $supportsMonetizationControlsCache = null;
+    protected static ?bool $supportsCurrencyControlsCache = null;
+    protected static ?string $platformCurrencyCache = null;
+    protected static ?float $platformFeePercentCache = null;
+    protected static ?bool $supportsPaymentFeeControlCache = null;
     protected static ?bool $supportsThemeCustomizationCache = null;
     protected static ?bool $supportsPublicThemeToggleControlCache = null;
     protected static ?bool $supportsAutoPlaylistControlsCache = null;
@@ -58,6 +62,8 @@ class SiteSetting extends Model
         'home_editor_picks_position',
         'browse_editor_picks_position',
         'payments_enabled',
+        'platform_currency',
+        'platform_fee_percent',
         'primary_color',
         'secondary_color',
         'show_public_theme_toggle',
@@ -87,6 +93,8 @@ class SiteSetting extends Model
         'show_search_trending_tracks' => 'boolean',
         'show_search_popular_artists' => 'boolean',
         'payments_enabled' => 'boolean',
+        'platform_currency' => 'string',
+        'platform_fee_percent' => 'decimal:2',
         'show_public_theme_toggle' => 'boolean',
         'auto_playlist_enabled' => 'boolean',
         'auto_queue_total_limit' => 'integer',
@@ -173,6 +181,79 @@ class SiteSetting extends Model
             return static::$supportsMonetizationControlsCache = Schema::hasColumn('site_settings', 'payments_enabled');
         } catch (Throwable) {
             return static::$supportsMonetizationControlsCache = false;
+        }
+    }
+
+    public static function supportsCurrencyControls(): bool
+    {
+        if (static::$supportsCurrencyControlsCache !== null) {
+            return static::$supportsCurrencyControlsCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsCurrencyControlsCache = false;
+            }
+
+            return static::$supportsCurrencyControlsCache = Schema::hasColumn('site_settings', 'platform_currency');
+        } catch (Throwable) {
+            return static::$supportsCurrencyControlsCache = false;
+        }
+    }
+
+    public static function platformCurrency(): string
+    {
+        if (static::$platformCurrencyCache !== null) {
+            return static::$platformCurrencyCache;
+        }
+
+        if (! static::supportsCurrencyControls()) {
+            return static::$platformCurrencyCache = 'NGN';
+        }
+
+        try {
+            $value = static::current()->platform_currency;
+
+            return static::$platformCurrencyCache = filled($value) ? strtoupper($value) : 'NGN';
+        } catch (Throwable) {
+            return static::$platformCurrencyCache = 'NGN';
+        }
+    }
+
+    public static function supportsPaymentFeeControl(): bool
+    {
+        if (static::$supportsPaymentFeeControlCache !== null) {
+            return static::$supportsPaymentFeeControlCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsPaymentFeeControlCache = false;
+            }
+
+            return static::$supportsPaymentFeeControlCache = Schema::hasColumn('site_settings', 'platform_fee_percent');
+        } catch (Throwable) {
+            return static::$supportsPaymentFeeControlCache = false;
+        }
+    }
+
+    /** Platform fee percentage retained from each Connect destination charge (0–100). */
+    public static function platformFeePercent(): float
+    {
+        if (static::$platformFeePercentCache !== null) {
+            return static::$platformFeePercentCache;
+        }
+
+        if (! static::supportsPaymentFeeControl()) {
+            return static::$platformFeePercentCache = 5.0;
+        }
+
+        try {
+            $value = (float) (static::current()->platform_fee_percent ?? 5.0);
+
+            return static::$platformFeePercentCache = max(0.0, min(100.0, $value));
+        } catch (Throwable) {
+            return static::$platformFeePercentCache = 5.0;
         }
     }
 
@@ -477,6 +558,15 @@ class SiteSetting extends Model
         return (bool) ($this->payments_enabled ?? false);
     }
 
+    public function getEffectivePlatformCurrencyAttribute(): string
+    {
+        if (! static::supportsCurrencyControls()) {
+            return 'NGN';
+        }
+
+        return filled($this->platform_currency) ? strtoupper((string) $this->platform_currency) : 'NGN';
+    }
+
     public function getEffectivePrimaryColorAttribute(): string
     {
         return ThemePalette::normalize(
@@ -609,6 +699,10 @@ class SiteSetting extends Model
         static::$supportsDiscoveryOrderingCache = null;
         static::$supportsUploadLimitsCache = null;
         static::$supportsMonetizationControlsCache = null;
+        static::$supportsCurrencyControlsCache = null;
+        static::$platformCurrencyCache = null;
+        static::$supportsPaymentFeeControlCache = null;
+        static::$platformFeePercentCache = null;
         static::$supportsThemeCustomizationCache = null;
         static::$supportsPublicThemeToggleControlCache = null;
         static::$supportsAutoPlaylistControlsCache = null;

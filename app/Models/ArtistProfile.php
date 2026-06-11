@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CurrencyHelper;
 use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -46,6 +47,11 @@ class ArtistProfile extends Model implements HasMedia
         'is_approved',
         'is_active',
         'is_featured',
+        'preferred_currency',
+        'admin_currency_override',
+        'country_code',
+        'stripe_connect_account_id',
+        'stripe_connect_status',
     ];
 
     protected $casts = [
@@ -56,6 +62,10 @@ class ArtistProfile extends Model implements HasMedia
         'total_plays'   => 'integer',
         'followers_count' => 'integer',
         'total_donations' => 'decimal:2',
+        'preferred_currency' => 'string',
+        'admin_currency_override' => 'string',
+        'country_code' => 'string',
+        'stripe_connect_status' => 'string',
     ];
 
     protected static function booted(): void
@@ -242,6 +252,36 @@ class ArtistProfile extends Model implements HasMedia
 
         return static::$supportsFeaturedCurationCache = Schema::hasColumn('artist_profiles', 'is_featured');
     }
+
+    // ─── Currency & Payouts ───────────────────────────────────────────────────
+
+    /**
+     * Resolve the currency this artist should receive donations in.
+     * Priority: admin override → artist preference → platform default (NGN).
+     */
+    public function effectiveCurrency(): string
+    {
+        $candidate = $this->admin_currency_override ?? $this->preferred_currency;
+
+        if (filled($candidate) && CurrencyHelper::isSupported($candidate)) {
+            return CurrencyHelper::normalize($candidate);
+        }
+
+        return SiteSetting::platformCurrency();
+    }
+
+    public function hasStripeConnect(): bool
+    {
+        return $this->stripe_connect_status === 'active'
+            && filled($this->stripe_connect_account_id);
+    }
+
+    public function stripeConnectPending(): bool
+    {
+        return $this->stripe_connect_status === 'pending';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function getRouteKeyName(): string
     {

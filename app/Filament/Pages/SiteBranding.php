@@ -249,15 +249,6 @@ class SiteBranding extends Page implements HasForms
                     ])
                     ->columns(2)
                     ->visible(fn (): bool => SiteSetting::supportsDiscoveryVisibility()),
-                Section::make('Monetization')
-                    ->description('Control whether donation and payment flows are available across uploads, downloads, and unlocks. Turning this off keeps existing track pricing data intact but disables payment gating site-wide.')
-                    ->schema([
-                        Forms\Components\Toggle::make('payments_enabled')
-                            ->label('Enable donations and paid unlocks')
-                            ->helperText('When off, all tracks behave as free downloads and donation-specific controls are hidden from artists and listeners.')
-                            ->default(false),
-                    ])
-                    ->visible(fn (): bool => SiteSetting::supportsMonetizationControls()),
                 Section::make('Playback')
                     ->description('Control whether the player automatically builds an Up Next queue when someone starts playback from a single track, and how many tracks each source tier may contribute.')
                     ->schema([
@@ -397,12 +388,6 @@ class SiteBranding extends Page implements HasForms
             ]));
         }
 
-        if (SiteSetting::supportsMonetizationControls()) {
-            $data = array_merge($data, Arr::only($this->data, [
-                'payments_enabled',
-            ]));
-        }
-
         if (SiteSetting::supportsAutoPlaylistControls()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'auto_playlist_enabled',
@@ -518,10 +503,6 @@ class SiteBranding extends Page implements HasForms
                 'show_search_trending_tracks',
                 'show_search_popular_artists',
             ]);
-        }
-
-        if (SiteSetting::supportsMonetizationControls()) {
-            $keys[] = 'payments_enabled';
         }
 
         if (SiteSetting::supportsAutoPlaylistControls()) {

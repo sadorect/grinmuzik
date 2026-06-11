@@ -311,6 +311,44 @@
     {{-- â”€â”€ Page Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
     <div class="{{ $useSearchSidebar ? 'md:pl-72' : '' }}">
         <main class="pb-6">
+            {{-- Session flash messages --}}
+            @if(session('success'))
+                <div x-data="{ show: true }" x-show="show" x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0"
+                     class="mx-4 mt-4 flex items-start justify-between gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-3 text-sm text-green-800 shadow-sm">
+                    <span>{{ session('success') }}</span>
+                    <button type="button" x-on:click="show = false" class="shrink-0 text-green-500 hover:text-green-700" aria-label="Dismiss">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            @endif
+            @if(session('error'))
+                <div x-data="{ show: true }" x-show="show" x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0"
+                     class="mx-4 mt-4 flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-800 shadow-sm">
+                    <span>{{ session('error') }}</span>
+                    <button type="button" x-on:click="show = false" class="shrink-0 text-red-500 hover:text-red-700" aria-label="Dismiss">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            @endif
+            @if(session('warning'))
+                <div x-data="{ show: true }" x-show="show" x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0"
+                     class="mx-4 mt-4 flex items-start justify-between gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 px-5 py-3 text-sm text-yellow-800 shadow-sm">
+                    <span>{{ session('warning') }}</span>
+                    <button type="button" x-on:click="show = false" class="shrink-0 text-yellow-500 hover:text-yellow-700" aria-label="Dismiss">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            @endif
+            @if(session('info'))
+                <div x-data="{ show: true }" x-show="show" x-transition:leave="transition ease-in duration-200" x-transition:leave-end="opacity-0"
+                     class="mx-4 mt-4 flex items-start justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm text-blue-800 shadow-sm">
+                    <span>{{ session('info') }}</span>
+                    <button type="button" x-on:click="show = false" class="shrink-0 text-blue-500 hover:text-blue-700" aria-label="Dismiss">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            @endif
+
             {{ $slot ?? '' }}
             @yield('content')
         </main>

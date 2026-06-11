@@ -5,7 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\ArtistProfileResource\Pages;
 use App\Models\ArtistProfile;
+use App\Models\SiteSetting;
 use App\Support\AdminPanelAccess;
+use App\Support\CurrencyHelper;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -87,6 +89,38 @@ class ArtistProfileResource extends Resource
                         ->helperText('Prioritize this artist in discovery rails.')
                         ->visible(fn (): bool => ArtistProfile::supportsFeaturedCuration()),
                 ]),
+            Section::make('Payments & Payouts')
+                ->description('Control per-artist currency settings and Stripe Connect status. The admin override takes precedence over the artist\'s own preference.')
+                ->columns(2)
+                ->collapsed()
+                ->visible(fn (): bool => SiteSetting::supportsMonetizationControls())
+                ->schema([
+                    Forms\Components\TextInput::make('country_code')
+                        ->label('Country code (ISO 2-letter)')
+                        ->maxLength(2)
+                        ->placeholder('NG')
+                        ->helperText('Used when creating a Stripe Connect Express account for this artist.'),
+                    Forms\Components\Select::make('preferred_currency')
+                        ->label("Artist's preferred payout currency")
+                        ->options(CurrencyHelper::SUPPORTED)
+                        ->searchable()
+                        ->nullable()
+                        ->helperText('The currency this artist wants to receive donations in. Falls back to platform default if not set.'),
+                    Forms\Components\Select::make('admin_currency_override')
+                        ->label('Admin currency override')
+                        ->options(CurrencyHelper::SUPPORTED)
+                        ->searchable()
+                        ->nullable()
+                        ->helperText('When set, overrides the artist\'s own preference. Clear this field to let the artist\'s setting apply again.'),
+                    Forms\Components\TextInput::make('stripe_connect_status')
+                        ->label('Stripe Connect status')
+                        ->disabled()
+                        ->helperText('Read-only. Use "Sync Connect status" table action to refresh from Stripe.'),
+                    Forms\Components\TextInput::make('stripe_connect_account_id')
+                        ->label('Stripe Connect account ID')
+                        ->disabled()
+                        ->helperText('Read-only. Set automatically during artist onboarding.'),
+                ]),
         ]);
     }
 
@@ -159,7 +193,25 @@ class ArtistProfileResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_plays')->numeric()->sortable(),
                 Tables\Columns\TextColumn::make('followers_count')->numeric()->sortable(),
-                Tables\Columns\TextColumn::make('total_donations')->money('USD')->sortable(),
+                Tables\Columns\TextColumn::make('total_donations')
+                    ->label('Total Donations')
+                    ->state(fn (ArtistProfile $record): string => CurrencyHelper::format((float) $record->total_donations, $record->effectiveCurrency()))
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('effective_currency')
+                    ->label('Payout Currency')
+                    ->state(fn (ArtistProfile $record): string => $record->effectiveCurrency())
+                    ->badge()
+                    ->visible(fn (): bool => SiteSetting::supportsMonetizationControls()),
+                Tables\Columns\TextColumn::make('stripe_connect_status')
+                    ->label('Connect')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'active'         => 'success',
+                        'pending'        => 'warning',
+                        'restricted'     => 'danger',
+                        default          => 'gray',
+                    })
+                    ->visible(fn (): bool => SiteSetting::supportsMonetizationControls()),
                 Tables\Columns\IconColumn::make('is_verified')->boolean()->label('Verified'),
                 Tables\Columns\IconColumn::make('is_featured')->boolean()->label('Featured')->visible(ArtistProfile::supportsFeaturedCuration()),
                 Tables\Columns\IconColumn::make('is_approved')->boolean()->label('Approved'),

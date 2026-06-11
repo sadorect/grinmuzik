@@ -2,7 +2,9 @@
 
 use App\Models\Donation;
 use App\Models\PlayHistory;
+use App\Models\SiteSetting;
 use App\Support\ArtistAccess;
+use App\Support\CurrencyHelper;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -95,8 +97,11 @@ new #[Layout('layouts.glass-app')] class extends Component
             ->take(4)
             ->values();
 
+        $paymentsEnabled = SiteSetting::paymentsEnabled();
+
         return [
-            'profile' => $profile,
+            'profile'         => $profile,
+            'paymentsEnabled' => $paymentsEnabled,
             'overview' => [
                 'totalTracks' => $publishedTracks->count(),
                 'totalPlays' => $profile->tracks()->sum('play_count'),
@@ -229,7 +234,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                 ['label' => 'Total Plays', 'value' => number_format($overview['totalPlays'])],
                 ['label' => 'Total Downloads', 'value' => number_format($overview['totalDownloads'])],
                 ['label' => 'Followers', 'value' => number_format($overview['followers'])],
-                ['label' => 'Donations', 'value' => '$' . number_format($overview['totalDonations'], 2)],
+                ['label' => 'Donations', 'value' => \App\Support\CurrencyHelper::format((float) $overview['totalDonations'], $profile->effectiveCurrency())],
                 ['label' => 'Avg Plays / Track', 'value' => number_format($overview['avgPlaysPerTrack'])],
             ] as $stat)
                 <div class="glass-card rounded-2xl p-5">
@@ -253,7 +258,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                         ['label' => 'Plays in 30 Days', 'value' => number_format($momentum['plays30d'])],
                         ['label' => 'Plays in 7 Days', 'value' => number_format($momentum['plays7d'])],
                         ['label' => 'Supporters in 30 Days', 'value' => number_format($momentum['supporters30d'])],
-                        ['label' => 'Donations in 30 Days', 'value' => '$' . number_format($momentum['donations30d'], 2)],
+                        ['label' => 'Donations in 30 Days', 'value' => \App\Support\CurrencyHelper::format((float) $momentum['donations30d'], $profile->effectiveCurrency())],
                         ['label' => 'Uploaded This Month', 'value' => number_format($momentum['uploadedThisMonth'])],
                     ] as $metric)
                         <div class="rounded-[1.4rem] border border-white/60 bg-white/80 px-4 py-4 shadow-sm">
@@ -364,7 +369,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                                     <p class="text-xs text-gray-500 truncate">{{ $donation->track?->title ?? 'Direct support' }}</p>
                                 </div>
                                 <div class="text-right shrink-0">
-                                    <p class="text-sm font-semibold text-gray-900">${{ number_format($donation->amount, 2) }}</p>
+                                    <p class="text-sm font-semibold text-gray-900">{{ \App\Support\CurrencyHelper::format((float) $donation->amount, $donation->currency ?? $profile->effectiveCurrency()) }}</p>
                                     <p class="text-xs text-gray-400">{{ $donation->created_at->diffForHumans() }}</p>
                                 </div>
                             </li>
@@ -417,5 +422,58 @@ new #[Layout('layouts.glass-app')] class extends Component
                 </ul>
             @endif
         </div>
+        @if($paymentsEnabled)
+            @php
+                $connectStatus = $profile->stripe_connect_status ?? 'not_connected';
+                $effectiveCurrency = $profile->effectiveCurrency();
+            @endphp
+            <section class="glass-card rounded-[2rem] p-6 sm:p-8">
+                <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Payouts</p>
+                        <h2 class="mt-2 text-2xl font-black tracking-tight text-gray-900">Receive your donations</h2>
+                        <p class="mt-2 max-w-xl text-sm text-gray-500">Connect a payout account to receive donations directly in your preferred currency. Your current payout currency is <span class="font-semibold text-gray-700">{{ $effectiveCurrency }}</span>.</p>
+                    </div>
+
+                    <div class="flex flex-col gap-3 lg:items-end shrink-0">
+                        @if($connectStatus === 'active')
+                            <span class="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Payout account active
+                            </span>
+                            <p class="text-xs text-gray-400">Donations are routed directly to your account.</p>
+                        @elseif($connectStatus === 'restricted')
+                            <span class="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Action required
+                            </span>
+                            <a href="{{ route('artist.connect.onboard') }}"
+                               class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
+                                Complete payout setup
+                            </a>
+                        @elseif($connectStatus === 'pending')
+                            <span class="inline-flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Setup in progress
+                            </span>
+                            <a href="{{ route('artist.connect.onboard') }}"
+                               class="rounded-full border border-white/70 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                Continue setup
+                            </a>
+                        @else
+                            <span class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Not connected
+                            </span>
+                            <a href="{{ route('artist.connect.onboard') }}"
+                               class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500">
+                                Connect payout account
+                            </a>
+                            <p class="text-xs text-gray-400 max-w-xs text-right">Donations are held on platform until you connect a payout account.</p>
+                        @endif
+                    </div>
+                </div>
+            </section>
+        @endif
     @endif
 </div>
