@@ -23,9 +23,7 @@ class HealthController extends Controller
 
         $storageUsedGb = 0.0;
         try {
-            $disk  = config('media-storage.public_disk', config('media-library.disk_name', 'public'));
-            $files = Storage::disk($disk)->allFiles();
-            $bytes = collect($files)->sum(fn ($f) => Storage::disk($disk)->size($f));
+            $bytes = DB::table('media')->sum('size');
             $storageUsedGb = round($bytes / (1024 ** 3), 2);
         } catch (\Throwable) {
         }
