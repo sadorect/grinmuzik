@@ -25,8 +25,8 @@ Route::middleware(['throttle:60,1'])->group(function () {
     Route::get('/search', [SearchController::class, 'index']);
 
     Route::get('/tracks', [TrackController::class, 'index']);
-    Route::get('/tracks/{track:slug}', [TrackController::class, 'show']);
     Route::get('/tracks/trending', [TrendingController::class, 'index']);
+    Route::get('/tracks/{track:slug}', [TrackController::class, 'show']);
 
     Route::get('/artists', [ArtistController::class, 'index']);
     Route::get('/artists/{artist:slug}', [ArtistController::class, 'show']);
