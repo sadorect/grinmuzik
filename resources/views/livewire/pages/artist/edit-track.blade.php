@@ -3,6 +3,7 @@
 use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
+use App\Rules\ValidImageUpload;
 use App\StagesLivewireUploads;
 use App\Support\ArtistAccess;
 use App\Support\ArtistActivityNotifier;
@@ -101,7 +102,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             'requires_donation' => ['boolean'],
             'donation_amount' => ['nullable', 'numeric', 'min:0.5', 'max:999'],
             'audioFile' => ['nullable', 'file', new ValidAudioUpload(), 'max:' . UploadLimits::audioKb()],
-            'coverFile' => ['nullable', 'image', 'max:' . UploadLimits::imageKb()],
+            'coverFile' => ['nullable', 'image', new ValidImageUpload(), 'max:' . UploadLimits::imageKb()],
         ];
 
         if ($this->requires_donation) {
