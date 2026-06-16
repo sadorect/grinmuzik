@@ -59,6 +59,7 @@ class Track extends Model implements HasMedia
         'audio_file_path',
         'waveform_data',
         'is_published',
+        'published_at',
         'is_featured',
         'is_free',
         'requires_donation',
@@ -71,6 +72,7 @@ class Track extends Model implements HasMedia
 
     protected $casts = [
         'is_published'    => 'boolean',
+        'published_at'    => 'datetime',
         'is_featured'     => 'boolean',
         'is_free'         => 'boolean',
         'allow_artist_gifts' => 'boolean',

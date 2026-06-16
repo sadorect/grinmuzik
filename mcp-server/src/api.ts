@@ -12,6 +12,15 @@ const api = axios.create({
   timeout: 10_000,
 });
 
+export const myanniversaryApi = axios.create({
+  baseURL: process.env.MYANNIVERSARY_API_URL ?? 'https://myanniversary.com.ng/api',
+  headers: {
+    Accept: 'application/json',
+    Authorization: `Bearer ${process.env.MYANNIVERSARY_API_KEY ?? ''}`,
+  },
+  timeout: 10_000,
+});
+
 type McpContent = { content: [{ type: 'text'; text: string }]; isError?: true };
 
 export async function apiCall(fn: () => Promise<{ data: unknown }>): Promise<McpContent> {

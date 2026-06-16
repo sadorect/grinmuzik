@@ -3,11 +3,16 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { registerActionTools } from './tools/actions.js';
+import { registerAdminTools } from './tools/admin.js';
 import { registerAlbumTools } from './tools/albums.js';
+import { registerIntelligenceTools } from './tools/intelligence.js';
+import { registerMyAnniversaryTools } from './tools/myanniversary.js';
 import { registerPlaylistTools } from './tools/playlists.js';
+import { registerSamplingTools } from './tools/sampling.js';
 import { registerSearchTools } from './tools/search.js';
 import { registerStatsTools } from './tools/stats.js';
 import { registerTrackTools } from './tools/tracks.js';
+import { registerVpsTools } from './tools/vps.js';
 
 const PORT       = parseInt(process.env.PORT ?? '3001', 10);
 const ACCESS_KEY = process.env.MCP_ACCESS_KEY ?? process.env.GRINMUZIK_API_KEY;
@@ -17,13 +22,18 @@ if (!ACCESS_KEY) {
 }
 
 function buildServer(): McpServer {
-  const server = new McpServer({ name: 'dson-music', version: '1.0.0' });
+  const server = new McpServer({ name: 'dson-music', version: '2.0.0' });
   registerSearchTools(server);
   registerTrackTools(server);
   registerAlbumTools(server);
   registerPlaylistTools(server);
   registerStatsTools(server);
   registerActionTools(server);
+  registerAdminTools(server);
+  registerIntelligenceTools(server);
+  registerMyAnniversaryTools(server);
+  registerVpsTools(server);
+  registerSamplingTools(server);
   return server;
 }
 
