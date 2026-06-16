@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActionController;
 use App\Http\Controllers\Api\Admin\ArtistAdminController;
+use App\Http\Controllers\Api\Admin\FailedJobsController;
 use App\Http\Controllers\Api\Admin\HealthController;
 use App\Http\Controllers\Api\Admin\PlaySpikesController;
 use App\Http\Controllers\Api\Admin\QueueController;
@@ -72,6 +73,7 @@ Route::middleware(['auth:sanctum', 'ability:write', 'throttle:30,1'])->prefix('a
 
     // Phase 2 – Intelligence
     Route::get('/health',                    [HealthController::class, 'index']);
+    Route::get('/failed-jobs',               [FailedJobsController::class, 'index']);
     Route::get('/tracks/underperforming',    [UnderperformingTracksController::class, 'index']);
     Route::get('/tracks/spikes',             [PlaySpikesController::class, 'index']);
     Route::get('/queue/status',              [QueueController::class, 'status']);
