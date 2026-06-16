@@ -51,6 +51,17 @@ export function registerIntelligenceTools(server: McpServer): void {
   );
 
   server.tool(
+    'get_failed_jobs',
+    'List the most recent failed queue jobs with their exception messages',
+    {
+      limit: z.number().int().min(1).max(100).optional().default(20)
+        .describe('Number of failed jobs to return (default: 20)'),
+    },
+    async ({ limit }) =>
+      apiCall(() => api.get('/admin/failed-jobs', { params: { limit } })),
+  );
+
+  server.tool(
     'get_revenue_snapshot',
     'Get revenue totals from donations grouped by period',
     {
