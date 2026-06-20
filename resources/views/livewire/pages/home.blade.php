@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Album;
 use App\Models\ArtistProfile;
 use App\Models\Genre;
 use App\Models\HomepageBannerSlide;
@@ -19,23 +20,24 @@ new #[Layout('layouts.glass-app')] class extends Component {
         $supportsDiscoveryOrdering = SiteSetting::supportsDiscoveryOrdering();
         $showHomePersonalized = $supportsDiscoveryVisibility ? ($siteSettings?->show_home_personalized ?? true) : true;
         $showHomeEditorPicks = $supportsDiscoveryVisibility ? ($siteSettings?->show_home_editor_picks ?? true) : true;
+        $showHomeFeaturedAlbums = SiteSetting::supportsFeaturedAlbums() ? ($siteSettings?->show_home_featured_albums ?? false) : false;
         $homeEditorPicksPosition = $supportsDiscoveryOrdering ? ($siteSettings?->home_editor_picks_position ?? 'after-personalized') : 'after-personalized';
 
-        $trending = Cache::remember('home.trending.v1', now()->addMinutes(5), fn () => Track::with(['artistProfile.user'])
+        $trending = Cache::remember('home.trending.v2', now()->addMinutes(5), fn () => Track::with(['artistProfile.user', 'album.media'])
             ->where('is_published', true)
             ->orderByDesc('play_count')
             ->take(16)
             ->get());
 
-        $latest = Cache::remember('home.latest.v1', now()->addMinutes(5), fn () => Track::with(['artistProfile.user'])
+        $latest = Cache::remember('home.latest.v2', now()->addMinutes(5), fn () => Track::with(['artistProfile.user', 'album.media'])
             ->where('is_published', true)
             ->orderByDesc('created_at')
             ->take(8)
             ->get());
 
-        $weeklyTopTracks = Cache::remember('home.weekly-top.v1', now()->addMinutes(5), function () {
+        $weeklyTopTracks = Cache::remember('home.weekly-top.v2', now()->addMinutes(5), function () {
             $tracks = Track::query()
-                ->with(['artistProfile.user'])
+                ->with(['artistProfile.user', 'album.media'])
                 ->withCount([
                     'playHistories as weekly_play_count' => fn ($query) => $query->where('created_at', '>=', now()->subDays(7)),
                 ])
@@ -51,7 +53,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
             }
 
             return Track::query()
-                ->with(['artistProfile.user'])
+                ->with(['artistProfile.user', 'album.media'])
                 ->where('is_published', true)
                 ->orderByDesc('play_count')
                 ->orderByDesc('downloads_count')
@@ -61,8 +63,8 @@ new #[Layout('layouts.glass-app')] class extends Component {
         });
 
         $editorPicks = $showHomeEditorPicks
-            ? Cache::remember('home.editor-picks.v1', now()->addMinutes(5), fn () => Track::query()
-                ->with(['artistProfile.user', 'genre'])
+            ? Cache::remember('home.editor-picks.v2', now()->addMinutes(5), fn () => Track::query()
+                ->with(['artistProfile.user', 'genre', 'album.media'])
                 ->where('is_published', true)
                 ->where('is_featured', true)
                 ->orderByDesc('play_count')
@@ -80,6 +82,18 @@ new #[Layout('layouts.glass-app')] class extends Component {
             ->take(24)
             ->get()
             ->pipe(fn ($artists) => ArtistProfile::rankForFeaturedListing($artists)->take(6)->values()));
+
+        $featuredAlbums = $showHomeFeaturedAlbums
+            ? Cache::remember('home.featured-albums.v1', now()->addMinutes(5), fn () => Album::query()
+                ->with(['artist', 'media'])
+                ->where('is_published', true)
+                ->whereIn('type', Album::PUBLIC_TYPES)
+                ->whereHas('publicTracks')
+                ->orderByDesc('play_count')
+                ->orderByDesc('release_date')
+                ->take(12)
+                ->get())
+            : collect();
 
         $heroSlides = Cache::remember('home.hero-slides.v1', now()->addMinutes(5), fn () => Schema::hasTable('homepage_banner_slides')
             ? HomepageBannerSlide::query()->active()->get()
@@ -186,12 +200,14 @@ new #[Layout('layouts.glass-app')] class extends Component {
             'weeklyTopTracks' => $weeklyTopTracks,
             'editorPicks' => $editorPicks,
             'featuredArtists' => $featuredArtists,
+            'featuredAlbums' => $featuredAlbums,
             'heroSlides' => $heroSlides,
             'genres' => $genres,
             'stats' => $stats,
             'personalizedTracks' => $personalizedTracks,
             'showHomePersonalized' => $showHomePersonalized,
             'showHomeEditorPicks' => $showHomeEditorPicks,
+            'showHomeFeaturedAlbums' => $showHomeFeaturedAlbums,
             'homeEditorPicksPosition' => $homeEditorPicksPosition,
             'seo' => [
                 'title' => 'Independent Music Streaming',
@@ -840,8 +856,8 @@ if (! window.homeLoopScroller) {
                             @foreach($loopSet as $track)
                                 <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
                                     <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                        @if($track->getFirstMediaUrl('cover'))
-                                            <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                        @if($track->getCoverUrl())
+                                            <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
                                         @else
                                             <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
                                                 <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
@@ -911,8 +927,8 @@ if (! window.homeLoopScroller) {
                             @foreach($loopSet as $index => $track)
                                 <div class="group w-44 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
                                     <div class="relative h-44 w-44" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                        @if($track->getFirstMediaUrl('cover'))
-                                            <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                        @if($track->getCoverUrl())
+                                            <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
                                         @else
                                             <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
                                                 <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
@@ -984,8 +1000,8 @@ if (! window.homeLoopScroller) {
                             @foreach($loopSet as $track)
                                 <div class="group w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
                                     <div class="relative h-40 w-40" @click="Livewire.dispatch('play-track', { id: {{ $track->id }} })">
-                                        @if($track->getFirstMediaUrl('cover'))
-                                            <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
+                                        @if($track->getCoverUrl())
+                                            <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->cover_alt }}" class="h-full w-full object-cover">
                                         @else
                                             <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
                                                 <svg class="h-10 w-10 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1014 17V7h4V3h-6z"/></svg>
@@ -1040,6 +1056,63 @@ if (! window.homeLoopScroller) {
             </section>
         @endif
 
+        @if($showHomeFeaturedAlbums && $featuredAlbums->count())
+            <section class="mb-14 overflow-hidden">
+                <div class="mb-5 flex items-center justify-between">
+                    <h2 class="text-2xl font-bold text-gray-800">Featured Albums</h2>
+                    <a href="{{ route('browse') }}" class="text-sm font-medium text-primary hover:text-primary-600">Explore releases &rarr;</a>
+                </div>
+
+                <div class="group/rail relative select-none overflow-hidden"
+                     x-data="window.homeLoopScroller({ speed: 0.4, step: 288 })"
+                     @mouseenter="hovering = true; pause()"
+                     @mouseleave="hovering = false; resume()">
+                    <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-white/90 to-transparent dark:from-slate-950/80 dark:to-transparent"></div>
+                    <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-white/90 to-transparent dark:from-slate-950/80 dark:to-transparent"></div>
+
+                    <button type="button"
+                            class="pointer-events-none absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                            @click.prevent="nudge(-1)">
+                        <span class="sr-only">Scroll featured albums left</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    <button type="button"
+                            class="pointer-events-none absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"
+                            @click.prevent="nudge(1)">
+                        <span class="sr-only">Scroll featured albums right</span>
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <div x-ref="viewport" class="ticker-viewport px-1">
+                        <div x-ref="track" class="ticker-track gap-4">
+                            @foreach([$featuredAlbums, $featuredAlbums] as $loopSet)
+                                @foreach($loopSet as $album)
+                                    <a href="{{ route('album.show', $album) }}"
+                                       class="group w-44 shrink-0 overflow-hidden rounded-2xl transition-transform hover:scale-[1.03] glass-card">
+                                        <div class="relative h-44 w-44">
+                                            <img src="{{ $album->getCoverUrl('large') }}" alt="{{ $album->cover_alt }}" class="h-full w-full object-cover">
+                                            <span class="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
+                                                {{ strtoupper($album->type) }}
+                                            </span>
+                                        </div>
+                                        <div class="space-y-0.5 p-3">
+                                            <p class="truncate text-sm font-semibold text-gray-800 dark:text-slate-100">{{ $album->title }}</p>
+                                            <p class="truncate text-xs text-gray-500 dark:text-slate-400">{{ $album->artist?->display_name ?? 'Unknown artist' }}</p>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         @if($featuredArtists->count())
             <section class="mb-14 overflow-hidden">
                 <div class="mb-5 flex items-center justify-between">
@@ -1051,8 +1124,8 @@ if (! window.homeLoopScroller) {
                      x-data="window.homeLoopScroller({ speed: 0.38, step: 240, reverse: true })"
                      @mouseenter="hovering = true; pause()"
                      @mouseleave="hovering = false; resume()">
-                    <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-white/90 to-transparent"></div>
-                    <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-white/90 to-transparent"></div>
+                    <div class="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-16 bg-gradient-to-r from-white/90 to-transparent dark:from-slate-950/80 dark:to-transparent"></div>
+                    <div class="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-16 bg-gradient-to-l from-white/90 to-transparent dark:from-slate-950/80 dark:to-transparent"></div>
 
                     <button type="button"
                             class="pointer-events-none absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-gray-700 opacity-0 shadow-lg backdrop-blur transition hover:bg-white group-hover/rail:pointer-events-auto group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:opacity-100"

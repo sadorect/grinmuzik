@@ -130,11 +130,7 @@
 
                     <div class="bg-white/5 rounded-xl p-3 mb-4 flex items-center gap-3">
                         <div class="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                            @if($track->getFirstMediaUrl('cover'))
-                                <img src="{{ $track->getFirstMediaUrl('cover', 'thumb') }}" alt="{{ $track->title }}" class="w-full h-full object-cover">
-                            @else
-                                <div class="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900"></div>
-                            @endif
+                            <img src="{{ $track->getCoverUrl() }}" alt="{{ $track->title }}" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <p class="text-white font-semibold text-sm">{{ $track->title }}</p>

@@ -214,6 +214,11 @@ class SiteBranding extends Page implements HasForms
                             ->label("Homepage Editor's Picks")
                             ->helperText('Show the curated editor picks rail on the homepage.')
                             ->default(true),
+                        Forms\Components\Toggle::make('show_home_featured_albums')
+                            ->label('Homepage Featured Albums')
+                            ->helperText('Show the featured albums rail above Featured Artists on the homepage.')
+                            ->default(false)
+                            ->visible(fn (): bool => SiteSetting::supportsFeaturedAlbums()),
                         Forms\Components\Toggle::make('show_browse_mood_filters')
                             ->label('Browse mood filters')
                             ->helperText('Show mood and vibe chips on the browse page.')
@@ -388,6 +393,12 @@ class SiteBranding extends Page implements HasForms
             ]));
         }
 
+        if (SiteSetting::supportsFeaturedAlbums()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'show_home_featured_albums',
+            ]));
+        }
+
         if (SiteSetting::supportsAutoPlaylistControls()) {
             $data = array_merge($data, Arr::only($this->data, [
                 'auto_playlist_enabled',
@@ -503,6 +514,10 @@ class SiteBranding extends Page implements HasForms
                 'show_search_trending_tracks',
                 'show_search_popular_artists',
             ]);
+        }
+
+        if (SiteSetting::supportsFeaturedAlbums()) {
+            $keys[] = 'show_home_featured_albums';
         }
 
         if (SiteSetting::supportsAutoPlaylistControls()) {

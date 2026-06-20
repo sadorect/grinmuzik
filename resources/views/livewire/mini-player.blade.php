@@ -78,21 +78,15 @@
                             :alt="t.title"
                         >
                         <div class="flex-1 min-w-0">
-                            <a
-                                :href="t.url || '#'"
-                                wire:navigate
-                                @click.stop
-                                class="block text-xs font-semibold truncate transition hover:text-primary"
+                            <p
+                                class="block text-xs font-semibold truncate"
                                 :class="idx === queueIndex ? 'text-primary-600' : 'text-gray-800'"
                                 x-text="t.title"
-                            ></a>
-                            <a
-                                :href="t.artist_url || '#'"
-                                wire:navigate
-                                @click.stop
-                                class="block text-xs text-gray-400 truncate transition hover:text-primary"
+                            ></p>
+                            <p
+                                class="block text-xs text-gray-400 truncate"
                                 x-text="t.artist"
-                            ></a>
+                            ></p>
                         </div>
                         <button @click.stop="removeFromQueue(idx)"
                                 class="text-gray-300 hover:text-primary-500 transition shrink-0"
@@ -564,7 +558,7 @@
                                 <template x-for="(t, idx) in queueTracks" :key="`${t.id}-${idx}`">
                                     <div
                                         @click="jumpTo(idx)"
-                                        class="flex items-center gap-3 px-4 py-3 transition"
+                                        class="flex cursor-pointer items-center gap-3 px-4 py-3 transition"
                                         :class="idx === queueIndex ? 'bg-gray-900/5 dark:bg-white/10' : 'hover:bg-black/5 dark:hover:bg-white/5'"
                                     >
                                         <img
@@ -573,21 +567,15 @@
                                             class="h-11 w-11 rounded-2xl object-cover"
                                         >
                                         <div class="min-w-0 flex-1">
-                                            <a
-                                                :href="t.url || '#'"
-                                                wire:navigate
-                                                @click.stop
-                                                class="block truncate text-sm font-semibold transition hover:text-primary"
-                                                :class="idx === queueIndex ? 'text-gray-900 dark:text-white dark:hover:text-primary-300' : 'text-gray-700 dark:text-white/75 dark:hover:text-primary-300'"
+                                            <p
+                                                class="block truncate text-sm font-semibold"
+                                                :class="idx === queueIndex ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/75'"
                                                 x-text="t.title"
-                                            ></a>
-                                            <a
-                                                :href="t.artist_url || '#'"
-                                                wire:navigate
-                                                @click.stop
-                                                class="block truncate text-xs text-gray-500 transition hover:text-primary dark:text-white/45 dark:hover:text-primary-300"
+                                            ></p>
+                                            <p
+                                                class="block truncate text-xs text-gray-500 dark:text-white/45"
                                                 x-text="t.artist"
-                                            ></a>
+                                            ></p>
                                         </div>
                                         <div class="flex items-center gap-3">
                                             <span class="text-[11px] font-semibold uppercase tracking-[0.18em]" :class="idx === queueIndex ? 'text-primary-500 dark:text-primary-300' : 'text-gray-400 dark:text-white/35'" x-text="idx === queueIndex ? 'Live' : `#${idx + 1}`"></span>
@@ -989,6 +977,7 @@ function miniPlayer() {
             this.queueIndex = P.queueIndex;
             this.shuffleEnabled = P.shuffleEnabled ?? false;
             this.repeatMode = P.repeatMode ?? 'off';
+            this.applyRepeatToAudio();
             this.shuffleHistory = Array.isArray(P.shuffleHistory) ? P.shuffleHistory : [];
             this.shufflePool = Array.isArray(P.shufflePool) ? P.shufflePool : [];
             this.playing  = !P.audio.paused && !!P.audio.src && !P.audio.ended;
@@ -1684,6 +1673,10 @@ function miniPlayer() {
                     ? 'playlist'
                     : 'off';
 
+            // Apply repeat-track to the live audio element immediately so the
+            // currently playing track loops the moment the control is toggled —
+            // rather than only taking effect at the next `ended` event.
+            this.applyRepeatToAudio();
             this.syncPlayerState();
 
             if (this.repeatMode === 'track') {
@@ -1697,6 +1690,13 @@ function miniPlayer() {
             }
 
             this.showStatusToast('Repeat off.');
+        },
+
+        applyRepeatToAudio() {
+            // Native looping handles track-repeat seamlessly (gaplessly) and takes
+            // effect on the current track instantly. Sequential/playlist advancement
+            // is still driven by the `ended` handler, so loop must stay off for those.
+            P.audio.loop = this.repeatMode === 'track';
         },
 
         togglePlay() {

@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 class SiteSetting extends Model
 {
     protected static ?bool $supportsDiscoveryVisibilityCache = null;
+    protected static ?bool $supportsFeaturedAlbumsCache = null;
     protected static ?bool $supportsDiscoveryOrderingCache = null;
     protected static ?bool $supportsUploadLimitsCache = null;
     protected static ?bool $supportsMonetizationControlsCache = null;
@@ -51,6 +52,7 @@ class SiteSetting extends Model
         'hero_image_upload_limit_kb',
         'show_home_personalized',
         'show_home_editor_picks',
+        'show_home_featured_albums',
         'show_browse_mood_filters',
         'show_browse_editor_picks',
         'show_browse_personalized',
@@ -79,6 +81,7 @@ class SiteSetting extends Model
     protected $casts = [
         'show_home_personalized' => 'boolean',
         'show_home_editor_picks' => 'boolean',
+        'show_home_featured_albums' => 'boolean',
         'audio_upload_limit_kb' => 'integer',
         'image_upload_limit_kb' => 'integer',
         'site_logo_upload_limit_kb' => 'integer',
@@ -130,6 +133,36 @@ class SiteSetting extends Model
             return static::$supportsDiscoveryVisibilityCache = Schema::hasColumn('site_settings', 'show_home_personalized');
         } catch (Throwable) {
             return static::$supportsDiscoveryVisibilityCache = false;
+        }
+    }
+
+    public static function supportsFeaturedAlbums(): bool
+    {
+        if (static::$supportsFeaturedAlbumsCache !== null) {
+            return static::$supportsFeaturedAlbumsCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsFeaturedAlbumsCache = false;
+            }
+
+            return static::$supportsFeaturedAlbumsCache = Schema::hasColumn('site_settings', 'show_home_featured_albums');
+        } catch (Throwable) {
+            return static::$supportsFeaturedAlbumsCache = false;
+        }
+    }
+
+    public static function showHomeFeaturedAlbums(): bool
+    {
+        if (! static::supportsFeaturedAlbums()) {
+            return false;
+        }
+
+        try {
+            return (bool) (static::current()->show_home_featured_albums ?? false);
+        } catch (Throwable) {
+            return false;
         }
     }
 
@@ -696,6 +729,7 @@ class SiteSetting extends Model
     protected static function flushRuntimeCaches(): bool
     {
         static::$supportsDiscoveryVisibilityCache = null;
+        static::$supportsFeaturedAlbumsCache = null;
         static::$supportsDiscoveryOrderingCache = null;
         static::$supportsUploadLimitsCache = null;
         static::$supportsMonetizationControlsCache = null;
