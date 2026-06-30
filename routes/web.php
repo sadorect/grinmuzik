@@ -74,87 +74,57 @@ SVG;
 })->name('pwa.icon');
 
 Route::get('/manifest.webmanifest', function () {
-    $installAppName = 'GrinMuzik';
+    // manifest.json (project root) is always the base — it's what
+    // PWABuilder Studio edits/audits, so editing it is all that's needed
+    // to update name, description, screenshots, shortcuts, etc.
+    $manifest = json_decode(file_get_contents(base_path('manifest.json')), true) ?? [];
 
-    try {
-        $siteSettings = Schema::hasTable('site_settings')
-            ? SiteSetting::current()
-            : null;
-    } catch (\Throwable) {
-        $siteSettings = null;
+    $resolveAsset = fn (string $src): string => Str::startsWith($src, ['http://', 'https://'])
+        ? $src
+        : asset(preg_replace('#^/?public/#', '', $src));
+
+    foreach (['icons', 'screenshots'] as $collectionKey) {
+        foreach ($manifest[$collectionKey] ?? [] as $index => $item) {
+            if (! empty($item['src'])) {
+                $manifest[$collectionKey][$index]['src'] = $resolveAsset($item['src']);
+            }
+        }
     }
 
-    $siteName = $installAppName;
-    $themeColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
-    $usingGeneratedIcon = ! $siteSettings?->favicon_url && ! $siteSettings?->site_logo_url;
-    $installIconUrl = $siteSettings?->favicon_url
-        ?? $siteSettings?->site_logo_url
-        ?? route('pwa.icon');
-
-    $icons = [
-        [
-            'src' => $installIconUrl,
-            'sizes' => 'any',
-            'purpose' => 'any',
-        ],
-    ];
-
-    // The generated SVG icon has built-in padding, so it's safe to also
-    // expose it as a maskable icon. Custom-uploaded logos aren't guaranteed
-    // to have a safe zone, so they're only ever exposed with purpose=any.
-    if ($usingGeneratedIcon) {
-        $icons[] = [
-            'src' => $installIconUrl,
-            'sizes' => 'any',
-            'purpose' => 'maskable',
-        ];
+    if (! empty($manifest['serviceworker']['src'])) {
+        $manifest['serviceworker']['src'] = $resolveAsset($manifest['serviceworker']['src']);
     }
 
-    $manifest = [
-        'id' => route('home'),
-        'name' => $siteName,
-        'short_name' => $siteName,
-        'description' => 'Discover independent music, follow artists, and keep GrinMuzik on your desktop or home screen.',
-        'start_url' => route('home'),
-        'scope' => url('/'),
-        'display' => 'standalone',
-        'background_color' => '#F8FAFC',
-        'theme_color' => $themeColor,
-        'serviceworker' => [
-            'src' => asset('service-worker.js'),
-            'scope' => url('/'),
-            'update_via_cache' => 'none',
-        ],
-        'icons' => $icons,
-        'screenshots' => [
-            [
-                'src' => asset('screenshots/home-wide.png'),
-                'sizes' => '1280x720',
-                'type' => 'image/png',
-                'form_factor' => 'wide',
-                'label' => "Browse music on {$siteName}",
-            ],
-            [
-                'src' => asset('screenshots/home-narrow.png'),
-                'sizes' => '750x1334',
-                'type' => 'image/png',
-                'form_factor' => 'narrow',
-                'label' => "Browse music on {$siteName}",
-            ],
-        ],
-        'shortcuts' => [
-            [
-                'name' => 'Search',
-                'url' => route('search'),
-                'description' => 'Search for tracks, albums, and artists',
-            ],
-            [
-                'name' => 'Charts',
-                'url' => route('charts'),
-                'description' => 'View trending tracks and charts',
-            ],
-        ],
-    ];
+    $manifest['id'] = route('home');
+    $manifest['start_url'] = route('home');
+    $manifest['scope'] = url('/');
+
+    // PWA_MANIFEST_SOURCE=dynamic (restore once app-store packaging is
+    // done): layer per-tenant SiteSetting branding (logo, theme color) on
+    // top of the manifest.json base, so admin-configured branding is
+    // picked up automatically without editing this file. Until then,
+    // manifest.json's own theme_color/icons are used as-is.
+    if (config('app.pwa_manifest_source', 'static') === 'dynamic') {
+        try {
+            $siteSettings = Schema::hasTable('site_settings')
+                ? SiteSetting::current()
+                : null;
+        } catch (\Throwable) {
+            $siteSettings = null;
+        }
+
+        if ($siteSettings) {
+            $manifest['theme_color'] = $siteSettings->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+
+            $brandIconUrl = $siteSettings->favicon_url ?? $siteSettings->site_logo_url;
+
+            if ($brandIconUrl) {
+                $manifest['icons'] = [
+                    ['src' => $brandIconUrl, 'sizes' => 'any', 'purpose' => 'any'],
+                ];
+            }
+        }
+    }
 
     return response(
         json_encode($manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

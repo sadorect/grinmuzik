@@ -17,6 +17,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | PWA Manifest Source
+    |--------------------------------------------------------------------------
+    |
+    | "static" serves manifest.json (project root) as-is — used while
+    | packaging the PWA for app stores via PWABuilder, since that's the
+    | file PWABuilder Studio edits/audits. "dynamic" layers per-tenant
+    | SiteSetting branding (logo, theme color) on top of that same base.
+    | Switch back to "dynamic" once app-store packaging is done.
+    |
+    */
+
+    'pwa_manifest_source' => env('PWA_MANIFEST_SOURCE', 'static'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |
