@@ -4,6 +4,7 @@
 <div
     x-data="pwaInstallPrompt()"
     x-init="init()"
+    x-on:grin-open-install-prompt.window="if (installAvailable || showIosInstructions) open = true"
     x-show="open"
     x-transition.opacity
     class="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center"

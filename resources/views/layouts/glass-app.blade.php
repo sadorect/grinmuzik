@@ -196,6 +196,21 @@
                                     My Music
                                 </a>
                                 @endif
+                                <div
+                                    x-data="{ canInstall: false, onIos: false }"
+                                    x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
+                                    x-show="canInstall || onIos"
+                                    style="display:none"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="$dispatch('grin-open-install-prompt')"
+                                        class="flex w-full items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition text-left"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Install App
+                                    </button>
+                                </div>
                                 <div class="my-1 border-t border-gray-100 dark:border-white/10"></div>
                                 @include('partials.theme-toggle', [
                                     'showLabel' => true,
@@ -286,6 +301,21 @@
                             <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
                         @endif
                         <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Account Settings</a>
+                        <div
+                            x-data="{ canInstall: false, onIos: false }"
+                            x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
+                            x-show="canInstall || onIos"
+                            style="display:none"
+                        >
+                            <button
+                                type="button"
+                                @click="$dispatch('grin-open-install-prompt')"
+                                class="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600 text-left"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Install App
+                            </button>
+                        </div>
                         @if(Auth::user()->isAdmin())
                             <a href="{{ url('/musicdirector') }}" class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Admin Panel</a>
                         @endif

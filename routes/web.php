@@ -86,9 +86,30 @@ Route::get('/manifest.webmanifest', function () {
 
     $siteName = $installAppName;
     $themeColor = $siteSettings?->effective_primary_color ?? ThemePalette::DEFAULT_PRIMARY;
+    $usingGeneratedIcon = ! $siteSettings?->favicon_url && ! $siteSettings?->site_logo_url;
     $installIconUrl = $siteSettings?->favicon_url
         ?? $siteSettings?->site_logo_url
         ?? route('pwa.icon');
+
+    $icons = [
+        [
+            'src' => $installIconUrl,
+            'sizes' => 'any',
+            'purpose' => 'any',
+        ],
+    ];
+
+    // The generated SVG icon has built-in padding, so it's safe to also
+    // expose it as a maskable icon. Custom-uploaded logos aren't guaranteed
+    // to have a safe zone, so they're only ever exposed with purpose=any.
+    if ($usingGeneratedIcon) {
+        $icons[] = [
+            'src' => $installIconUrl,
+            'sizes' => 'any',
+            'purpose' => 'maskable',
+        ];
+    }
+
     $manifest = [
         'id' => route('home'),
         'name' => $siteName,
@@ -99,11 +120,33 @@ Route::get('/manifest.webmanifest', function () {
         'display' => 'standalone',
         'background_color' => '#F8FAFC',
         'theme_color' => $themeColor,
-        'icons' => [
+        'icons' => $icons,
+        'screenshots' => [
             [
-                'src' => $installIconUrl,
-                'sizes' => 'any',
-                'purpose' => 'any',
+                'src' => asset('screenshots/home-wide.png'),
+                'sizes' => '1280x720',
+                'type' => 'image/png',
+                'form_factor' => 'wide',
+                'label' => "Browse music on {$siteName}",
+            ],
+            [
+                'src' => asset('screenshots/home-narrow.png'),
+                'sizes' => '750x1334',
+                'type' => 'image/png',
+                'form_factor' => 'narrow',
+                'label' => "Browse music on {$siteName}",
+            ],
+        ],
+        'shortcuts' => [
+            [
+                'name' => 'Search',
+                'url' => route('search'),
+                'description' => 'Search for tracks, albums, and artists',
+            ],
+            [
+                'name' => 'Charts',
+                'url' => route('charts'),
+                'description' => 'View trending tracks and charts',
             ],
         ],
     ];
