@@ -338,11 +338,6 @@ window.GrinInstall = window.GrinInstall || {
     deferredPrompt: null,
 };
 
-const shouldDeferInstallPrompt = (visitCount = getProjectedVisitCount()) =>
-    !isStandaloneApp() &&
-    !isInstallDismissed() &&
-    visitCount >= INSTALL_VISIT_THRESHOLD;
-
 window.pwaInstallPrompt = () => ({
     open: false,
     canInstall: false,
@@ -409,10 +404,12 @@ window.pwaInstallPrompt = () => ({
 });
 
 window.addEventListener("beforeinstallprompt", (event) => {
-    if (!shouldDeferInstallPrompt()) {
-        return;
-    }
-
+    // Always capture the browser's prompt for later use (e.g. the menu's
+    // manual "Install App" button) — it only fires once, so failing to
+    // store it here means losing the ability to trigger install at all.
+    // The visit-count gate (see pwaInstallPrompt's refresh()) only
+    // controls whether the modal auto-opens, not whether we keep the
+    // prompt around.
     event.preventDefault();
     window.GrinInstall.deferredPrompt = event;
     publishInstallState();
