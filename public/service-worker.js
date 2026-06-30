@@ -32,13 +32,15 @@ self.addEventListener("push", (event) => {
         data = { title: "GrinMuzik", body: event.data ? event.data.text() : "" };
     }
 
+    // laravel-notification-channels/webpush serializes WebPushMessage::data()
+    // as a nested "data" key, so the URL lives at data.data.url, not data.url.
     const title = data.title || "GrinMuzik";
     const options = {
         body: data.body || "",
         icon: data.icon || "/pwa-icons/manifest-icon-192.maskable.png",
         badge: data.badge || "/pwa-icons/manifest-icon-192.maskable.png",
         tag: data.tag,
-        data: { url: data.url || "/" },
+        data: { url: data.data?.url || "/" },
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
