@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "filament/filament": "^4.7",
+        "laravel-notification-channels/webpush": "^11.0",
         "laravel/cashier": "^16.3",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.3",

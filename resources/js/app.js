@@ -422,6 +422,135 @@ window.addEventListener("appinstalled", () => {
     publishInstallState();
 });
 
+const urlBase64ToUint8Array = (base64String) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+};
+
+const postJson = async (url, method, body) => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    return fetch(url, {
+        method,
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "application/json",
+        },
+        body: JSON.stringify(body),
+    });
+};
+
+window.GrinPush = window.GrinPush || {
+    supported() {
+        return (
+            "serviceWorker" in navigator &&
+            "PushManager" in window &&
+            window.isSecureContext
+        );
+    },
+    async getSubscription() {
+        if (!this.supported()) {
+            return null;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+
+        return registration.pushManager.getSubscription();
+    },
+    async isSubscribed() {
+        return Boolean(await this.getSubscription());
+    },
+    async subscribe() {
+        if (!this.supported()) {
+            return false;
+        }
+
+        const permission = await Notification.requestPermission();
+
+        if (permission !== "granted") {
+            return false;
+        }
+
+        const vapidKey = document.querySelector(
+            'meta[name="vapid-public-key"]',
+        )?.content;
+
+        if (!vapidKey) {
+            return false;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
+
+        await postJson("/push-subscriptions", "POST", subscription.toJSON());
+
+        window.dispatchEvent(
+            new CustomEvent("grin-push-state", { detail: { subscribed: true } }),
+        );
+
+        return true;
+    },
+    async unsubscribe() {
+        const subscription = await this.getSubscription();
+
+        if (!subscription) {
+            return true;
+        }
+
+        const endpoint = subscription.endpoint;
+        await subscription.unsubscribe();
+        await postJson("/push-subscriptions", "DELETE", { endpoint });
+
+        window.dispatchEvent(
+            new CustomEvent("grin-push-state", { detail: { subscribed: false } }),
+        );
+
+        return true;
+    },
+};
+
+window.pushNotificationToggle = () => ({
+    supported: false,
+    subscribed: false,
+    busy: false,
+    async init() {
+        this.supported = window.GrinPush.supported();
+
+        if (this.supported) {
+            this.subscribed = await window.GrinPush.isSubscribed();
+        }
+
+        window.addEventListener("grin-push-state", (event) => {
+            this.subscribed = event.detail.subscribed;
+        });
+    },
+    async toggle() {
+        if (this.busy || !this.supported) {
+            return;
+        }
+
+        this.busy = true;
+
+        try {
+            if (this.subscribed) {
+                await window.GrinPush.unsubscribe();
+            } else {
+                await window.GrinPush.subscribe();
+            }
+        } finally {
+            this.busy = false;
+        }
+    },
+});
+
 document.addEventListener("DOMContentLoaded", () => {
     window.GrinTheme?.apply();
     recordInstallVisit();

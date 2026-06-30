@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
 
     @include('partials.theme-head')
     @include('partials.seo-head', ['pageTitle' => $title ?? null])
@@ -87,8 +88,25 @@
                 </div>
             </div>
 
-            <div class="mt-4">
+            <div class="mt-4 space-y-2">
                 @include('partials.theme-toggle', ['showLabel' => true, 'class' => 'w-full justify-between border-white/10 bg-black/25 text-sm font-semibold text-slate-50 shadow-[0_14px_30px_rgba(2,6,23,0.18)] hover:bg-white/[0.08]'])
+                <div
+                    x-data="{ canInstall: false, onIos: false }"
+                    x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
+                    x-show="canInstall || onIos"
+                    style="display:none"
+                >
+                    <button
+                        type="button"
+                        @click="$dispatch('grin-open-install-prompt')"
+                        class="glass-btn glass-btn-hover flex w-full items-center justify-between gap-2 rounded-xl border-white/10 bg-black/25 px-3 py-2.5 text-sm font-semibold text-slate-50 shadow-[0_14px_30px_rgba(2,6,23,0.18)] hover:bg-white/[0.08]"
+                    >
+                        <span class="flex items-center gap-2">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Install App
+                        </span>
+                    </button>
+                </div>
             </div>
 
             <div class="mt-auto rounded-[1.8rem] border border-white/10 bg-black/25 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.25)]">
@@ -110,6 +128,17 @@
                         @if(Auth::user()->isAdmin())
                             <a href="{{ url('/musicdirector') }}" class="block rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Admin Panel</a>
                         @endif
+                        <div x-data="pushNotificationToggle()" x-init="init()" x-show="supported" style="display:none">
+                            <button
+                                type="button"
+                                @click="toggle()"
+                                :disabled="busy"
+                                class="flex w-full items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-left text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white disabled:opacity-50"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                <span x-text="subscribed ? 'Disable Notifications' : 'Enable Notifications'"></span>
+                            </button>
+                        </div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="w-full rounded-2xl border border-white/[0.08] bg-white/[0.06] px-4 py-3 text-left text-sm font-bold text-slate-50 transition hover:border-white/[0.14] hover:bg-white/[0.11] hover:text-white">Log Out</button>
@@ -142,6 +171,23 @@
                     <a href="{{ route('charts') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Charts</a>
                     <a href="{{ route('new-releases') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>New Releases</a>
                     <a href="{{ route('playlists.public') }}" class="text-gray-700 hover:text-primary-500 transition" wire:navigate>Playlists</a>
+
+                    <div
+                        x-data="{ canInstall: false, onIos: false }"
+                        x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
+                        x-show="canInstall || onIos"
+                        style="display:none"
+                    >
+                        <button
+                            type="button"
+                            @click="$dispatch('grin-open-install-prompt')"
+                            class="glass-btn glass-btn-hover inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-gray-700"
+                            aria-label="Install app"
+                        >
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            <span>Install App</span>
+                        </button>
+                    </div>
 
                     @auth
                         @if(Auth::user()->isArtist())
@@ -196,19 +242,15 @@
                                     My Music
                                 </a>
                                 @endif
-                                <div
-                                    x-data="{ canInstall: false, onIos: false }"
-                                    x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
-                                    x-show="canInstall || onIos"
-                                    style="display:none"
-                                >
+                                <div x-data="pushNotificationToggle()" x-init="init()" x-show="supported" style="display:none">
                                     <button
                                         type="button"
-                                        @click="$dispatch('grin-open-install-prompt')"
-                                        class="flex w-full items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition text-left"
+                                        @click="toggle()"
+                                        :disabled="busy"
+                                        class="flex w-full items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition text-left disabled:opacity-50"
                                     >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                        Install App
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                        <span x-text="subscribed ? 'Disable Notifications' : 'Enable Notifications'"></span>
                                     </button>
                                 </div>
                                 <div class="my-1 border-t border-gray-100 dark:border-white/10"></div>
@@ -285,6 +327,21 @@
                     <a href="{{ route('charts') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Charts</a>
                     <a href="{{ route('new-releases') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">New Releases</a>
                     <a href="{{ route('playlists.public') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Public Playlists</a>
+                    <div
+                        x-data="{ canInstall: false, onIos: false }"
+                        x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
+                        x-show="canInstall || onIos"
+                        style="display:none"
+                    >
+                        <button
+                            type="button"
+                            @click="$dispatch('grin-open-install-prompt')"
+                            class="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600 text-left"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Install App
+                        </button>
+                    </div>
                 </div>
 
                 @auth
@@ -301,19 +358,15 @@
                             <a href="{{ route('artist.edit-profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Artist Profile</a>
                         @endif
                         <a href="{{ route('profile') }}" wire:navigate class="block rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600">Account Settings</a>
-                        <div
-                            x-data="{ canInstall: false, onIos: false }"
-                            x-on:grin-install-state.window="canInstall = !!$event.detail.deferredPrompt; onIos = $event.detail.canManuallyInstallOnIos && !$event.detail.installed"
-                            x-show="canInstall || onIos"
-                            style="display:none"
-                        >
+                        <div x-data="pushNotificationToggle()" x-init="init()" x-show="supported" style="display:none">
                             <button
                                 type="button"
-                                @click="$dispatch('grin-open-install-prompt')"
-                                class="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600 text-left"
+                                @click="toggle()"
+                                :disabled="busy"
+                                class="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-gray-700 transition hover:bg-primary-50 hover:text-primary-600 text-left disabled:opacity-50"
                             >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Install App
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                <span x-text="subscribed ? 'Disable Notifications' : 'Enable Notifications'"></span>
                             </button>
                         </div>
                         @if(Auth::user()->isAdmin())

@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use App\Notifications\Auth\BrandedResetPassword;
 use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -22,7 +23,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements HasMedia, FilamentUser, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, Billable, InteractsWithMedia, HasApiTokens;
+    use HasFactory, Notifiable, HasRoles, Billable, InteractsWithMedia, HasApiTokens, HasPushSubscriptions;
 
     /**
      * The attributes that are mass assignable.

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DonationController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\TrackDownloadController;
 use App\Models\Album;
@@ -244,6 +245,8 @@ Volt::route('/contact', 'pages.contact')->name('contact');
 Route::middleware('auth')->group(function () {
     Route::post('/stripe/intent/{track}', [DonationController::class, 'createIntent'])->middleware('throttle:20,1')->name('donation.intent');
     Route::get('/track/{track:slug}/download', TrackDownloadController::class)->name('track.download');
+    Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+    Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
 });
 Route::post('/stripe/webhook', [DonationController::class, 'webhook'])->name('donation.webhook');
 
