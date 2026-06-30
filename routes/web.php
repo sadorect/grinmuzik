@@ -120,6 +120,11 @@ Route::get('/manifest.webmanifest', function () {
         'display' => 'standalone',
         'background_color' => '#F8FAFC',
         'theme_color' => $themeColor,
+        'serviceworker' => [
+            'src' => asset('service-worker.js'),
+            'scope' => url('/'),
+            'update_via_cache' => 'none',
+        ],
         'icons' => $icons,
         'screenshots' => [
             [

@@ -1,63 +1,74 @@
 {
-"name": "GrinMuzik",
-"short_name": "GrinMuzik",
-"start_url": "/",
-"display": "standalone",
-"description": "Discover independent music, follow artists, and keep GrinMuzik on your desktop or home screen.",
-"lang": "en-US",
-"dir": "auto",
-"theme_color": "#305CDE",
-"background_color": "#F8FAFC",
-"orientation": "any",
-"scope": "/",
-"icons": [
+  "name": "GrinMuzik",
+  "short_name": "GrinMuzik",
+  "start_url": "/",
+  "display": "standalone",
+  "description": "Discover independent music, follow artists, and keep GrinMuzik on your desktop or home screen.",
+  "lang": "en-US",
+  "dir": "auto",
+  "theme_color": "#305CDE",
+  "background_color": "#F8FAFC",
+  "orientation": "any",
+  "scope": "/",
+  "serviceworker": {
+    "src": "public/service-worker.js",
+    "scope": "/",
+    "update_via_cache": "none"
+  },
+  "icons": [
     {
-        "src": "/pwa-icon.svg",
-        "sizes": "512x512",
-        "type": "image/svg+xml",
-        "purpose": "any"
+      "src": "public/icons/manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-        "src": "/pwa-icon.svg",
-        "sizes": "512x512",
-        "type": "image/svg+xml",
-        "purpose": "maskable"
+      "src": "public/icons/manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
-        "src": "/favicon.ico",
-        "sizes": "48x48",
-        "type": "image/x-icon",
-        "purpose": "any"
+      "src": "public/icons/manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "public/icons/manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-],
-"screenshots": [
+  ],
+  "screenshots": [
     {
-        "src": "/screenshots/home-wide.png",
-        "sizes": "1280x720",
-        "type": "image/png",
-        "form_factor": "wide",
-        "label": "Browse music on GrinMuzik"
+      "src": "public/screenshots/home-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Browse music on GrinMuzik"
     },
     {
-        "src": "/screenshots/home-narrow.png",
-        "sizes": "750x1334",
-        "type": "image/png",
-        "form_factor": "narrow",
-        "label": "Browse music on GrinMuzik"
+      "src": "public/screenshots/home-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Browse music on GrinMuzik"
     }
-],
-"related_applications": [],
-"prefer_related_applications": false,
-"shortcuts": [
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "shortcuts": [
     {
-        "name": "Search",
-        "url": "/search",
-        "description": "Search for tracks, albums, and artists"
+      "name": "Search",
+      "url": "/search",
+      "description": "Search for tracks, albums, and artists"
     },
     {
-        "name": "Charts",
-        "url": "/charts",
-        "description": "View trending tracks and charts"
+      "name": "Charts",
+      "url": "/charts",
+      "description": "View trending tracks and charts"
     }
-]
+  ]
 }
