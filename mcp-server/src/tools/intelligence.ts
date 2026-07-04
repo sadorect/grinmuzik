@@ -78,4 +78,26 @@ export function registerIntelligenceTools(server: McpServer): void {
     {},
     async () => apiCall(() => api.get('/mcp/dormant-artists')),
   );
+
+  server.tool(
+    'get_latest_tracks',
+    'List the most recently published tracks with artist, genre, and play count',
+    {
+      limit: z.number().int().min(1).max(100).optional().default(20)
+        .describe('Number of tracks to return (default: 20)'),
+    },
+    async ({ limit }) =>
+      apiCall(() => api.get('/mcp/latest-tracks', { params: { limit } })),
+  );
+
+  server.tool(
+    'get_non_artist_users',
+    'List users who do not have an artist profile (plain listeners)',
+    {
+      limit: z.number().int().min(1).max(200).optional().default(50)
+        .describe('Number of users to return (default: 50)'),
+    },
+    async ({ limit }) =>
+      apiCall(() => api.get('/mcp/non-artist-users', { params: { limit } })),
+  );
 }

@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\Admin\ArtistAdminController;
 use App\Http\Controllers\Api\Admin\DormantArtistsController;
 use App\Http\Controllers\Api\Admin\FailedJobsController;
 use App\Http\Controllers\Api\Admin\HealthController;
+use App\Http\Controllers\Api\Admin\LatestTracksController;
+use App\Http\Controllers\Api\Admin\NonArtistUsersController;
 use App\Http\Controllers\Api\Admin\PlaySpikesController;
 use App\Http\Controllers\Api\Admin\QueueController;
 use App\Http\Controllers\Api\Admin\RevenueController;
@@ -84,4 +86,6 @@ Route::middleware(['auth:sanctum', 'ability:write', 'throttle:30,1'])->prefix('a
 // ── MCP monitoring endpoints (auth + write ability) ────────────────────────────
 Route::middleware(['auth:sanctum', 'ability:write', 'throttle:30,1'])->prefix('mcp')->group(function () {
     Route::get('/dormant-artists', [DormantArtistsController::class, 'index']);
+    Route::get('/latest-tracks', [LatestTracksController::class, 'index']);
+    Route::get('/non-artist-users', [NonArtistUsersController::class, 'index']);
 });
