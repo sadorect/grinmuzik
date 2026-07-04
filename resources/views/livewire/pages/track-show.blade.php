@@ -280,6 +280,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
          scrollToLyrics() {
              this.$refs.lyricsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
          },
+         scrollToComments() {
+             this.$refs.commentsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         },
          async shareLyrics() {
              const lyricsUrl = this.getLyricsShareUrl();
              const shareTitle = `${@js($track->title)} lyrics`;
@@ -424,6 +427,14 @@ new #[Layout('layouts.glass-app')] class extends Component {
                             Lyrics
                         </button>
                     @endif
+                    <button @click="scrollToComments"
+                            title="Jump to comments"
+                            class="flex items-center gap-2 glass-btn glass-btn-hover px-4 py-2 rounded-full text-sm font-medium text-gray-600 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.05 0-2.058-.16-3-.454L3 21l1.5-4.5C3.55 15.155 3 13.62 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        Comment{{ $track->comments->count() > 0 ? ' (' . $track->comments->count() . ')' : '' }}
+                    </button>
                     {{-- Download button --}}
                     <button wire:click="download"
                             title="Download track"
@@ -654,7 +665,7 @@ new #[Layout('layouts.glass-app')] class extends Component {
         @endif
 
         {{-- Comments section --}}
-        <div class="glass-card p-6">
+        <div x-ref="commentsSection" class="glass-card p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">
                 Comments ({{ $track->comments->count() }})
             </h2>
