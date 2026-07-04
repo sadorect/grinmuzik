@@ -8,6 +8,10 @@ use App\Models\Playlist;
 use App\Models\SiteSetting;
 use App\Models\Track;
 use App\Models\User;
+use App\Contracts\AiNewsletterProvider;
+use App\Services\Ai\AnthropicNewsletterProvider;
+use App\Services\Ai\OllamaNewsletterProvider;
+use App\Services\Ai\OpenAiNewsletterProvider;
 use App\Support\ThemePalette;
 use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
@@ -31,6 +35,14 @@ class AppServiceProvider extends ServiceProvider
             'media-library.disk_name' => config('media-storage.public_disk'),
             'media-library.path_generator' => OrganizedPathGenerator::class,
         ]);
+
+        $this->app->bind(AiNewsletterProvider::class, function () {
+            return match (config('services.ai.provider')) {
+                'openai' => new OpenAiNewsletterProvider(),
+                'ollama' => new OllamaNewsletterProvider(),
+                default => new AnthropicNewsletterProvider(),
+            };
+        });
     }
 
     /**

@@ -71,4 +71,11 @@ export function registerIntelligenceTools(server: McpServer): void {
     async ({ period }) =>
       apiCall(() => api.get('/admin/revenue', { params: { period } })),
   );
+
+  server.tool(
+    'get_dormant_artists',
+    'List artists with zero published tracks, grouped by pending_warning (registered 7+ days ago, not yet warned) and pending_demotion (warned 30+ days ago, still no published track)',
+    {},
+    async () => apiCall(() => api.get('/mcp/dormant-artists')),
+  );
 }

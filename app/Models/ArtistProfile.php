@@ -48,6 +48,7 @@ class ArtistProfile extends Model implements HasMedia
         'is_approved',
         'is_active',
         'is_featured',
+        'warned_at',
         'preferred_currency',
         'admin_currency_override',
         'country_code',
@@ -60,6 +61,7 @@ class ArtistProfile extends Model implements HasMedia
         'is_approved'   => 'boolean',
         'is_active'     => 'boolean',
         'is_featured'   => 'boolean',
+        'warned_at'     => 'datetime',
         'total_plays'   => 'integer',
         'followers_count' => 'integer',
         'total_donations' => 'decimal:2',
@@ -308,6 +310,22 @@ class ArtistProfile extends Model implements HasMedia
             ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
     }
 
+    public function scopePendingDormancyWarning($query)
+    {
+        return $query
+            ->whereNull('warned_at')
+            ->where('created_at', '<=', now()->subDays(7))
+            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
+    }
+
+    public function scopePendingDormancyDemotion($query)
+    {
+        return $query
+            ->whereNotNull('warned_at')
+            ->where('warned_at', '<=', now()->subDays(30))
+            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
+    }
+
     public function scopeWithFeaturedRecommendationMetrics($query)
     {
         return $query
@@ -450,6 +468,11 @@ class ArtistProfile extends Model implements HasMedia
             'is_approved' => false,
             'is_active' => true,
         ])->save();
+    }
+
+    public function demoteToListener(): void
+    {
+        $this->delete();
     }
 
     protected function isDiscoverableForFeaturedRecommendation(): bool

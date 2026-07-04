@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('charts:snapshot week')->weeklyOn(1, '00:10');
 Schedule::command('charts:snapshot month')->monthlyOn(1, '00:20');
+Schedule::command('artists:prune-dormant')->daily();

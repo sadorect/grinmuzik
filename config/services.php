@@ -41,4 +41,20 @@ return [
         'timeout' => env('IP_GEOLOCATION_TIMEOUT', 3),
     ],
 
+    'ai' => [
+        'provider' => env('NEWSLETTER_AI_PROVIDER', 'anthropic'),
+        'anthropic' => [
+            'key'   => env('ANTHROPIC_API_KEY'),
+            'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
+        ],
+        'openai' => [
+            'key'   => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL', 'gpt-4o'),
+        ],
+        'ollama' => [
+            'url'   => env('OLLAMA_URL', 'http://localhost:11434'),
+            'model' => env('OLLAMA_MODEL', 'llama3'),
+        ],
+    ],
+
 ];

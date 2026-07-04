@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActionController;
 use App\Http\Controllers\Api\Admin\ArtistAdminController;
+use App\Http\Controllers\Api\Admin\DormantArtistsController;
 use App\Http\Controllers\Api\Admin\FailedJobsController;
 use App\Http\Controllers\Api\Admin\HealthController;
 use App\Http\Controllers\Api\Admin\PlaySpikesController;
@@ -78,4 +79,9 @@ Route::middleware(['auth:sanctum', 'ability:write', 'throttle:30,1'])->prefix('a
     Route::get('/tracks/spikes',             [PlaySpikesController::class, 'index']);
     Route::get('/queue/status',              [QueueController::class, 'status']);
     Route::get('/revenue',                   [RevenueController::class, 'index']);
+});
+
+// ── MCP monitoring endpoints (auth + write ability) ────────────────────────────
+Route::middleware(['auth:sanctum', 'ability:write', 'throttle:30,1'])->prefix('mcp')->group(function () {
+    Route::get('/dormant-artists', [DormantArtistsController::class, 'index']);
 });
