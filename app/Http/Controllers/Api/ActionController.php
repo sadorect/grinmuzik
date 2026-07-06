@@ -16,6 +16,8 @@ class ActionController extends Controller
 {
     public function recordPlay(Request $request, Track $track): JsonResponse
     {
+        abort_unless($track->is_published, 404);
+
         $request->validate([
             'seconds_played' => 'nullable|integer|min:0',
             'source'         => 'nullable|string|max:50',

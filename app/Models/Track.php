@@ -120,6 +120,20 @@ class Track extends Model implements HasMedia
             if (empty($track->slug)) {
                 $track->slug = Str::slug($track->title);
             }
+
+            if ($track->is_published && is_null($track->published_at)) {
+                $track->published_at = now();
+            }
+        });
+
+        static::updating(function (Track $track) {
+            if ($track->isDirty('is_published')) {
+                if ($track->is_published && is_null($track->published_at)) {
+                    $track->published_at = now();
+                } elseif (! $track->is_published) {
+                    $track->published_at = null;
+                }
+            }
         });
     }
 

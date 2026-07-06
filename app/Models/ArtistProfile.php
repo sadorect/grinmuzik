@@ -315,7 +315,7 @@ class ArtistProfile extends Model implements HasMedia
         return $query
             ->whereNull('warned_at')
             ->where('created_at', '<=', now()->subDays(7))
-            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
+            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->withTrashed()->published());
     }
 
     public function scopePendingDormancyDemotion($query)
@@ -323,7 +323,7 @@ class ArtistProfile extends Model implements HasMedia
         return $query
             ->whereNotNull('warned_at')
             ->where('warned_at', '<=', now()->subDays(30))
-            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
+            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->withTrashed()->published());
     }
 
     public function scopeWithFeaturedRecommendationMetrics($query)
