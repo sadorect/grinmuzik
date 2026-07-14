@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Support\UploadLimits;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -43,6 +44,14 @@ trait StagesLivewireUploads
                 Str::uuid()->toString().'.'.$extension,
                 ['disk' => 'local']
             );
+
+            // Keep Media Library's ceiling in lockstep with the admin-configurable
+            // upload limits so raising them in site settings can't be silently
+            // undercut by Spatie's static max_file_size config.
+            config(['media-library.max_file_size' => max(
+                UploadLimits::audioBytes(),
+                UploadLimits::imageBytes(),
+            )]);
 
             $model->addMediaFromDisk($stagedPath, 'local')
                 ->usingFileName($fileName)
