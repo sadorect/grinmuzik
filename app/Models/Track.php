@@ -529,6 +529,22 @@ class Track extends Model implements HasMedia
         return $query->where('is_featured', true);
     }
 
+    /**
+     * Whether a listen qualifies as a counted play: either it reached the
+     * configured minimum playback threshold, or the listener played the track
+     * to the end (which lets tracks shorter than the threshold still count).
+     */
+    public function qualifiesAsPlay(int $seconds, bool $completed = false): bool
+    {
+        if ($seconds >= SiteSetting::playCountMinSeconds()) {
+            return true;
+        }
+
+        $duration = (int) $this->duration;
+
+        return $completed && $duration > 0 && $seconds >= ($duration - 2);
+    }
+
     public function incrementPlayCount(): void
     {
         $this->increment('play_count');

@@ -181,6 +181,71 @@ hydratePlayerState();
 window.addEventListener("pagehide", persistPlayerState);
 window.addEventListener("beforeunload", persistPlayerState);
 
+/**
+ * Play-count threshold. A play is only counted once the listener reaches
+ * GrinPlayer.playThreshold seconds of playback (admin-configurable, floor 30s;
+ * the value is injected by the mini-player component). Counted at most once per
+ * track load; the server re-validates the threshold before incrementing.
+ */
+const DEFAULT_PLAY_THRESHOLD = 45;
+let playCountState = { id: null, counted: false };
+
+const maybeRecordPlay = () => {
+    const player = window.GrinPlayer;
+    const trackId = player?.track?.id;
+
+    if (!trackId) {
+        return;
+    }
+
+    if (playCountState.id !== trackId) {
+        playCountState = { id: trackId, counted: false };
+    }
+
+    if (playCountState.counted) {
+        return;
+    }
+
+    const threshold = Number.isFinite(player.playThreshold)
+        ? player.playThreshold
+        : DEFAULT_PLAY_THRESHOLD;
+    const seconds = Math.floor(player.audio.currentTime || 0);
+
+    if (seconds >= threshold && window.Livewire) {
+        playCountState.counted = true;
+        window.Livewire.dispatch("record-play", { id: trackId, seconds, completed: false });
+    }
+};
+
+/**
+ * Playing a track to the end counts as a play even if it never reached the
+ * threshold — this lets tracks shorter than the threshold still accrue plays.
+ * The server validates the completion against the track's stored duration.
+ */
+const recordCompletedPlay = () => {
+    const player = window.GrinPlayer;
+    const trackId = player?.track?.id;
+
+    if (!trackId) {
+        return;
+    }
+
+    if (playCountState.id !== trackId) {
+        playCountState = { id: trackId, counted: false };
+    }
+
+    if (playCountState.counted || !window.Livewire) {
+        return;
+    }
+
+    const seconds = Math.floor(player.audio.currentTime || player.audio.duration || 0);
+    playCountState.counted = true;
+    window.Livewire.dispatch("record-play", { id: trackId, seconds, completed: true });
+};
+
+window.GrinPlayer.audio.addEventListener("timeupdate", maybeRecordPlay);
+window.GrinPlayer.audio.addEventListener("ended", recordCompletedPlay);
+
 const THEME_STORAGE_KEY = "grinmuzik-theme";
 const THEME_DARK = "dark";
 const THEME_LIGHT = "light";

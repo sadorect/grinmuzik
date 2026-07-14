@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ProcessOversizedTrackUpload;
 use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
@@ -34,6 +35,11 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public $audioFile = null;
     public $coverFile = null;
+
+    public bool $audioOversize = false;
+    public bool $coverOversize = false;
+    public ?float $audioOversizeMb = null;
+    public ?float $coverOversizeMb = null;
 
     public array $genres = [];
     public array $albums = [];
@@ -104,12 +110,112 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public function updatedAudioFile(): void
     {
+        $this->audioOversize = false;
+        $this->audioOversizeMb = null;
+
+        if (! $this->audioFile) {
+            return;
+        }
+
+        // Oversize: offer conversion instead of a hard error, but still confirm it's audio.
+        if ($this->audioFile->getSize() > UploadLimits::audioKb() * 1024) {
+            $this->resetErrorBag('audioFile');
+            $this->validateOnly('audioFile', ['audioFile' => ['required', 'file', new ValidAudioUpload()]]);
+            $this->audioOversize = true;
+            $this->audioOversizeMb = round($this->audioFile->getSize() / 1048576, 1);
+
+            return;
+        }
+
         $this->validateOnly('audioFile');
     }
 
     public function updatedCoverFile(): void
     {
+        $this->coverOversize = false;
+        $this->coverOversizeMb = null;
+
+        if (! $this->coverFile) {
+            return;
+        }
+
+        if ($this->coverFile->getSize() > UploadLimits::imageKb() * 1024) {
+            $this->resetErrorBag('coverFile');
+            $this->validateOnly('coverFile', ['coverFile' => ['required', 'image', new ValidImageUpload()]]);
+            $this->coverOversize = true;
+            $this->coverOversizeMb = round($this->coverFile->getSize() / 1048576, 1);
+
+            return;
+        }
+
         $this->validateOnly('coverFile');
+    }
+
+    /**
+     * Artist consented to automatic conversion: persist the uploads durably and
+     * hand off to the background job, which converts, creates, and notifies.
+     */
+    public function confirmConversion(): void
+    {
+        $this->paymentsEnabled = SiteSetting::paymentsEnabled();
+
+        if (! $this->paymentsEnabled) {
+            $this->requires_donation = false;
+        }
+
+        if (! $this->audioOversize && ! $this->coverOversize) {
+            return;
+        }
+
+        // Validate everything except the file-size caps — conversion handles size.
+        $rules = $this->rules();
+        $rules['audioFile'] = ['required', 'file', new ValidAudioUpload()];
+        $rules['coverFile'] = ['nullable', 'image', new ValidImageUpload()];
+        $this->validate($rules);
+
+        $uuid = Str::uuid()->toString();
+        $audioExt = strtolower($this->audioFile->getClientOriginalExtension() ?: 'mp3');
+        $audioRel = $this->audioFile->storeAs('tmp/oversized-imports', $uuid . '.' . $audioExt, 'local');
+        $audioOriginalName = $this->audioFile->getClientOriginalName();
+
+        $coverRel = null;
+        $coverOriginalName = null;
+
+        if ($this->coverFile) {
+            $coverExt = strtolower($this->coverFile->getClientOriginalExtension() ?: 'jpg');
+            $coverRel = $this->coverFile->storeAs('tmp/oversized-imports', $uuid . '-cover.' . $coverExt, 'local');
+            $coverOriginalName = $this->coverFile->getClientOriginalName();
+        }
+
+        $trackData = [
+            'album_id' => $this->album_id,
+            'genre_id' => $this->genre_id,
+            'mood' => $this->mood,
+            'title' => $this->title,
+            'description' => $this->description,
+            'track_number' => $this->track_number ?: 1,
+            'is_published' => $this->is_published,
+            'is_free' => ! ($this->paymentsEnabled && $this->requires_donation),
+            'donation_amount' => ($this->paymentsEnabled && $this->requires_donation) ? (float) $this->donation_amount : 1.00,
+        ];
+
+        ProcessOversizedTrackUpload::dispatch(
+            (int) auth()->id(),
+            $trackData,
+            $audioRel,
+            $audioOriginalName,
+            $coverRel,
+            $coverOriginalName,
+        );
+
+        session()->flash('success', "We're converting your file and finishing the upload in the background. You'll be notified when it's ready.");
+        $this->redirect(route('artist.tracks'));
+    }
+
+    public function cancelConversion(): void
+    {
+        $this->reset('audioFile', 'coverFile', 'audioOversize', 'coverOversize', 'audioOversizeMb', 'coverOversizeMb');
+        $this->resetErrorBag(['audioFile', 'coverFile']);
     }
 
     protected function messages(): array
@@ -497,19 +603,51 @@ new #[Layout('layouts.glass-app')] class extends Component
             @endif
         </div>
 
-        <div class="flex justify-end gap-3 pb-4">
-            <a href="{{ route('artist.tracks') }}" wire:navigate
-               class="glass-btn glass-btn-hover px-5 py-2.5 rounded-xl text-sm font-medium">
-                Cancel
-            </a>
-            <button type="submit"
-                    class="glass-btn-primary glass-btn-primary-hover px-6 py-2.5 rounded-xl text-sm font-semibold"
-                    wire:loading.attr="disabled"
-                    wire:target="audioFile,coverFile,save">
-                <span wire:loading.remove wire:target="audioFile,coverFile,save">Upload Track</span>
-                <span wire:loading wire:target="audioFile,coverFile">Uploading files...</span>
-                <span wire:loading wire:target="save">Saving track...</span>
-            </button>
+        <div class="pb-4 space-y-3">
+            @if($audioOversize || $coverOversize)
+                {{-- Oversize consent: offer automatic background conversion instead of rejecting --}}
+                <div class="glass-card rounded-xl p-4 border border-amber-300/60 bg-amber-50/70 dark:bg-amber-500/10">
+                    <p class="font-semibold text-amber-800 dark:text-amber-300 text-sm">This file is larger than the upload limit</p>
+                    <ul class="mt-1 text-sm text-amber-700 dark:text-amber-200/90 list-disc list-inside space-y-0.5">
+                        @if($audioOversize)
+                            <li>Audio is {{ $audioOversizeMb }} MB — limit is {{ \App\Support\UploadLimits::formatKilobytes(\App\Support\UploadLimits::audioKb()) }}.</li>
+                        @endif
+                        @if($coverOversize)
+                            <li>Cover image is {{ $coverOversizeMb }} MB — limit is {{ \App\Support\UploadLimits::formatKilobytes(\App\Support\UploadLimits::imageKb()) }}.</li>
+                        @endif
+                    </ul>
+                    <p class="mt-2 text-sm text-amber-700 dark:text-amber-200/90">
+                        We can automatically convert it to a supported size in the background and notify you when it’s ready.
+                        Prefer not to? Cancel and upload a smaller file instead — nothing is saved until conversion succeeds.
+                    </p>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" wire:click="cancelConversion" wire:loading.attr="disabled"
+                            class="glass-btn glass-btn-hover px-5 py-2.5 rounded-xl text-sm font-medium">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="confirmConversion" wire:target="confirmConversion" wire:loading.attr="disabled"
+                            class="glass-btn-primary glass-btn-primary-hover px-6 py-2.5 rounded-xl text-sm font-semibold">
+                        <span wire:loading.remove wire:target="confirmConversion">Convert &amp; upload</span>
+                        <span wire:loading wire:target="confirmConversion">Starting…</span>
+                    </button>
+                </div>
+            @else
+                <div class="flex justify-end gap-3">
+                    <a href="{{ route('artist.tracks') }}" wire:navigate
+                       class="glass-btn glass-btn-hover px-5 py-2.5 rounded-xl text-sm font-medium">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="glass-btn-primary glass-btn-primary-hover px-6 py-2.5 rounded-xl text-sm font-semibold"
+                            wire:loading.attr="disabled"
+                            wire:target="audioFile,coverFile,save">
+                        <span wire:loading.remove wire:target="audioFile,coverFile,save">Upload Track</span>
+                        <span wire:loading wire:target="audioFile,coverFile">Uploading files...</span>
+                        <span wire:loading wire:target="save">Saving track...</span>
+                    </button>
+                </div>
+            @endif
         </div>
     </form>
 

@@ -20,22 +20,34 @@ class ActionController extends Controller
 
         $request->validate([
             'seconds_played' => 'nullable|integer|min:0',
+            'completed'      => 'nullable|boolean',
             'source'         => 'nullable|string|max:50',
         ]);
 
         $user = $request->user();
+        $secondsPlayed = $request->integer('seconds_played', 0);
 
         PlayHistory::create([
             'user_id'        => $user->id,
             'track_id'       => $track->id,
             'ip_address'     => $request->ip(),
-            'seconds_played' => $request->integer('seconds_played', 0),
+            'seconds_played' => $secondsPlayed,
             'source'         => $request->input('source', 'mcp'),
         ]);
 
-        $track->incrementPlayCount();
+        // A play counts once the listener reaches the configured threshold,
+        // or plays a shorter-than-threshold track to the end.
+        $counted = $track->qualifiesAsPlay($secondsPlayed, $request->boolean('completed'));
 
-        return response()->json(['message' => 'Play recorded', 'play_count' => $track->play_count]);
+        if ($counted) {
+            $track->incrementPlayCount();
+        }
+
+        return response()->json([
+            'message'    => $counted ? 'Play recorded' : 'Listen logged (below play threshold)',
+            'counted'    => $counted,
+            'play_count' => $track->play_count,
+        ]);
     }
 
     public function toggleLike(Request $request, Track $track): JsonResponse

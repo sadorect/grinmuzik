@@ -5,7 +5,7 @@
 --}}
 <div
     x-data="miniPlayer()"
-    x-init="init()"
+    x-init="window.GrinPlayer && (window.GrinPlayer.playThreshold = {{ (int) $playThresholdSeconds }}); init()"
     @destroyed="destroy()"
     x-on:player-track-loaded.window="onTrackLoaded($event.detail)"
     x-on:player-queue-add.window="onQueueAdd($event.detail)"

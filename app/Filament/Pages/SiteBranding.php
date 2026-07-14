@@ -298,6 +298,15 @@ class SiteBranding extends Page implements HasForms
                             ->suffix('tracks')
                             ->helperText('Max additional tracks from the same genre (different artist). Remaining slots are always filled from the global catalog.')
                             ->visible(fn (): bool => SiteSetting::supportsAutoQueueLimits()),
+                        Forms\Components\TextInput::make('play_count_min_seconds')
+                            ->label('Minimum play time before a play counts')
+                            ->numeric()
+                            ->minValue(SiteSetting::MIN_PLAY_COUNT_MIN_SECONDS)
+                            ->maxValue(600)
+                            ->default(SiteSetting::DEFAULT_PLAY_COUNT_MIN_SECONDS)
+                            ->suffix('seconds')
+                            ->helperText('A listener must play a track at least this long before it is counted as a play. Minimum '.SiteSetting::MIN_PLAY_COUNT_MIN_SECONDS.'s.')
+                            ->visible(fn (): bool => SiteSetting::supportsPlayThreshold()),
                     ])
                     ->columns(2)
                     ->visible(fn (): bool => SiteSetting::supportsAutoPlaylistControls()),
@@ -411,6 +420,12 @@ class SiteBranding extends Page implements HasForms
                 'auto_queue_album_limit',
                 'auto_queue_artist_limit',
                 'auto_queue_genre_limit',
+            ]));
+        }
+
+        if (SiteSetting::supportsPlayThreshold()) {
+            $data = array_merge($data, Arr::only($this->data, [
+                'play_count_min_seconds',
             ]));
         }
 
@@ -531,6 +546,10 @@ class SiteBranding extends Page implements HasForms
                 'auto_queue_artist_limit',
                 'auto_queue_genre_limit',
             ]);
+        }
+
+        if (SiteSetting::supportsPlayThreshold()) {
+            $keys[] = 'play_count_min_seconds';
         }
 
         if (SiteSetting::supportsDiscoveryOrdering()) {

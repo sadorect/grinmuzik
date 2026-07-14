@@ -162,6 +162,65 @@ class ArtistActivityNotifier
         );
     }
 
+    public function sendTrackConversionCompleted(Track $track): void
+    {
+        $track->loadMissing('artistProfile.user', 'genre', 'album');
+
+        $this->send(
+            $track->artistProfile?->user,
+            new ArtistActivityNotification(
+                subject: 'Track ready: ' . $track->title,
+                eyebrow: 'Upload Converted',
+                title: 'Your track was converted and added to your catalog.',
+                intro: 'Your file was larger than the current upload limit, so we automatically converted it to a supported size and finished the upload for you.',
+                messageLines: [
+                    $track->is_published
+                        ? 'Because this release is published, it can start appearing across discovery surfaces right away.'
+                        : 'This release is currently saved as a draft until you choose to publish it.',
+                ],
+                highlights: array_values(array_filter([
+                    ['label' => 'Track', 'value' => $track->title],
+                    ['label' => 'Visibility', 'value' => $track->is_published ? 'Published' : 'Draft'],
+                    $track->genre ? ['label' => 'Genre', 'value' => $track->genre->name] : null,
+                ])),
+                ctaLabel: 'Manage Track',
+                ctaUrl: route('artist.edit-track', $track),
+                secondaryCtaLabel: 'View My Music',
+                secondaryCtaUrl: route('artist.tracks'),
+                preheader: 'Your upload was converted and added to your catalog.',
+            ),
+        );
+    }
+
+    public function sendTrackConversionFailed(User $user, string $title, string $stage, ?string $limit = null): void
+    {
+        $reason = $stage === 'audio'
+            ? 'We could not compress this audio file below the ' . ($limit ?? 'current') . ' limit, even at our lowest quality setting.'
+            : 'Something went wrong while processing this upload.';
+
+        $this->send(
+            $user,
+            new ArtistActivityNotification(
+                subject: 'Upload could not be completed: ' . $title,
+                eyebrow: 'Upload Failed',
+                title: 'We could not finish converting your upload.',
+                intro: $reason,
+                messageLines: [
+                    'Nothing was saved. Please export a smaller file and upload it again.',
+                ],
+                highlights: array_values(array_filter([
+                    ['label' => 'Track', 'value' => $title],
+                    $limit ? ['label' => 'Limit', 'value' => $limit] : null,
+                ])),
+                ctaLabel: 'Try Again',
+                ctaUrl: route('artist.upload-track'),
+                secondaryCtaLabel: 'View My Music',
+                secondaryCtaUrl: route('artist.tracks'),
+                preheader: 'Your upload could not be completed.',
+            ),
+        );
+    }
+
     public function sendTrackUpdated(Track $track): void
     {
         $track->loadMissing('artistProfile.user', 'genre');

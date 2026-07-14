@@ -12,6 +12,15 @@ use Illuminate\Support\Str;
 
 class SiteSetting extends Model
 {
+    /** Default seconds of playback before a play is counted. */
+    public const DEFAULT_PLAY_COUNT_MIN_SECONDS = 45;
+
+    /** Hard floor: admins cannot set the play threshold below this. */
+    public const MIN_PLAY_COUNT_MIN_SECONDS = 30;
+
+    protected static ?int $playCountMinSecondsCache = null;
+    protected static ?bool $supportsPlayThresholdCache = null;
+
     protected static ?bool $supportsDiscoveryVisibilityCache = null;
     protected static ?bool $supportsFeaturedAlbumsCache = null;
     protected static ?bool $supportsDiscoveryOrderingCache = null;
@@ -76,6 +85,7 @@ class SiteSetting extends Model
         'auto_queue_genre_limit',
         'show_registration_role_guide',
         'registration_requires_email_verification',
+        'play_count_min_seconds',
     ];
 
     protected $casts = [
@@ -87,6 +97,7 @@ class SiteSetting extends Model
         'site_logo_upload_limit_kb' => 'integer',
         'favicon_upload_limit_kb' => 'integer',
         'hero_image_upload_limit_kb' => 'integer',
+        'play_count_min_seconds' => 'integer',
         'show_browse_mood_filters' => 'boolean',
         'show_browse_editor_picks' => 'boolean',
         'show_browse_personalized' => 'boolean',
@@ -492,6 +503,46 @@ class SiteSetting extends Model
             return static::$autoQueueGenreLimitCache = max(0, (int) (static::current()->auto_queue_genre_limit ?? 4));
         } catch (Throwable) {
             return static::$autoQueueGenreLimitCache = 4;
+        }
+    }
+
+    public static function supportsPlayThreshold(): bool
+    {
+        if (static::$supportsPlayThresholdCache !== null) {
+            return static::$supportsPlayThresholdCache;
+        }
+
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return static::$supportsPlayThresholdCache = false;
+            }
+
+            return static::$supportsPlayThresholdCache = Schema::hasColumn('site_settings', 'play_count_min_seconds');
+        } catch (Throwable) {
+            return static::$supportsPlayThresholdCache = false;
+        }
+    }
+
+    /**
+     * Seconds of playback required before a play is counted.
+     * Defaults to 45 and is clamped to the 30s hard floor.
+     */
+    public static function playCountMinSeconds(): int
+    {
+        if (static::$playCountMinSecondsCache !== null) {
+            return static::$playCountMinSecondsCache;
+        }
+
+        if (! static::supportsPlayThreshold()) {
+            return static::$playCountMinSecondsCache = static::DEFAULT_PLAY_COUNT_MIN_SECONDS;
+        }
+
+        try {
+            $value = (int) (static::current()->play_count_min_seconds ?? static::DEFAULT_PLAY_COUNT_MIN_SECONDS);
+
+            return static::$playCountMinSecondsCache = max(static::MIN_PLAY_COUNT_MIN_SECONDS, $value);
+        } catch (Throwable) {
+            return static::$playCountMinSecondsCache = static::DEFAULT_PLAY_COUNT_MIN_SECONDS;
         }
     }
 

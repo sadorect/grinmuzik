@@ -25,6 +25,44 @@ class MiniPlayer extends Component
     public bool $liked = false;
     public int $likesCount = 0;
 
+    /** Seconds of playback required before a play is counted (admin-configurable, floor 30). */
+    public int $playThresholdSeconds = SiteSetting::DEFAULT_PLAY_COUNT_MIN_SECONDS;
+
+    public function mount(): void
+    {
+        $this->playThresholdSeconds = SiteSetting::playCountMinSeconds();
+    }
+
+    /**
+     * Count a play only once the listener has reached the configured threshold.
+     * Fired by the front-end player after {@see $playThresholdSeconds} of playback.
+     */
+    #[On('record-play')]
+    public function recordPlay(int $id, int $seconds = 0, bool $completed = false): void
+    {
+        $model = Track::find($id);
+
+        if (! $model || ! $model->is_published) {
+            return;
+        }
+
+        if (! $model->qualifiesAsPlay($seconds, $completed)) {
+            return;
+        }
+
+        if (Auth::check()) {
+            PlayHistory::create([
+                'user_id' => Auth::id(),
+                'track_id' => $id,
+                'ip_address' => request()->ip(),
+                'seconds_played' => $seconds,
+                'source' => 'web',
+            ]);
+        }
+
+        $model->incrementPlayCount();
+    }
+
     #[On('play-track')]
     public function loadTrack(int $id): void
     {
@@ -48,16 +86,8 @@ class MiniPlayer extends Component
         $this->track = $trackData;
         $this->duration = $model->duration ?? 0;
 
-        if (Auth::check()) {
-            PlayHistory::create([
-                'user_id' => Auth::id(),
-                'track_id' => $id,
-                'ip_address' => request()->ip(),
-                'source' => 'web',
-            ]);
-        }
-
-        $model->incrementPlayCount();
+        // Play counting now happens via recordPlay() once the listener passes
+        // the configured playback threshold — no longer counted on load.
         $this->refreshLikeState();
 
         $this->dispatch('player-track-loaded', track: $this->track);
@@ -171,17 +201,7 @@ class MiniPlayer extends Component
             }
 
             if ($first) {
-                if (Auth::check()) {
-                    PlayHistory::create([
-                        'user_id' => Auth::id(),
-                        'track_id' => $model->id,
-                        'ip_address' => request()->ip(),
-                        'source' => 'web',
-                    ]);
-                }
-
-                $model->incrementPlayCount();
-
+                // Play counting is deferred to recordPlay() once the threshold is met.
                 $this->trackId = $model->id;
                 $this->track   = $trackData;
                 $this->refreshLikeState();
