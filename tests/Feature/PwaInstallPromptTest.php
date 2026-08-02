@@ -27,7 +27,12 @@ class PwaInstallPromptTest extends TestCase
             ->assertSee('"name":"GrinMuzik"', false)
             ->assertSee('"short_name":"GrinMuzik"', false)
             ->assertSee('"display":"standalone"', false)
-            ->assertSee('/pwa-icon.svg', false);
+            // The manifest serves the generated maskable PNGs from
+            // manifest.json, not the /pwa-icon.svg route. This assertion had
+            // been stale — and failing — since the icons changed.
+            ->assertSee('/pwa-icons/manifest-icon-192.maskable.png', false)
+            ->assertSee('/pwa-icons/manifest-icon-512.maskable.png', false)
+            ->assertSee('"purpose":"maskable"', false);
     }
 
     public function test_offline_page_is_available(): void
