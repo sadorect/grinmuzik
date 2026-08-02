@@ -1,6 +1,8 @@
 <?php
 
-use App\Rules\CaptchaAnswer;
+use App\Rules\Captcha;
+use App\Rules\Honeypot;
+use App\Support\AuthThrottle;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -9,15 +11,21 @@ new #[Layout('layouts.guest')] class extends Component
 {
     public string $email    = '';
     public string $captcha  = '';
+    public string $website  = '';
 
     /**
      * Send a password reset link to the provided email address.
      */
     public function sendPasswordResetLink(): void
     {
+        // Volt forms submit to /livewire/update, so the route's throttle
+        // middleware never sees this call — the limit has to run here.
+        AuthThrottle::ensureAllowed('password_reset_request', 'email');
+
         $this->validate([
             'email'   => ['required', 'string', 'email'],
-            'captcha' => ['required', 'integer', new CaptchaAnswer],
+            'captcha' => ['required', new Captcha('password-reset-request')],
+            'website' => [new Honeypot],
         ]);
 
         // We will send the password reset link to this user. Once we have attempted
@@ -56,7 +64,7 @@ new #[Layout('layouts.guest')] class extends Component
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
-        <x-math-captcha wire:model="captcha" error-bag="captcha" />
+        <x-captcha-field model="captcha" honeypot="website" form-key="password-reset-request" />
 
         <x-primary-button class="w-full justify-center">
             {{ __('Send Reset Link') }}

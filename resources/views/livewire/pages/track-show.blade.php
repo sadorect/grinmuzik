@@ -459,6 +459,12 @@ new #[Layout('layouts.glass-app')] class extends Component {
                         <span x-show="!copied">Copy Link</span>
                         <span x-show="copied" style="display:none">Copied</span>
                     </button>
+
+                    {{-- Play's UGC policy requires reporting to be reachable
+                         from the content itself, not from a separate page. --}}
+                    <div class="flex items-center px-2">
+                        <livewire:report-content :content="$track" :key="'report-track-'.$track->id" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -705,6 +711,13 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                 <span class="text-gray-400 text-xs">{{ $comment->created_at->diffForHumans() }}</span>
                             </div>
                             <p class="text-gray-600 text-sm mt-0.5">{{ $comment->body }}</p>
+
+                            {{-- Comments are user-generated content too, so they
+                                 carry the same report affordance as tracks. --}}
+                            <div class="mt-1">
+                                <livewire:report-content :content="$comment" :key="'report-comment-'.$comment->id" />
+                            </div>
+
                             {{-- Replies --}}
                             @foreach($comment->replies as $reply)
                                 <div class="flex gap-3 mt-3 pl-4 border-l border-gray-200">
@@ -717,6 +730,10 @@ new #[Layout('layouts.glass-app')] class extends Component {
                                             <span class="text-gray-400 text-xs">{{ $reply->created_at->diffForHumans() }}</span>
                                         </div>
                                         <p class="text-gray-600 text-xs mt-0.5">{{ $reply->body }}</p>
+
+                                        <div class="mt-1">
+                                            <livewire:report-content :content="$reply" :key="'report-comment-'.$reply->id" />
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach

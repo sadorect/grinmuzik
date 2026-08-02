@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountDeletionController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\StripeConnectController;
@@ -137,6 +138,48 @@ Route::get('/manifest.webmanifest', function () {
     );
 })->name('manifest');
 
+/*
+ * Digital Asset Links — proves grinmuzik.com and the Android app are the same
+ * party, which is what makes the TWA open without a browser URL bar.
+ *
+ * Config-driven rather than a static file because the fingerprint is not known
+ * until the app exists in Play Console: Google re-signs every upload with the
+ * Play App Signing key, so the value to publish here is that key's SHA-256, not
+ * the local upload keystore's. Order of operations is therefore:
+ *   1. build and upload the first AAB,
+ *   2. copy the SHA-256 from Play Console → Setup → App signing,
+ *   3. set PLAY_APP_FINGERPRINT and clear the config cache.
+ *
+ * Returns 404 while unconfigured. Publishing a well-formed file with the wrong
+ * fingerprint is worse — Android caches the failed verification, and a URL bar
+ * that will not go away is the usual reason.
+ *
+ * NOTE: the verifier is not a browser and cannot solve a challenge, so Cloudflare
+ * must never rate-limit, challenge or WAF-block /.well-known/assetlinks.json.
+ */
+Route::get('/.well-known/assetlinks.json', function () {
+    $fingerprint = trim((string) config('security.play.app_fingerprint'));
+    $package = trim((string) config('security.play.package_name'));
+
+    abort_if($fingerprint === '' || $package === '', 404);
+
+    return response()->json([
+        [
+            'relation' => ['delegate_permission/common.handle_all_urls'],
+            'target' => [
+                'namespace' => 'android_app',
+                'package_name' => $package,
+                'sha256_cert_fingerprints' => array_values(array_filter(
+                    array_map('trim', explode(',', $fingerprint)),
+                )),
+            ],
+        ],
+    ], 200, [
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'public, max-age=300',
+    ], JSON_UNESCAPED_SLASHES);
+})->name('assetlinks');
+
 Route::view('/offline', 'offline')->name('offline');
 
 Route::get('/robots.txt', function () {
@@ -238,6 +281,26 @@ Volt::route('/about', 'pages.about')->name('about');
 Volt::route('/artist-guide', 'pages.artist-guide')->name('artist-guide');
 Volt::route('/pricing', 'pages.pricing')->name('pricing');
 Volt::route('/privacy', 'pages.privacy')->name('privacy');
+
+// Play's UGC policy requires published rules alongside the reporting mechanism.
+Volt::route('/guidelines', 'pages.guidelines')->name('guidelines');
+
+/*
+ * Account deletion, reachable signed-out.
+ *
+ * Google Play requires a web URL where deletion can be requested without
+ * installing the app, so these must stay outside the 'auth' middleware. The
+ * proof of ownership is the emailed token, not a session.
+ */
+Volt::route('/account/delete', 'pages.account-deletion')->name('account.deletion');
+
+Route::get('/account/delete/confirm/{token}', [AccountDeletionController::class, 'confirm'])
+    ->name('account.deletion.confirm')
+    ->middleware('throttle:10,1');
+
+Route::post('/account/delete/confirm/{token}', [AccountDeletionController::class, 'destroy'])
+    ->name('account.deletion.destroy')
+    ->middleware('throttle:10,1');
 Volt::route('/terms', 'pages.terms')->name('terms');
 Volt::route('/contact', 'pages.contact')->name('contact');
 

@@ -5,11 +5,13 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Volt\Volt;
+use Tests\Concerns\SolvesCaptcha;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
+    use SolvesCaptcha;
 
     public function test_login_screen_can_be_rendered(): void
     {
@@ -27,9 +29,7 @@ class AuthenticationTest extends TestCase
         $component = Volt::test('pages.auth.login')
             ->set('form.email', $user->email)
             ->set('form.password', 'password')
-            ->set('captcha', '6');
-
-        session(['captcha_answer' => 6]);
+            ->set('captcha', $this->captchaAnswerFor('login'));
 
         $component->call('login');
 
@@ -47,9 +47,7 @@ class AuthenticationTest extends TestCase
         $component = Volt::test('pages.auth.login')
             ->set('form.email', $user->email)
             ->set('form.password', 'wrong-password')
-            ->set('captcha', '8');
-
-        session(['captcha_answer' => 8]);
+            ->set('captcha', $this->captchaAnswerFor('login'));
 
         $component->call('login');
 

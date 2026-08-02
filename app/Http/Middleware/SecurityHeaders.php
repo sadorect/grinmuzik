@@ -26,14 +26,19 @@ class SecurityHeaders
             'https://api.stripe.com',
         ], $this->configuredConnectOrigins());
 
+        // Turnstile loads its script from, and renders its widget in an iframe
+        // served by, challenges.cloudflare.com. Without both directives the
+        // challenge silently fails to appear and every form becomes unsubmittable.
+        $turnstile = 'https://challenges.cloudflare.com';
+
         $csp = implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com {$turnstile}",
             "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
             "img-src 'self' data: blob: https:",
             "font-src 'self' data: https://fonts.bunny.net",
             'connect-src ' . implode(' ', array_unique($connectSources)),
-            "frame-src https://js.stripe.com https://hooks.stripe.com",
+            "frame-src https://js.stripe.com https://hooks.stripe.com {$turnstile}",
             "media-src 'self' blob: https:",
             "object-src 'none'",
             "base-uri 'self'",

@@ -1,4 +1,9 @@
 import "./bootstrap";
+import {
+    initMediaSession,
+    registerMediaSessionHandlers,
+    updateMediaSessionMetadata,
+} from "./media-session";
 
 /**
  * GrinPlayer — persistent audio singleton.
@@ -171,6 +176,15 @@ window.GrinPlayerPersist = window.GrinPlayerPersist || {
 };
 
 hydratePlayerState();
+
+// After hydration, so a restored session shows the right track on the
+// lockscreen rather than waiting for the next play event.
+initMediaSession();
+window.GrinPlayerMediaSession = { refresh: updateMediaSessionMetadata };
+
+// The Alpine mini-player owns queue order, shuffle and repeat, so skip actions
+// have to be delegated back to it. It calls this on every init().
+window.registerGrinMediaSessionHandlers = registerMediaSessionHandlers;
 
 ["timeupdate", "play", "pause", "loadedmetadata", "volumechange", "ended"].forEach(
     (eventName) => {

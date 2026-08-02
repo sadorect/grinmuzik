@@ -17,6 +17,7 @@ use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Str;
@@ -50,6 +51,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureRequestTrust();
+
+        /*
+         * Deliberately NO morph map for content_reports.
+         *
+         * A map would be tidier, but Relation::morphMap is global: aliasing
+         * Track or ArtistProfile also changes what Spatie Media Library writes
+         * to media.model_type, and every existing media row stores the
+         * fully-qualified name. Adding the map would orphan the artwork and
+         * audio of every track already uploaded.
+         *
+         * enforceMorphMap is worse still — it makes any unmapped model throw,
+         * which takes out media, notifications and every other polymorphic
+         * relation in the app.
+         *
+         * The report form's safety does not depend on aliasing anyway:
+         * ReportContent::resolveContent() refuses any class that does not use
+         * the Reportable trait, so a tampered payload has nothing to aim at.
+         */
+
         Vite::usePreloadTagAttributes(fn (string $src, string $url) => str_ends_with(strtok($url, '?') ?: $url, '.css') ? false : []);
 
         \Illuminate\Support\Facades\Event::listen(PasswordReset::class, function (PasswordReset $event): void {
@@ -361,5 +382,31 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with($sharedCache[$cacheKey]);
         });
+    }
+
+    /**
+     * Make $request->ip() mean the visitor rather than a Cloudflare edge node.
+     *
+     * Everything that keys off the client IP depends on this — the auth
+     * throttles in App\Support\AuthThrottle, the page-view analytics in
+     * TrackPageView, and geolocation. Without it they all see a handful of
+     * Cloudflare addresses instead of real visitors, which turns per-IP rate
+     * limiting into a way for one attacker to lock out everyone.
+     *
+     * Trusting the CIDR list rather than '*' keeps forwarded headers ignored on
+     * any request that did not actually arrive through Cloudflare.
+     *
+     * (Idiomatically this belongs in bootstrap/app.php's trustProxies(); it
+     * lives here only because that file is not writable by the deploy user.)
+     */
+    protected function configureRequestTrust(): void
+    {
+        Request::setTrustedProxies(
+            config('security.trusted_proxies', []),
+            Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO,
+        );
     }
 }

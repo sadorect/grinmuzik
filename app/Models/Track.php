@@ -20,6 +20,7 @@ use Throwable;
 class Track extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, Searchable, SoftDeletes;
+    use \App\Models\Concerns\Reportable;
 
     public static function moodDefinitions(): array
     {

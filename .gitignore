@@ -22,3 +22,9 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Android/TWA build output. The keystore in particular must never be committed —
+# it is the upload key and cannot be replaced once the app is listed.
+/build/twa
+*.jks
+*.keystore

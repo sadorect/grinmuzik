@@ -21,6 +21,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class ArtistProfile extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, Searchable, SoftDeletes;
+    use \App\Models\Concerns\Reportable;
 
     public const FEATURE_RECOMMENDATION_MIN_PUBLISHED_TRACKS = 3;
 

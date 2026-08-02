@@ -20,6 +20,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\TrackUserActivity;
 use App\Filament\Pages\Auth\Login as FilamentLogin;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 
 class MusicdirectorPanelProvider extends PanelProvider
 {
@@ -31,6 +32,15 @@ class MusicdirectorPanelProvider extends PanelProvider
             ->path('musicdirector')
             ->brandName('GrinMuzik Admin')
             ->login(FilamentLogin::class)
+            // The admin panel guards everything the site is worth attacking for,
+            // so it gets a second factor. Enrolment lives on the profile page,
+            // which is why that is enabled alongside it.
+            ->profile(isSimple: false)
+            ->multiFactorAuthentication(
+                AppAuthentication::make()
+                    ->recoverable()
+                    ->regenerableRecoveryCodes(),
+            )
             ->colors([
                 'primary' => Color::hex('#728FCE'),
             ])

@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
-use App\Rules\CaptchaAnswer;
+use App\Rules\Captcha;
+use App\Rules\Honeypot;
+use App\Support\AuthThrottle;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Volt\Component;
@@ -19,6 +21,7 @@ new #[Layout('layouts.guest')] class extends Component
     public string $password = '';
     public string $password_confirmation = '';
     public string $captcha = '';
+    public string $website = '';
 
     /**
      * Mount the component.
@@ -35,11 +38,17 @@ new #[Layout('layouts.guest')] class extends Component
      */
     public function resetPassword(): void
     {
+        // Volt forms submit to /livewire/update, so the route's throttle
+        // middleware never sees this call — the limit has to run here. This is
+        // the guard against walking the reset-token space.
+        AuthThrottle::ensureAllowed('password_reset', 'email');
+
         $this->validate([
             'token'    => ['required'],
             'email'    => ['required', 'string', 'email'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
-            'captcha'  => ['required', 'integer', new CaptchaAnswer],
+            'captcha'  => ['required', new Captcha('password-reset')],
+            'website'  => [new Honeypot],
         ]);
 
         // Here we will attempt to reset the user's password. If it is successful we
@@ -102,7 +111,7 @@ new #[Layout('layouts.guest')] class extends Component
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <x-math-captcha wire:model="captcha" error-bag="captcha" />
+        <x-captcha-field model="captcha" honeypot="website" form-key="password-reset" />
 
         <x-primary-button class="w-full justify-center">
             {{ __('Reset Password') }}
