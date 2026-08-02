@@ -50,7 +50,21 @@ echo "    Backup: $BACKUP_FILE"
 ls -1t "${BACKUP_DIR}/${DB_DATABASE}-"*.sql.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm --
 
 echo "==> Pulling latest code..."
-git pull --ff-only
+# Pin the branch rather than trusting whatever happens to be checked out.
+# A bare `git pull` deploys whichever branch someone last left the working copy
+# on, and fails outright if that branch has no upstream -- which is exactly how
+# the first real deploy died.
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-livestream}"
+
+git fetch --prune origin "$DEPLOY_BRANCH"
+
+if [ "$(git rev-parse --abbrev-ref HEAD)" != "$DEPLOY_BRANCH" ]; then
+    echo "    switching from $(git rev-parse --abbrev-ref HEAD) to $DEPLOY_BRANCH"
+    git checkout "$DEPLOY_BRANCH"
+fi
+
+# --ff-only so a deploy can never quietly create a merge commit on production.
+git merge --ff-only "origin/$DEPLOY_BRANCH"
 
 echo "==> Installing PHP dependencies..."
 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
