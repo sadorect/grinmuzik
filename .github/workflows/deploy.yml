@@ -43,11 +43,6 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
-      # The suite runs on in-memory SQLite (see phpunit.xml), so no database
-      # service is needed here.
-      - name: Run tests
-        run: php artisan test
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -56,11 +51,20 @@ jobs:
       - name: Install JS dependencies
         run: npm ci --no-audit --no-fund
 
-      # The PHP suite does not compile JS, so a broken asset only shows up here.
-      # Without this step a syntax error in app.js deploys happily and breaks the
-      # player in production.
+      # MUST come before the tests. public/build is gitignored, so a fresh
+      # checkout has no Vite manifest, and every test that renders a layout
+      # dies on "Vite manifest not found" rather than on anything real.
+      #
+      # It also earns its place independently: the PHP suite does not compile
+      # JS, so a syntax error in app.js would otherwise deploy happily and
+      # break the player in production.
       - name: Build assets
         run: npm run build
+
+      # The suite runs on in-memory SQLite (see phpunit.xml), so no database
+      # service is needed here.
+      - name: Run tests
+        run: php artisan test
 
   deploy:
     name: Deploy to production
