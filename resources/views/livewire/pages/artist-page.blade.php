@@ -233,13 +233,22 @@ new #[Layout('layouts.glass-app')] class extends Component {
                         </div>
                     </div>
 
-                    <div class="shrink-0">
+                    <div class="flex shrink-0 items-center gap-4">
                         <button wire:click="toggleFollow"
                                 class="rounded-full px-6 py-2.5 text-sm font-semibold shadow-lg transition {{ $isFollowing
                                     ? 'bg-white/10 text-white hover:bg-white/20'
                                     : 'bg-primary text-white hover:bg-primary-500' }}">
                             {{ $isFollowing ? 'Following' : 'Follow' }}
                         </button>
+
+                        {{-- Artist profiles are user-generated too: the name, bio
+                             and artwork are all reportable surfaces. onDark
+                             because this hero is bg-black/35 with white text. --}}
+                        <livewire:report-content
+                            :content="$profile"
+                            variant="onDark"
+                            :key="'report-artist-'.$profile->id"
+                        />
                     </div>
                 </div>
 

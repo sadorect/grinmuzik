@@ -7,11 +7,13 @@ use App\Notifications\Auth\BrandedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
+use Tests\Concerns\SolvesCaptcha;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
+    use SolvesCaptcha;
 
     public function test_reset_password_link_screen_can_be_rendered(): void
     {
@@ -30,9 +32,7 @@ class PasswordResetTest extends TestCase
 
         $component = Volt::test('pages.auth.forgot-password')
             ->set('email', $user->email)
-            ->set('captcha', '4');
-
-        session(['captcha_answer' => 4]);
+            ->set('captcha', $this->captchaAnswerFor('password-reset-request'));
 
         $component->call('sendPasswordResetLink');
 
@@ -46,9 +46,7 @@ class PasswordResetTest extends TestCase
         $user = User::factory()->create();
         $component = Volt::test('pages.auth.forgot-password')
             ->set('email', $user->email)
-            ->set('captcha', '4');
-
-        session(['captcha_answer' => 4]);
+            ->set('captcha', $this->captchaAnswerFor('password-reset-request'));
 
         $component->call('sendPasswordResetLink');
 
@@ -70,9 +68,7 @@ class PasswordResetTest extends TestCase
         $user = User::factory()->create();
         $forgotPassword = Volt::test('pages.auth.forgot-password')
             ->set('email', $user->email)
-            ->set('captcha', '4');
-
-        session(['captcha_answer' => 4]);
+            ->set('captcha', $this->captchaAnswerFor('password-reset-request'));
 
         $forgotPassword->call('sendPasswordResetLink');
 
@@ -81,9 +77,7 @@ class PasswordResetTest extends TestCase
                 ->set('email', $user->email)
                 ->set('password', 'password')
                 ->set('password_confirmation', 'password')
-                ->set('captcha', '5');
-
-            session(['captcha_answer' => 5]);
+                ->set('captcha', $this->captchaAnswerFor('password-reset'));
 
             $component->call('resetPassword');
 

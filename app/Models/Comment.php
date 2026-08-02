@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Comment extends Model
 {
     use HasFactory, SoftDeletes;
+    use \App\Models\Concerns\Reportable;
 
     protected $fillable = [
         'user_id',

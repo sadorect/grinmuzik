@@ -2,7 +2,9 @@
 
 use App\Mail\ContactFormMail;
 use App\Models\ContactMessage;
-use App\Rules\CaptchaAnswer;
+use App\Rules\Captcha;
+use App\Rules\Honeypot;
+use App\Support\AuthThrottle;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -14,6 +16,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     public string $subject = '';
     public string $message = '';
     public string $captcha = '';
+    public string $website = '';
     public bool $sent = false;
 
     public function with(): array
@@ -43,12 +46,17 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public function send(): void
     {
+        // Volt forms submit to /livewire/update, so the route's throttle
+        // middleware never sees this call — the limit has to run here.
+        AuthThrottle::ensureAllowed('contact', 'email');
+
         $this->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:200'],
             'subject' => ['required', 'string', 'max:150'],
             'message' => ['required', 'string', 'min:20', 'max:2000'],
-            'captcha' => ['required', 'integer', new CaptchaAnswer],
+            'captcha' => ['required', new Captcha('contact')],
+            'website' => [new Honeypot],
         ]);
 
         $contactMessage = ContactMessage::create([
@@ -71,7 +79,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                 messageId: $contactMessage->id,
             ));
 
-        $this->reset('name', 'email', 'subject', 'message', 'captcha');
+        $this->reset('name', 'email', 'subject', 'message', 'captcha', 'website');
         $this->sent = true;
     }
 };
@@ -161,7 +169,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                     </div>
 
                     <div class="mt-5">
-                        <x-math-captcha wire:model="captcha" error-bag="captcha" />
+                        <x-captcha-field model="captcha" honeypot="website" form-key="contact" />
                     </div>
 
                     <div class="mt-6 flex justify-end">

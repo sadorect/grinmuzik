@@ -10,11 +10,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Role;
+use Tests\Concerns\SolvesCaptcha;
 use Tests\TestCase;
 
 class ContactCenterTest extends TestCase
 {
     use RefreshDatabase;
+    use SolvesCaptcha;
 
     public function test_contact_form_submission_is_saved_and_emailed(): void
     {
@@ -25,9 +27,7 @@ class ContactCenterTest extends TestCase
             ->set('email', 'listener@example.com')
             ->set('subject', 'Need help with my account')
             ->set('message', 'I need help with my account because the dashboard is not behaving the way I expected it to.')
-            ->set('captcha', '9');
-
-        session(['captcha_answer' => 9]);
+            ->set('captcha', $this->captchaAnswerFor('contact'));
 
         $component
             ->call('send')

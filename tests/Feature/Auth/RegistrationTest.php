@@ -7,11 +7,13 @@ use App\Support\UploadLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Livewire\Volt\Volt;
+use Tests\Concerns\SolvesCaptcha;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
+    use SolvesCaptcha;
 
     public function test_registration_screen_can_be_rendered(): void
     {
@@ -71,10 +73,8 @@ class RegistrationTest extends TestCase
             ->set('email', 'test@example.com')
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
-            ->set('captcha', '7')
+            ->set('captcha', $this->captchaAnswerFor('register'))
             ->set('hasAcceptedPolicies', true);
-
-        session(['captcha_answer' => 7]);
 
         $component
             ->call('register')
@@ -96,10 +96,8 @@ class RegistrationTest extends TestCase
             ->set('email', 'nomail@example.com')
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
-            ->set('captcha', '13')
+            ->set('captcha', $this->captchaAnswerFor('register'))
             ->set('hasAcceptedPolicies', true);
-
-        session(['captcha_answer' => 13]);
 
         $component->call('register');
 
@@ -118,10 +116,8 @@ class RegistrationTest extends TestCase
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
             ->set('stage_name', 'Artist User')
-            ->set('captcha', '9')
+            ->set('captcha', $this->captchaAnswerFor('register'))
             ->set('hasAcceptedPolicies', true);
-
-        session(['captcha_answer' => 9]);
 
         $component
             ->set('avatar', UploadedFile::fake()->image('avatar.jpg')->size(UploadLimits::DEFAULT_IMAGE_KB + 1))
@@ -131,15 +127,13 @@ class RegistrationTest extends TestCase
 
     public function test_registration_requires_policy_acceptance(): void
     {
-        session(['captcha_answer' => 7]);
-
         Volt::test('pages.auth.register')
             ->set('role', 'listener')
             ->set('name', 'Test User')
             ->set('email', 'test@example.com')
             ->set('password', 'password')
             ->set('password_confirmation', 'password')
-            ->set('captcha', '7')
+            ->set('captcha', $this->captchaAnswerFor('register'))
             ->set('hasAcceptedPolicies', false)
             ->call('register')
             ->assertHasErrors(['hasAcceptedPolicies' => 'accepted'])

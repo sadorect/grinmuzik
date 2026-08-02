@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Support\UploadLimits;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,7 +22,7 @@ use Spatie\MediaLibrary\MediaCollections\File;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements HasMedia, FilamentUser, MustVerifyEmail
+class User extends Authenticatable implements HasMedia, FilamentUser, MustVerifyEmail, HasAppAuthentication, HasAppAuthenticationRecovery
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles, Billable, InteractsWithMedia, HasApiTokens, HasPushSubscriptions;
@@ -46,6 +48,8 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
     protected $hidden = [
         'password',
         'remember_token',
+        'app_authentication_secret',
+        'app_authentication_recovery_codes',
     ];
 
     /**
@@ -59,7 +63,55 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
             'email_verified_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'password' => 'hashed',
+
+            // Both are password-equivalent: the secret mints valid codes
+            // forever, and a recovery code bypasses the second factor outright.
+            'app_authentication_secret' => 'encrypted',
+            'app_authentication_recovery_codes' => 'encrypted:array',
         ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-factor authentication (Filament app authentication / TOTP)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getAppAuthenticationSecret(): ?string
+    {
+        return $this->app_authentication_secret;
+    }
+
+    public function saveAppAuthenticationSecret(?string $secret): void
+    {
+        $this->app_authentication_secret = $secret;
+        $this->save();
+    }
+
+    /**
+     * Shown in the authenticator app beside the code, so it must identify both
+     * the account and which site it belongs to.
+     */
+    public function getAppAuthenticationHolderName(): string
+    {
+        return $this->email;
+    }
+
+    /**
+     * @return ?array<string>
+     */
+    public function getAppAuthenticationRecoveryCodes(): ?array
+    {
+        return $this->app_authentication_recovery_codes;
+    }
+
+    /**
+     * @param  ?array<string>  $codes
+     */
+    public function saveAppAuthenticationRecoveryCodes(?array $codes): void
+    {
+        $this->app_authentication_recovery_codes = $codes;
+        $this->save();
     }
 
     protected static function booted(): void

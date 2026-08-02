@@ -3,20 +3,31 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
+/*
+ * These are Volt components, so a `throttle` middleware here would only limit
+ * how often the PAGE may be fetched — the submissions themselves go to
+ * /livewire/update and never pass through this route's middleware. The limits
+ * that matter run inside each component via App\Support\AuthThrottle.
+ *
+ * A modest page-fetch throttle is kept anyway: it costs nothing and blunts the
+ * crudest scraping, but it is not the brute-force defence.
+ */
 Route::middleware('guest')->group(function () {
     Volt::route('register', 'pages.auth.register')
         ->name('register')
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:30,1');
 
     Volt::route('login', 'pages.auth.login')
-        ->name('login');
+        ->name('login')
+        ->middleware('throttle:30,1');
 
     Volt::route('forgot-password', 'pages.auth.forgot-password')
         ->name('password.request')
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:30,1');
 
     Volt::route('reset-password/{token}', 'pages.auth.reset-password')
-        ->name('password.reset');
+        ->name('password.reset')
+        ->middleware('throttle:30,1');
 });
 
 Route::middleware('auth')->group(function () {

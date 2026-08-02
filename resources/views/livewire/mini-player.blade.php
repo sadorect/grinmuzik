@@ -988,6 +988,15 @@ function miniPlayer() {
             if (P.track?.audio_url && !P.audio.src) {
                 P.audio.src = P.track.audio_url;
             }
+
+            // Lockscreen / notification / headset skip buttons. Re-registered on
+            // every init() because wire:navigate discards the component these
+            // closures capture, while the audio singleton (and the OS media
+            // session bound to it) lives on.
+            window.registerGrinMediaSessionHandlers?.({
+                next: () => this.playNext(),
+                previous: () => this.playPrev(),
+            });
             this._mobileMediaQuery = window.matchMedia('(max-width: 639px)');
             this._syncMobileViewport = (event) => {
                 this.isMobileViewport = event.matches;

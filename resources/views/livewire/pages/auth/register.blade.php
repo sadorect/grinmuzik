@@ -4,7 +4,9 @@ use App\Models\ArtistProfile;
 use App\Models\Genre;
 use App\Models\SiteSetting;
 use App\Models\User;
-use App\Rules\CaptchaAnswer;
+use App\Rules\Captcha;
+use App\Rules\Honeypot;
+use App\Support\AuthThrottle;
 use App\StagesLivewireUploads;
 use App\Support\UploadLimits;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +31,7 @@ new #[Layout('layouts.guest')] class extends Component
     public string $password_confirmation = '';
     public string $role        = 'artist'; // 'listener' | 'artist'
     public string $captcha     = '';
+    public string $website     = '';
     public bool $hasAcceptedPolicies = false;
     public bool $hideRoleGuide = false;
 
@@ -62,7 +65,8 @@ new #[Layout('layouts.guest')] class extends Component
             'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
             'role'     => ['required', 'in:listener,artist'],
-            'captcha'  => ['required', 'integer', new CaptchaAnswer],
+            'captcha'  => ['required', new Captcha('register')],
+            'website'  => [new Honeypot],
             'hasAcceptedPolicies' => ['accepted'],
         ];
 
@@ -95,6 +99,11 @@ new #[Layout('layouts.guest')] class extends Component
     public function register()
     {
         $this->resetErrorBag('register');
+
+        // Volt forms submit to /livewire/update, so the route's throttle
+        // middleware never sees this call — the limit has to run here.
+        AuthThrottle::ensureAllowed('register', 'email');
+
         $this->validate();
 
         $user = null;
@@ -450,7 +459,7 @@ new #[Layout('layouts.guest')] class extends Component
         @endif
 
         {{-- ── Captcha + Submit ─────────────────────────────────────── --}}
-        <x-math-captcha wire:model="captcha" error-bag="captcha" />
+        <x-captcha-field model="captcha" honeypot="website" form-key="register" />
 
         <div class="rounded-2xl border border-gray-200 bg-white/75 p-4 shadow-sm">
             <label for="hasAcceptedPolicies" class="flex items-start gap-3 cursor-pointer">

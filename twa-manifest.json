@@ -1,0 +1,55 @@
+{
+  "packageId": "com.grinmuzik.app",
+  "host": "grinmuzik.com",
+  "name": "GrinMuzik",
+  "launcherName": "GrinMuzik",
+  "display": "standalone",
+  "themeColor": "#305CDE",
+  "themeColorDark": "#0B1220",
+  "navigationColor": "#305CDE",
+  "navigationColorDark": "#0B1220",
+  "navigationDividerColor": "#305CDE",
+  "navigationDividerColorDark": "#0B1220",
+  "backgroundColor": "#F8FAFC",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://grinmuzik.com/pwa-icons/manifest-icon-512.maskable.png",
+  "maskableIconUrl": "https://grinmuzik.com/pwa-icons/manifest-icon-512.maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android-keystore.jks",
+    "alias": "grinmuzik"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Search",
+      "shortName": "Search",
+      "url": "/search",
+      "chosenIconUrl": "https://grinmuzik.com/pwa-icons/manifest-icon-192.maskable.png"
+    },
+    {
+      "name": "Charts",
+      "shortName": "Charts",
+      "url": "/charts",
+      "chosenIconUrl": "https://grinmuzik.com/pwa-icons/manifest-icon-192.maskable.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://grinmuzik.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://grinmuzik.com/",
+  "minSdkVersion": 23,
+  "compileSdkVersion": 36,
+  "targetSdkVersion": 36,
+  "appVersion": "1.0.0",
+  "orientation": "portrait"
+}

@@ -1,7 +1,8 @@
 <?php
 
 use App\Livewire\Forms\LoginForm;
-use App\Rules\CaptchaAnswer;
+use App\Rules\Captcha;
+use App\Rules\Honeypot;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -10,6 +11,7 @@ new #[Layout('layouts.guest')] class extends Component
 {
     public LoginForm $form;
     public string $captcha = '';
+    public string $website = '';
 
     /**
      * Handle an incoming authentication request.
@@ -17,7 +19,8 @@ new #[Layout('layouts.guest')] class extends Component
     public function login(): void
     {
         $this->validate([
-            'captcha' => ['required', 'integer', new CaptchaAnswer],
+            'captcha' => ['required', new Captcha('login')],
+            'website' => [new Honeypot],
         ]);
 
         $this->form->authenticate();
@@ -82,7 +85,7 @@ new #[Layout('layouts.guest')] class extends Component
             @endif
         </div>
 
-        <x-math-captcha wire:model="captcha" error-bag="captcha" />
+        <x-captcha-field model="captcha" honeypot="website" form-key="login" />
 
         <x-primary-button class="mt-2 w-full justify-center">
             <span wire:loading.remove wire:target="login">{{ __('Sign In') }}</span>

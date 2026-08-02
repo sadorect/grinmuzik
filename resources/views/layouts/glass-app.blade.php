@@ -509,7 +509,11 @@
                         <li><a href="{{ route('about') }}" wire:navigate class="hover:text-primary-400 transition">About Us</a></li>
                         <li><a href="{{ route('privacy') }}" wire:navigate class="hover:text-primary-400 transition">Privacy Policy</a></li>
                         <li><a href="{{ route('terms') }}" wire:navigate class="hover:text-primary-400 transition">Terms of Service</a></li>
+                        <li><a href="{{ route('guidelines') }}" wire:navigate class="hover:text-primary-400 transition">Community Guidelines</a></li>
                         <li><a href="{{ route('contact') }}" wire:navigate class="hover:text-primary-400 transition">Contact</a></li>
+                        {{-- Play requires the deletion route to be readily
+                             discoverable, not just reachable by direct URL. --}}
+                        <li><a href="{{ route('account.deletion') }}" wire:navigate class="hover:text-primary-400 transition">Delete Account</a></li>
                     </ul>
 
                     <div class="mt-5 hidden space-y-3 sm:block">
