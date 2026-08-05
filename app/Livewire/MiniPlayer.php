@@ -96,7 +96,14 @@ class MiniPlayer extends Component
     public function likeToggle(): void
     {
         if (! Auth::check()) {
-            $this->dispatch('open-modal', 'login-required');
+            // Named params only — a positional dispatch arrives in the browser as
+            // ["login-required"], which the layout's modal handler rejects.
+            $this->dispatch(
+                'open-modal',
+                id: 'login-required',
+                title: 'Sign in to like tracks',
+                message: 'Log in or create a free listener account to save tracks you love.',
+            );
 
             return;
         }

@@ -612,6 +612,12 @@
             loginUrl: @js(route('login')),
             registerUrl: @js(route('register')),
             openModal(detail) {
+                // Livewire delivers positional dispatch params as an array
+                // (['login-required']) and named params as an object — accept both.
+                if (Array.isArray(detail)) {
+                    detail = detail.length === 1 ? detail[0] : Object.assign({}, ...detail.filter(v => v && typeof v === 'object'));
+                }
+
                 if (detail !== 'login-required' && detail?.id !== 'login-required') {
                     return;
                 }

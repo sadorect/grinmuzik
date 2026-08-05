@@ -25,6 +25,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
     public string $title = '';
     public string $description = '';
+    public string $lyrics = '';
     public ?int $genre_id = null;
     public ?int $album_id = null;
     public ?string $mood = null;
@@ -90,6 +91,7 @@ new #[Layout('layouts.glass-app')] class extends Component
         $rules = [
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'lyrics' => ['nullable', 'string', 'max:10000'],
             'genre_id' => ['nullable', 'exists:genres,id'],
             'album_id' => ['nullable', Rule::exists('albums', 'id')->where(fn ($query) => $query->where('artist_profile_id', $profileId))],
             'mood' => ['nullable', 'string', 'max:50'],
@@ -193,6 +195,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             'mood' => $this->mood,
             'title' => $this->title,
             'description' => $this->description,
+            'lyrics' => $this->lyrics ?: null,
             'track_number' => $this->track_number ?: 1,
             'is_published' => $this->is_published,
             'is_free' => ! ($this->paymentsEnabled && $this->requires_donation),
@@ -250,6 +253,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                     'mood' => $this->mood,
                     'title' => $this->title,
                     'description' => $this->description,
+                    'lyrics' => $this->lyrics ?: null,
                     'track_number' => $this->track_number ?: 1,
                     'is_published' => $this->is_published,
                     'is_free' => ! ($this->paymentsEnabled && $this->requires_donation),
@@ -489,6 +493,16 @@ new #[Layout('layouts.glass-app')] class extends Component
                     class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-red-400 focus:ring-red-400 text-sm resize-none"
                     placeholder="What's this track about?"></textarea>
                 <x-input-error :messages="$errors->get('description')" class="mt-1" />
+                <p class="mt-1 text-xs text-gray-400">A short blurb — put the words of the song in the Lyrics box below.</p>
+            </div>
+
+            <div>
+                <x-input-label for="lyrics" value="Lyrics" />
+                <textarea wire:model="lyrics" id="lyrics" rows="8"
+                    class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-red-400 focus:ring-red-400 text-sm resize-y font-mono"
+                    placeholder="Paste your lyrics here — one line per line, blank lines between sections."></textarea>
+                <x-input-error :messages="$errors->get('lyrics')" class="mt-1" />
+                <p class="mt-1 text-xs text-gray-400">Optional. Lyrics get their own shareable section on the track page.</p>
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">

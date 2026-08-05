@@ -87,6 +87,12 @@ class TrackResource extends Resource
                         ->suffix('seconds')
                         ->helperText('Duration in seconds'),
                     Forms\Components\Textarea::make('description')->maxLength(1000)->columnSpanFull(),
+
+                    Forms\Components\Textarea::make('lyrics')
+                        ->rows(12)
+                        ->maxLength(10000)
+                        ->helperText('Drives the dedicated lyrics section on the track page. Keep line breaks intact.')
+                        ->columnSpanFull(),
                 ]),
             Section::make('Audio File')
                 ->columns(2)

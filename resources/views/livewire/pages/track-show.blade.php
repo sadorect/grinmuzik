@@ -389,7 +389,9 @@ new #[Layout('layouts.glass-app')] class extends Component {
                     </div>
 
                     @if($track->description)
-                        <p class="text-gray-600 mt-3 text-sm leading-relaxed">{{ $track->description }}</p>
+                        {{-- whitespace-pre-line: artists write multi-line blurbs (and
+                             sometimes paste lyrics here) — keep their line breaks. --}}
+                        <p class="text-gray-600 mt-3 text-sm leading-relaxed whitespace-pre-line">{{ $track->description }}</p>
                     @endif
 
                     @if($track->album && $track->album->is_published && in_array($track->album->type, \App\Models\Album::PUBLIC_TYPES, true))
@@ -471,13 +473,64 @@ new #[Layout('layouts.glass-app')] class extends Component {
 
         @if(filled($track->lyrics))
             @php
-                $lyricsLines = preg_split("/\r\n|\n|\r/", trim($track->lyrics)) ?: [];
-                $lyricsLineCount = collect($lyricsLines)->filter(fn ($line) => filled(trim($line)))->count();
-                $lyricsWordCount = str_word_count(trim($track->lyrics));
+                // Classify each line so structural markers (Verse 1, Chorus, [Bridge]…)
+                // render as section labels rather than as numbered lyric lines.
+                $isSectionHeading = static function (string $line): bool {
+                    $line = trim($line);
+
+                    if ($line === '' || mb_strlen($line) > 40) {
+                        return false;
+                    }
+
+                    // Bracketed markers are unambiguous: [Chorus], (Verse 2)
+                    if (preg_match('/^[\[\(].+[\]\)]:?$/u', $line)) {
+                        return true;
+                    }
+
+                    return (bool) preg_match(
+                        '/^(intro|verse|pre[\s\-]?chorus|chorus|hook|bridge|refrain|outro|interlude|breakdown|vamp|spontaneous|ad[\s\-]?lib|instrumental|coda|tag)\b[^.!?]*$/iu',
+                        $line
+                    );
+                };
+
+                $lyricsBlocks = [];
+                $lyricsLineNumber = 0;
+
+                foreach (preg_split("/\r\n|\n|\r/", trim($track->lyrics)) ?: [] as $rawLine) {
+                    $line = rtrim($rawLine);
+
+                    if (trim($line) === '') {
+                        $lyricsBlocks[] = ['type' => 'break'];
+                        continue;
+                    }
+
+                    if ($isSectionHeading($line)) {
+                        $lyricsBlocks[] = ['type' => 'heading', 'text' => rtrim(trim($line), ':')];
+                        continue;
+                    }
+
+                    $lyricsBlocks[] = ['type' => 'line', 'text' => trim($line), 'number' => ++$lyricsLineNumber];
+                }
+
+                // Collapse runs of blank lines and drop leading/trailing ones.
+                $lyricsBlocks = array_values(array_filter($lyricsBlocks, function ($block, $i) use ($lyricsBlocks) {
+                    if ($block['type'] !== 'break') {
+                        return true;
+                    }
+
+                    return $i > 0
+                        && $i < count($lyricsBlocks) - 1
+                        && ($lyricsBlocks[$i - 1]['type'] ?? 'break') !== 'break';
+                }, ARRAY_FILTER_USE_BOTH));
+
+                $lyricsLineCount = $lyricsLineNumber;
+                $lyricsWordCount = collect($lyricsBlocks)
+                    ->where('type', 'line')
+                    ->sum(fn ($block) => count(preg_split('/\s+/u', $block['text'], -1, PREG_SPLIT_NO_EMPTY)));
             @endphp
 
             <section id="lyrics" x-ref="lyricsSection" class="mb-8">
-                <div class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(254,242,242,0.92)_42%,_rgba(255,255,255,0.88)_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:p-6">
+                <div class="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(254,242,242,0.92)_42%,_rgba(255,255,255,0.88)_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-none dark:bg-slate-900/70 sm:p-6">
                     <div class="absolute -left-16 top-0 h-40 w-40 rounded-full bg-primary/12 blur-3xl"></div>
                     <div class="absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-secondary/15 blur-3xl"></div>
 
@@ -524,24 +577,29 @@ new #[Layout('layouts.glass-app')] class extends Component {
                             <span class="rounded-full border border-white/80 bg-white/70 px-3 py-1">{{ number_format($lyricsWordCount) }} words</span>
                         </div>
 
-                        <div class="mt-6 rounded-[1.75rem] border border-white/80 bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] sm:p-6">
+                        <div class="mt-6 rounded-[1.75rem] border border-white/80 bg-white/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-white/10 dark:bg-slate-950/40 sm:p-6">
                             <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-                                <div class="rounded-[1.4rem] border border-primary/10 bg-gradient-to-br from-white to-primary-50/40 p-4 sm:p-5">
-                                    <div class="space-y-3 text-sm leading-7 text-gray-700 sm:text-[15px]">
-                                        @foreach($lyricsLines as $index => $line)
-                                            @if(filled(trim($line)))
-                                                <p class="flex gap-3">
-                                                    <span class="mt-0.5 hidden w-7 shrink-0 text-right text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-300 sm:inline">{{ $index + 1 }}</span>
-                                                    <span class="whitespace-pre-line break-words">{{ $line }}</span>
+                                <div class="rounded-[1.4rem] border border-primary/10 bg-gradient-to-br from-white to-primary-50/40 p-4 dark:border-white/10 dark:from-slate-950 dark:to-slate-950 sm:p-5">
+                                    <div class="text-sm leading-7 text-gray-700 sm:text-[15px]">
+                                        @foreach($lyricsBlocks as $block)
+                                            @if($block['type'] === 'heading')
+                                                <p class="mb-1.5 mt-5 flex gap-3 first:mt-0">
+                                                    <span class="hidden w-7 shrink-0 sm:inline"></span>
+                                                    <span class="text-[11px] font-bold uppercase tracking-[0.22em] text-primary/70">{{ $block['text'] }}</span>
+                                                </p>
+                                            @elseif($block['type'] === 'line')
+                                                <p class="flex gap-3 py-0.5">
+                                                    <span class="mt-0.5 hidden w-7 shrink-0 text-right text-[10px] font-semibold tabular-nums tracking-[0.1em] text-gray-300 sm:inline">{{ $block['number'] }}</span>
+                                                    <span class="break-words">{{ $block['text'] }}</span>
                                                 </p>
                                             @else
-                                                <div class="h-3"></div>
+                                                <div class="h-4"></div>
                                             @endif
                                         @endforeach
                                     </div>
                                 </div>
 
-                                <div class="flex flex-col justify-between rounded-[1.4rem] border border-dashed border-primary/20 bg-primary/5 p-4 text-sm text-gray-600">
+                                <div class="flex flex-col justify-between rounded-[1.4rem] border border-dashed border-primary/20 bg-primary/5 p-4 text-sm text-gray-600 dark:border-white/10">
                                     <div>
                                         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Share Options</p>
                                         <p class="mt-3 leading-6">
