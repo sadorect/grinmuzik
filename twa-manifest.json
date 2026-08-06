@@ -39,9 +39,13 @@
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://grinmuzik.com/manifest.webmanifest",
   "fallbackType": "customtabs",
-  "features": {},
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
   "alphaDependencies": {
-    "enabled": false
+    "enabled": true
   },
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,

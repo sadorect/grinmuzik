@@ -21,6 +21,20 @@ IMAGE="grinmuzik/bubblewrap:latest"
 # pins compileSdkVersion/targetSdkVersion explicitly — do not drop those.
 ANDROID_TARGET_SDK=36
 
+# Bubblewrap hard-codes the build-tools version it shells out to (zipalign,
+# apksigner) in BUILD_TOOLS_VERSION. If the image does not already have that
+# exact version it tries to sdkmanager-install it at build time, which fails
+# because the SDK is root-owned and the container runs as the calling user.
+# Keep this pinned to the constant in:
+#   @bubblewrap/core/dist/lib/androidSdk/AndroidSdkTools.js
+BUBBLEWRAP_BUILD_TOOLS=36.1.0
+
+# The Android Gradle Plugin that Bubblewrap scaffolds into the project (see
+# 'com.android.tools.build:gradle' in build/twa/build.gradle) pins its OWN
+# build-tools version, independent of the two above. AGP 8.9.x wants 35.0.0.
+# Check the generated build.gradle if a future Bubblewrap bumps AGP.
+AGP_BUILD_TOOLS=35.0.0
+
 mkdir -p "${TWA_DIR}"
 
 build_image() {
@@ -49,7 +63,26 @@ RUN mkdir -p \${ANDROID_HOME}/cmdline-tools \
     && rm /tmp/tools.zip
 
 RUN yes | sdkmanager --licenses >/dev/null \
-    && sdkmanager "platforms;android-${ANDROID_TARGET_SDK}" "build-tools;${ANDROID_TARGET_SDK}.0.0" "platform-tools" >/dev/null
+    && sdkmanager "platforms;android-${ANDROID_TARGET_SDK}" \
+                  "build-tools;${ANDROID_TARGET_SDK}.0.0" \
+                  "build-tools;${BUBBLEWRAP_BUILD_TOOLS}" \
+                  "build-tools;${AGP_BUILD_TOOLS}" \
+                  "platform-tools" >/dev/null
+
+# The container runs as the calling (non-root) user so build output is not
+# root-owned on the bind mount. That leaves the root-owned SDK unwritable, and
+# Gradle aborts with "The SDK directory is not writable" the moment it wants a
+# component we did not pre-install. Making the SDK world-writable is safe here:
+# the container is disposable and holds no secrets.
+RUN chmod -R a+w \${ANDROID_HOME}
+
+# Bubblewrap's AndroidSdkTools.validatePath() only accepts an SDK root holding
+# a 'tools' or 'bin' directory; modern command-line tools install to
+# cmdline-tools/latest, so validation fails with "The provided androidSdk isn't
+# correct." Symlink 'tools' (NOT 'bin') to the whole cmdline-tools/latest —
+# sdkmanager derives its own lib/ path relative to the script, so exposing only
+# bin/ makes it fail with ClassNotFoundException: SdkManagerCli.
+RUN ln -s \${ANDROID_HOME}/cmdline-tools/latest \${ANDROID_HOME}/tools
 
 RUN npm install -g @bubblewrap/cli
 
@@ -58,7 +91,28 @@ DOCKERFILE
 }
 
 run_in_container() {
-    docker run --rm -it \
+    # Only allocate a TTY when there actually is one. bubblewrap init prompts
+    # interactively, but build/update do not, so this lets the script run from
+    # CI or a non-interactive shell instead of dying with
+    # "cannot attach stdin to a TTY-enabled container".
+    local tty_flags=()
+    if [ -t 0 ] && [ -t 1 ]; then
+        tty_flags=(-it)
+    fi
+
+    # Pass the signing passwords through when they are set in the environment,
+    # so the build can run unattended. Bubblewrap reads exactly these names;
+    # when unset it falls back to prompting, which needs a TTY.
+    local pass_flags=()
+    if [ -n "${BUBBLEWRAP_KEYSTORE_PASSWORD:-}" ]; then
+        pass_flags+=(-e BUBBLEWRAP_KEYSTORE_PASSWORD)
+    fi
+    if [ -n "${BUBBLEWRAP_KEY_PASSWORD:-}" ]; then
+        pass_flags+=(-e BUBBLEWRAP_KEY_PASSWORD)
+    fi
+
+    docker run --rm "${tty_flags[@]}" "${pass_flags[@]}" \
+        --user "$(id -u):$(id -g)" \
         -v "${TWA_DIR}:/work" \
         -v "${APP_DIR}/twa-manifest.json:/work/twa-manifest.json" \
         -e HOME=/work \
@@ -83,6 +137,17 @@ case "${1:-}" in
         build_image
         echo "==> Building the release bundle..."
         run_in_container "bubblewrap build --skipPwaValidation"
+
+        # Bubblewrap can exit 0 having produced nothing (e.g. it fell back to
+        # prompting for the keystore password and got no input). Without this
+        # check the script cheerfully reports a bundle that is not there.
+        if [ ! -f "${TWA_DIR}/app-release-bundle.aab" ]; then
+            echo "ERROR: build reported success but ${TWA_DIR}/app-release-bundle.aab does not exist." >&2
+            echo "       If it stopped at a password prompt, export BUBBLEWRAP_KEYSTORE_PASSWORD" >&2
+            echo "       and BUBBLEWRAP_KEY_PASSWORD before running this script." >&2
+            exit 1
+        fi
+
         echo
         echo "==> Bundle: ${TWA_DIR}/app-release-bundle.aab"
         echo "    Upload it in Play Console, then copy the SHA-256 from"
