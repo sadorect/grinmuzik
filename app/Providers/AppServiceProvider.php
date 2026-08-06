@@ -12,9 +12,14 @@ use App\Contracts\AiNewsletterProvider;
 use App\Services\Ai\AnthropicNewsletterProvider;
 use App\Services\Ai\OllamaNewsletterProvider;
 use App\Services\Ai\OpenAiNewsletterProvider;
+use App\Observers\AlbumObserver;
+use App\Observers\ArtistProfileObserver;
+use App\Observers\TrackObserver;
+use App\Support\AuditLogger;
 use App\Support\ThemePalette;
 use App\Support\ArtistActivityNotifier;
 use App\Support\MediaLibrary\OrganizedPathGenerator;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -70,6 +75,8 @@ class AppServiceProvider extends ServiceProvider
          * ReportContent::resolveContent() refuses any class that does not use
          * the Reportable trait, so a tampered payload has nothing to aim at.
          */
+
+        $this->bootAuditLog();
 
         Vite::usePreloadTagAttributes(fn (string $src, string $url) => str_ends_with(strtok($url, '?') ?: $url, '.css') ? false : []);
 
@@ -408,5 +415,70 @@ class AppServiceProvider extends ServiceProvider
                 | Request::HEADER_X_FORWARDED_PORT
                 | Request::HEADER_X_FORWARDED_PROTO,
         );
+    }
+
+    /**
+     * Wire up the audit trail.
+     *
+     * Observers rather than controller-level calls: a track can be deleted
+     * from the artist dashboard, the upload rollback, the admin API and
+     * Filament, and only the model layer sees all four.
+     *
+     * Guarded by a Schema check so the app still boots between deploying this
+     * code and running the migration — without it, every request would fail
+     * on a missing table before the migration could be run.
+     */
+    protected function bootAuditLog(): void
+    {
+        try {
+            if (! Schema::hasTable('activity_logs')) {
+                return;
+            }
+        } catch (Throwable) {
+            // No database connection yet (package discovery, early console).
+            return;
+        }
+
+        Track::observe(TrackObserver::class);
+        ArtistProfile::observe(ArtistProfileObserver::class);
+        Album::observe(AlbumObserver::class);
+
+        // Ledger credits ride on the same model-layer principle: a purchase
+        // completes from the Stripe webhook and from the Play verifier, and
+        // only the observer sees both. Guarded separately because the ledger
+        // table ships in a later migration than the audit log.
+        if (Schema::hasTable('artist_ledger_entries')) {
+            \App\Models\Donation::observe(\App\Observers\DonationObserver::class);
+        }
+
+        \Illuminate\Support\Facades\Event::listen(Login::class, function (Login $event): void {
+            if (! $event->user instanceof User) {
+                return;
+            }
+
+            // Auth::login() inside an artisan command, test or maintenance
+            // script fires this event too. Recording those as sign-ins puts
+            // events in the log that never happened, which is worse than a
+            // gap — an audit trail is only worth anything if every row is real.
+            if (app()->runningInConsole()) {
+                return;
+            }
+
+            // Listener logins are high-volume and were explicitly out of
+            // scope; the value here is confirming an artist or admin was
+            // actually online when something changed.
+            $isNoteworthy = $event->user->isArtist() || $event->user->isAdmin();
+
+            if (! $isNoteworthy) {
+                return;
+            }
+
+            app(AuditLogger::class)->record(
+                'auth.login',
+                $event->user,
+                ['guard' => $event->guard],
+                $event->user->name,
+            );
+        });
     }
 }

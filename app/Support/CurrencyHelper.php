@@ -58,7 +58,7 @@ class CurrencyHelper
     public static function minimum(string $currency): float
     {
         return match (strtoupper($currency)) {
-            'NGN' => 100.0,
+            'NGN' => 1000.0,
             'GHS' => 1.0,
             'KES' => 50.0,
             'ZAR' => 5.0,

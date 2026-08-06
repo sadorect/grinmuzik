@@ -3,6 +3,12 @@
 .env
 .env.backup
 .env.production
+# Catch-all: any .env variant, including dated backups made before an edit.
+# The three patterns above only matched exact names, so a file like
+# .env.bak-20260806 was left untracked-but-committable — one `git add -A`
+# away from publishing live credentials.
+.env.*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 /.fleet
