@@ -263,7 +263,9 @@
             x-transition:leave-start="opacity-100 translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-6"
             @keydown.escape.window="toggleMobilePlayer(false)"
-            class="fixed inset-0 z-[55] sm:hidden"
+            {{-- Visibility is x-show alone: the pointer:coarse half of the
+                 breakpoint has no Tailwind equivalent. --}}
+            class="fixed inset-0 z-[55]"
             style="display:none; padding-top: calc(env(safe-area-inset-top) + 1.25rem); padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);"
         >
             <div class="absolute inset-0 overflow-hidden bg-gradient-to-b from-white via-gray-100 to-gray-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -275,7 +277,7 @@
             </div>
 
             <div class="relative h-full overflow-y-auto px-5 text-gray-900 dark:text-white">
-                <div class="mx-auto flex min-h-full w-full max-w-sm flex-col">
+                <div class="mx-auto flex min-h-full w-full max-w-sm flex-col landscape:sm:max-w-5xl">
                     <div class="shrink-0 flex items-center justify-between">
                         <button
                             type="button"
@@ -296,12 +298,14 @@
                         <div class="h-11 w-11"></div>
                     </div>
 
-                    <div class="flex flex-1 min-h-0 flex-col pb-4 pt-3">
-                        <div class="flex min-h-0 flex-1 items-center justify-center py-2">
+                    {{-- Panes wrapper. Stacked in portrait (identical to the phone
+                         layout); artwork beside the controls in landscape. --}}
+                    <div class="flex flex-1 min-h-0 flex-col pb-4 pt-3 landscape:sm:flex-row landscape:sm:items-center landscape:sm:gap-8">
+                        {{-- Pane A — artwork --}}
+                        <div class="flex min-h-0 flex-1 items-center justify-center py-2 landscape:sm:w-[45%] landscape:sm:flex-none">
                             <div class="flex flex-col items-center justify-center gap-3">
                                 <div
-                                    class="overflow-hidden rounded-[2rem] border border-black/5 bg-white/70 shadow-2xl shadow-gray-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:shadow-black/30"
-                                    style="width:min(68vw, 17rem, 31vh); height:min(68vw, 17rem, 31vh);"
+                                    class="grin-hero-art overflow-hidden rounded-[2rem] border border-black/5 bg-white/70 shadow-2xl shadow-gray-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:shadow-black/30"
                                 >
                                     <img
                                         :src="track?.cover || '/images/placeholder-track.svg'"
@@ -316,6 +320,8 @@
                             </div>
                         </div>
 
+                        {{-- Pane B — actions, metadata, transport, queue --}}
+                        <div class="flex min-w-0 flex-col landscape:sm:min-h-0 landscape:sm:flex-1">
                         <div x-show="hasActiveTrack" class="mt-3 grid shrink-0 grid-cols-4 gap-3" style="display:none">
                             <button
                                 type="button"
@@ -527,10 +533,8 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="mx-auto w-full max-w-sm space-y-5 pb-6 pt-4">
+                        <div class="mx-auto w-full max-w-sm space-y-5 pb-6 pt-4 landscape:sm:max-w-none landscape:sm:pb-2">
                         <div class="mt-5 overflow-hidden rounded-[1.75rem] border border-black/5 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
                             <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                 <div>
@@ -548,7 +552,7 @@
                                 </button>
                             </div>
 
-                            <div class="max-h-64 overflow-y-auto">
+                            <div class="max-h-64 overflow-y-auto landscape:sm:max-h-[38vh]">
                                 <template x-if="queueTracks.length === 0">
                                     <div class="px-4 py-8 text-center text-sm text-gray-500 dark:text-white/45">
                                         Queue is empty.
@@ -594,7 +598,10 @@
                                 </template>
                             </div>
                         </div>
-                </div>
+                        </div>{{-- /queue --}}
+                        </div>{{-- /Pane B --}}
+                    </div>{{-- /panes wrapper --}}
+                </div>{{-- /column --}}
                 </div>
             </div>
         </div>
@@ -855,6 +862,22 @@
                               class="absolute -top-1 -right-1 bg-primary-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none"
                               x-text="queue.length"></span>
                     </button>
+
+                    {{-- Expand to the full-screen player. Tablets only: this bar
+                         is already hidden below 640px, and isMobileViewport is
+                         false on mouse-driven desktops. --}}
+                    <button
+                        type="button"
+                        x-show="isMobileViewport"
+                        @click="toggleMobilePlayer(true)"
+                        class="p-1.5 rounded-lg text-gray-500 transition hover:text-gray-800 dark:text-slate-400 dark:hover:text-white"
+                        title="Expand player"
+                        style="display:none"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7-7-7 7"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -864,6 +887,13 @@
 <script>
 function miniPlayer() {
     const P = window.GrinPlayer; // singleton — survives navigate
+
+    // Where the full-screen player is offered. Phones and tablets qualify; the
+    // pointer:coarse arm catches iPads in landscape (1180–1366px), which are
+    // wide enough to read as desktop on width alone. Mouse-driven machines
+    // above 1023px keep the compact bottom bar.
+    const EXPANDED_PLAYER_MEDIA =
+        '(max-width: 1023px), (pointer: coarse) and (max-width: 1366px)';
 
     return {
         // ── Reactive state (synced from singleton on init) ───────────────────────
@@ -884,7 +914,8 @@ function miniPlayer() {
         shufflePool: Array.isArray(P.shufflePool) ? P.shufflePool : [],
         showQueue:   false,
         mobileExpanded: false,
-        isMobileViewport: window.matchMedia('(max-width: 639px)').matches,
+        // True wherever the full-screen player is offered — phones *and* tablets.
+        isMobileViewport: window.matchMedia(EXPANDED_PLAYER_MEDIA).matches,
         queueToast:  false,
         statusToastMessage: '',
         shareCopied: false,
@@ -997,7 +1028,7 @@ function miniPlayer() {
                 next: () => this.playNext(),
                 previous: () => this.playPrev(),
             });
-            this._mobileMediaQuery = window.matchMedia('(max-width: 639px)');
+            this._mobileMediaQuery = window.matchMedia(EXPANDED_PLAYER_MEDIA);
             this._syncMobileViewport = (event) => {
                 this.isMobileViewport = event.matches;
 
@@ -1007,6 +1038,12 @@ function miniPlayer() {
             };
             this._syncMobileViewport(this._mobileMediaQuery);
             this._mobileMediaQuery.addEventListener?.('change', this._syncMobileViewport);
+
+            // Stop the page behind the overlay from scrolling under a drag.
+            // Barely noticeable on a phone; obvious on a tall tablet page.
+            this.$watch('mobileExpanded', (open) => {
+                document.body.classList.toggle('overflow-hidden', open);
+            });
 
             this._syncThemeState = () => {
                 this.track = P.track;
@@ -1052,6 +1089,8 @@ function miniPlayer() {
             this._mobileMediaQuery?.removeEventListener?.('change', this._syncMobileViewport);
             window.removeEventListener('grin-theme-changed', this._syncThemeState);
             this.mobileExpanded = false;
+            // A wire:navigate swap must never leave the body locked.
+            document.body.classList.remove('overflow-hidden');
         },
 
         // ── Track loading ───────────────────────────────────────────────

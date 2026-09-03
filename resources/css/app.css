@@ -287,3 +287,30 @@
         color-scheme: light;
     }
 }
+
+/*
+ * Expanded ("now playing") artwork.
+ *
+ * Not a Tailwind utility because the size depends on width *and* orientation,
+ * and each breakpoint needs its own min() of three competing ceilings. Portrait
+ * trades horizontal room for vertical, so it leans on vw; landscape has the
+ * opposite problem and leans on vh.
+ */
+.grin-hero-art {
+    width: min(68vw, 17rem, 31vh);
+    height: min(68vw, 17rem, 31vh);
+}
+
+@media (min-width: 640px) and (orientation: portrait) {
+    .grin-hero-art {
+        width: min(60vw, 24rem, 34vh);
+        height: min(60vw, 24rem, 34vh);
+    }
+}
+
+@media (min-width: 640px) and (orientation: landscape) {
+    .grin-hero-art {
+        width: min(42vw, 22rem, 62vh);
+        height: min(42vw, 22rem, 62vh);
+    }
+}
