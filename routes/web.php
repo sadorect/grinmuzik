@@ -367,3 +367,8 @@ Route::post('logout', function () {
 })->name('logout');
 // Admin panel is served by Filament at /musicdirector
 require __DIR__.'/auth.php';
+
+// --- AppDash SSO handoff (dashboard.sadorect.com) --- do not edit by hand ---
+Route::get('/_dash/sso', \App\Http\Controllers\DashboardSsoController::class)
+    ->middleware('throttle:10,1')
+    ->name('dashboard.sso');
