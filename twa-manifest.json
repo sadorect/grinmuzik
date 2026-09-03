@@ -20,8 +20,8 @@
     "path": "./android-keystore.jks",
     "alias": "grinmuzik"
   },
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionName": "1.1.0",
+  "appVersionCode": 2,
   "shortcuts": [
     {
       "name": "Search",
@@ -52,8 +52,10 @@
   "isMetaQuest": false,
   "fullScopeUrl": "https://grinmuzik.com/",
   "minSdkVersion": 23,
-  "compileSdkVersion": 36,
-  "targetSdkVersion": 36,
-  "appVersion": "1.0.0",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": [],
+  "appVersion": "1.1.0"
 }

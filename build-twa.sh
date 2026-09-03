@@ -91,10 +91,12 @@ DOCKERFILE
 }
 
 run_in_container() {
-    # Only allocate a TTY when there actually is one. bubblewrap init prompts
-    # interactively, but build/update do not, so this lets the script run from
-    # CI or a non-interactive shell instead of dying with
-    # "cannot attach stdin to a TTY-enabled container".
+    # Only allocate a TTY when there actually is one, so this can run from CI or
+    # a non-interactive shell instead of dying with "cannot attach stdin to a
+    # TTY-enabled container". Note that `bubblewrap build` IS interactive when
+    # twa-manifest.json has changed since the project was generated -- which is
+    # every version bump -- so the build path runs `update` first to leave
+    # nothing for it to ask about.
     local tty_flags=()
     if [ -t 0 ] && [ -t 1 ]; then
         tty_flags=(-it)
@@ -135,6 +137,24 @@ case "${1:-}" in
 
     build)
         build_image
+
+        # Fold twa-manifest.json into the generated Gradle project FIRST.
+        # Skipping this is not merely untidy: `bubblewrap build` would stop to
+        # ask "there are changes in twa-manifest.json, apply them?", get no
+        # answer without a TTY, and carry on building the project as it stands
+        # -- silently shipping the PREVIOUS appVersionCode, which Play then
+        # rejects as a duplicate.
+        echo "==> Applying twa-manifest.json to the Android project..."
+        # DO NOT hand-edit appVersionCode in twa-manifest.json. `update` owns
+        # that number: it increments whatever is there by one and writes it
+        # back, so a manual bump on top of it skips a code (1 -> 3). Leave the
+        # field holding the last SHIPPED code and let this step produce the
+        # next one. Only appVersionName is yours to set, and it has to be
+        # passed on the command line -- update ignores it in the manifest.
+        # --skipVersionUpgrade is not an escape hatch here: it suppresses both.
+        want_name="$(python3 -c "import json;print(json.load(open('${APP_DIR}/twa-manifest.json'))['appVersionName'])")"
+        run_in_container "bubblewrap update --appVersionName '${want_name}'"
+
         echo "==> Building the release bundle..."
         run_in_container "bubblewrap build --skipPwaValidation"
 
@@ -147,6 +167,30 @@ case "${1:-}" in
             echo "       and BUBBLEWRAP_KEY_PASSWORD before running this script." >&2
             exit 1
         fi
+
+        # Existence is not freshness. A stale bundle left over from a previous
+        # run satisfies the check above, so compare against the manifest that
+        # was supposed to drive this build.
+        if [ "${APP_DIR}/twa-manifest.json" -nt "${TWA_DIR}/app-release-bundle.aab" ]; then
+            echo "ERROR: ${TWA_DIR}/app-release-bundle.aab is older than twa-manifest.json." >&2
+            echo "       The build did not actually run; the bundle on disk is stale." >&2
+            exit 1
+        fi
+
+        # Last word on what is really in the bundle. versionCode lives in the
+        # generated Gradle file, so a mismatch here means `update` did not take.
+        want_code="$(python3 -c "import json;print(json.load(open('${APP_DIR}/twa-manifest.json'))['appVersionCode'])")"
+        have_code="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]\+\([0-9]\+\).*/\1/p' "${TWA_DIR}/app/build.gradle" | head -1)"
+
+        have_name="$(sed -n 's/^[[:space:]]*versionName[[:space:]]\+"\([^"]*\)".*/\1/p' "${TWA_DIR}/app/build.gradle" | head -1)"
+
+        if [ "${want_code}" != "${have_code}" ] || [ "${want_name}" != "${have_name}" ]; then
+            echo "ERROR: built version ${have_name} (${have_code}) does not match" >&2
+            echo "       twa-manifest.json: ${want_name} (${want_code})." >&2
+            exit 1
+        fi
+
+        echo "    version ${have_name} (code ${have_code}) confirmed in the generated project."
 
         echo
         echo "==> Bundle: ${TWA_DIR}/app-release-bundle.aab"
