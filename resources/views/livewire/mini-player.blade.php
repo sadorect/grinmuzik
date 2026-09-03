@@ -276,8 +276,10 @@
                 <div class="absolute inset-0 bg-gradient-to-b from-white/80 via-white/88 to-gray-100/96 dark:from-slate-950/70 dark:via-slate-950/88 dark:to-slate-950"></div>
             </div>
 
-            <div class="relative h-full overflow-y-auto px-5 text-gray-900 dark:text-white">
-                <div class="mx-auto flex min-h-full w-full max-w-sm flex-col landscape:sm:max-w-5xl">
+            {{-- In landscape the panes own their own scrolling, so the outer
+                 box must not scroll too or the fixed artwork would slide away. --}}
+            <div class="relative h-full overflow-y-auto px-5 text-gray-900 dark:text-white sm:px-8 landscape:sm:overflow-hidden">
+                <div class="mx-auto flex min-h-full w-full max-w-sm flex-col portrait:sm:max-w-3xl landscape:sm:h-full landscape:sm:min-h-0 landscape:sm:max-w-none">
                     <div class="shrink-0 flex items-center justify-between">
                         <button
                             type="button"
@@ -300,9 +302,11 @@
 
                     {{-- Panes wrapper. Stacked in portrait (identical to the phone
                          layout); artwork beside the controls in landscape. --}}
-                    <div class="flex flex-1 min-h-0 flex-col pb-4 pt-3 landscape:sm:flex-row landscape:sm:items-center landscape:sm:gap-8">
-                        {{-- Pane A — artwork --}}
-                        <div class="flex min-h-0 flex-1 items-center justify-center py-2 landscape:sm:w-[45%] landscape:sm:flex-none">
+                    <div class="flex flex-1 min-h-0 flex-col pb-4 pt-3 landscape:sm:flex-row landscape:sm:items-stretch landscape:sm:gap-10 landscape:sm:pb-0">
+                        {{-- Pane A — artwork. Pinned and centred in landscape: it
+                             does not scroll, so the cover stays put while the
+                             right-hand column moves under it. --}}
+                        <div class="flex min-h-0 flex-1 items-center justify-center py-2 landscape:sm:h-full landscape:sm:w-[42%] landscape:sm:flex-none landscape:sm:py-0">
                             <div class="flex flex-col items-center justify-center gap-3">
                                 <div
                                     class="grin-hero-art overflow-hidden rounded-[2rem] border border-black/5 bg-white/70 shadow-2xl shadow-gray-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:shadow-black/30"
@@ -320,13 +324,17 @@
                             </div>
                         </div>
 
-                        {{-- Pane B — actions, metadata, transport, queue --}}
-                        <div class="flex min-w-0 flex-col landscape:sm:min-h-0 landscape:sm:flex-1">
-                        <div x-show="hasActiveTrack" class="mt-3 grid shrink-0 grid-cols-4 gap-3" style="display:none">
+                        {{-- Pane B — actions, metadata, transport, queue. Owns the
+                             scrolling in landscape so the artwork can stay fixed. --}}
+                        {{-- No justify-center here: on a scrollable flex column it
+                             pushes overflow above the top edge, where scrolling
+                             cannot reach it, and the action tiles get clipped. --}}
+                        <div class="flex min-w-0 flex-col landscape:sm:h-full landscape:sm:min-h-0 landscape:sm:flex-1 landscape:sm:overflow-y-auto landscape:sm:pb-6">
+                        <div x-show="hasActiveTrack" class="mt-3 grid shrink-0 grid-cols-4 gap-3 sm:gap-4" style="display:none">
                             <button
                                 type="button"
                                 @click="$wire.likeToggle()"
-                                class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
+                                class="flex min-h-16 sm:min-h-20 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
                                 :title="$wire.liked ? 'Unlike' : 'Like'"
                             >
                                 <svg :class="$wire.liked ? 'h-5 w-5 fill-current text-primary' : 'h-5 w-5 text-gray-700 dark:text-white/75'" viewBox="0 0 24 24" :fill="$wire.liked ? 'currentColor' : 'none'" stroke="currentColor">
@@ -339,7 +347,7 @@
                             <button
                                 type="button"
                                 @click="shareTrack()"
-                                class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
+                                class="flex min-h-16 sm:min-h-20 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
                                 :title="shareCopied ? 'Link copied!' : 'Share track'"
                             >
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,7 +360,7 @@
                             <button
                                 type="button"
                                 wire:click="downloadTrack"
-                                class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
+                                class="flex min-h-16 sm:min-h-20 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl transition hover:bg-white/90 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15 dark:hover:text-white"
                                 title="Download"
                             >
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +370,7 @@
                                 <span class="mt-1 max-w-full truncate text-[10px] text-gray-500 leading-tight dark:text-white/45" x-text="new Intl.NumberFormat().format(track?.downloads_count ?? 0)"></span>
                             </button>
 
-                            <div class="flex min-h-16 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/75">
+                            <div class="flex min-h-16 sm:min-h-20 flex-col items-center justify-center rounded-[1.35rem] border border-black/5 bg-white/70 px-2 py-3 text-center text-gray-700 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/75">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.868v4.264a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
@@ -534,7 +542,7 @@
                             </div>
                         </div>
 
-                        <div class="mx-auto w-full max-w-sm space-y-5 pb-6 pt-4 landscape:sm:max-w-none landscape:sm:pb-2">
+                        <div class="mx-auto w-full max-w-sm space-y-5 pb-6 pt-4 sm:max-w-none landscape:sm:pb-2">
                         <div class="mt-5 overflow-hidden rounded-[1.75rem] border border-black/5 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
                             <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
                                 <div>
@@ -671,11 +679,33 @@
 
                 {{-- ── Cover + Info ──────────────────────────────────────────────── --}}
                 <div class="flex items-center gap-3 min-w-0 w-44 shrink-0">
-                    <img
-                        :src="track?.cover || '/images/placeholder-track.svg'"
-                        :alt="track?.title"
-                        class="h-11 w-11 rounded-lg object-cover shadow-sm ring-1 ring-white/30 shrink-0"
+                    {{-- On a tablet the cover is the primary way into the full
+                         player, the way tapping the pill is on a phone. The
+                         chevron on the far right is too small to find on its own.
+                         Inert on desktop, where there is nothing to expand. --}}
+                    <button
+                        type="button"
+                        @click="isMobileViewport && toggleMobilePlayer(true)"
+                        :class="isMobileViewport ? 'group relative cursor-pointer' : 'cursor-default'"
+                        :title="isMobileViewport ? 'Expand player' : null"
+                        :tabindex="isMobileViewport ? 0 : -1"
+                        class="shrink-0 rounded-lg"
                     >
+                        <img
+                            :src="track?.cover || '/images/placeholder-track.svg'"
+                            :alt="track?.title"
+                            class="h-11 w-11 rounded-lg object-cover shadow-sm ring-1 ring-white/30 shrink-0"
+                        >
+                        <span
+                            x-show="isMobileViewport"
+                            class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/45 opacity-0 transition group-hover:opacity-100"
+                            style="display:none"
+                        >
+                            <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7-7-7 7"/>
+                            </svg>
+                        </span>
+                    </button>
                     <div class="min-w-0">
                         <a
                             :href="track?.url || '#'"
@@ -870,11 +900,11 @@
                         type="button"
                         x-show="isMobileViewport"
                         @click="toggleMobilePlayer(true)"
-                        class="p-1.5 rounded-lg text-gray-500 transition hover:text-gray-800 dark:text-slate-400 dark:hover:text-white"
+                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-primary-200 hover:text-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white"
                         title="Expand player"
                         style="display:none"
                     >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7-7-7 7"/>
                         </svg>
                     </button>
