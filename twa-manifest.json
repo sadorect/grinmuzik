@@ -21,7 +21,7 @@
     "alias": "grinmuzik"
   },
   "appVersionName": "1.1.0",
-  "appVersionCode": 2,
+  "appVersionCode": 3,
   "shortcuts": [
     {
       "name": "Search",
@@ -52,7 +52,7 @@
   "isMetaQuest": false,
   "fullScopeUrl": "https://grinmuzik.com/",
   "minSdkVersion": 23,
-  "orientation": "portrait",
+  "orientation": "any",
   "fingerprints": [],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],

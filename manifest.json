@@ -8,7 +8,7 @@
   "dir": "auto",
   "theme_color": "#305CDE",
   "background_color": "#F8FAFC",
-  "orientation": "portrait",
+  "orientation": "any",
   "scope": "/",
   "serviceworker": {
     "src": "public/service-worker.js",
