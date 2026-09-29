@@ -263,6 +263,16 @@
             x-transition:leave-start="opacity-100 translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-6"
             @keydown.escape.window="toggleMobilePlayer(false)"
+            {{-- Swipe left to push the player out of view, as an alternative
+                 to the collapse chevron. Touch events rather than pointer
+                 events: the browser keeps delivering them while it scrolls the
+                 page vertically, so a vertical scroll never gets mistaken for
+                 a cancelled swipe. --}}
+            @touchstart.passive="swipeStart($event)"
+            @touchmove.passive="swipeMove($event)"
+            @touchend="swipeEnd()"
+            @touchcancel="swipeEnd(true)"
+            :style="swipeStyle"
             {{-- Visibility is x-show alone: the pointer:coarse half of the
                  breakpoint has no Tailwind equivalent. --}}
             class="fixed inset-0 z-[55]"
@@ -455,10 +465,25 @@
 
                         <div class="mt-3 shrink-0 rounded-[1.75rem] border border-black/5 bg-white/75 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
                             <div class="flex items-center gap-3">
-                                <span class="w-10 text-right text-xs tabular-nums text-gray-500 dark:text-white/55" x-text="formatTime(currentTime)"></span>
-                                <div class="group relative h-2.5 flex-1 cursor-pointer rounded-full bg-gray-300/70 dark:bg-white/15" @click="seek($event)">
-                                    <div class="h-full rounded-full bg-primary-400 transition-all" :style="`width: ${progress}%`"></div>
-                                    <div class="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-primary-400 shadow-lg shadow-primary-900/30 transition" :style="`left: calc(${progress}% - 8px)`"></div>
+                                <span class="w-10 text-right text-xs tabular-nums text-gray-500 dark:text-white/55" x-text="formatTime(displayTime)"></span>
+                                {{-- Drag or tap to seek. touch-none stops the browser
+                                     claiming the drag as a scroll; the ::before strip
+                                     widens the touch target well beyond the 10px bar. --}}
+                                <div
+                                    class="group relative h-2.5 flex-1 cursor-pointer touch-none select-none rounded-full bg-gray-300/70 before:absolute before:inset-x-0 before:-inset-y-3 before:content-[''] dark:bg-white/15"
+                                    data-no-swipe
+                                    role="slider"
+                                    aria-label="Seek"
+                                    aria-valuemin="0"
+                                    :aria-valuemax="duration"
+                                    :aria-valuenow="displayTime"
+                                    @pointerdown.prevent="startScrub($event)"
+                                    @pointermove="moveScrub($event)"
+                                    @pointerup="endScrub($event)"
+                                    @pointercancel="cancelScrub()"
+                                >
+                                    <div class="h-full rounded-full bg-primary-400" :class="scrubbing ? '' : 'transition-all'" :style="`width: ${progress}%`"></div>
+                                    <div class="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-primary-400 shadow-lg shadow-primary-900/30" :class="scrubbing ? 'scale-125' : 'transition'" :style="`left: calc(${progress}% - 8px)`"></div>
                                 </div>
                                 <span class="w-10 text-xs tabular-nums text-gray-500 dark:text-white/55" x-text="formatTime(duration)"></span>
                             </div>
@@ -732,7 +757,7 @@
                 </div>
 
                 {{-- ── Controls ──────────────────────────────────────────────────── --}}
-                <div class="flex flex-col items-center gap-1 flex-1">
+                <div class="flex flex-col items-center gap-1 flex-1 min-w-0">
                     <div class="flex items-center gap-4">
                         <button
                             @click="toggleShuffle()"
@@ -804,10 +829,21 @@
 
                     {{-- Progress bar --}}
                     <div class="flex items-center gap-2 w-full max-w-md">
-                        <span class="text-xs tabular-nums text-gray-500 w-8 text-right" x-text="formatTime(currentTime)"></span>
-                        <div class="flex-1 h-1.5 bg-gray-200 rounded-full cursor-pointer relative group" @click="seek($event)">
-                            <div class="h-full bg-primary-500 rounded-full transition-all" :style="`width: ${progress}%`"></div>
-                            <div class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-primary-500 rounded-full shadow opacity-0 group-hover:opacity-100 transition" :style="`left: calc(${progress}% - 6px)`"></div>
+                        <span class="text-xs tabular-nums text-gray-500 w-8 text-right" x-text="formatTime(displayTime)"></span>
+                        <div
+                            class="flex-1 h-1.5 bg-gray-200 rounded-full cursor-pointer relative group touch-none select-none before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-['']"
+                            role="slider"
+                            aria-label="Seek"
+                            aria-valuemin="0"
+                            :aria-valuemax="duration"
+                            :aria-valuenow="displayTime"
+                            @pointerdown.prevent="startScrub($event)"
+                            @pointermove="moveScrub($event)"
+                            @pointerup="endScrub($event)"
+                            @pointercancel="cancelScrub()"
+                        >
+                            <div class="h-full bg-primary-500 rounded-full" :class="scrubbing ? '' : 'transition-all'" :style="`width: ${progress}%`"></div>
+                            <div class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-primary-500 rounded-full shadow group-hover:opacity-100" :class="scrubbing ? 'opacity-100' : 'opacity-0 transition'" :style="`left: calc(${progress}% - 6px)`"></div>
                         </div>
                         <span class="text-xs tabular-nums text-gray-500 w-8" x-text="formatTime(duration)"></span>
                     </div>
@@ -860,8 +896,12 @@
                         </svg>
                     </button>
 
-                    <div class="w-px h-4 bg-gray-200 mx-1"></div>
-                    <div class="flex items-center gap-2 w-28">
+                    {{-- Inline volume is desktop-only. On a tablet it pushed the
+                         row past ~716px, so on a portrait tablet narrower than
+                         that the expand chevron sat off the right edge. Tablets
+                         have hardware volume, and the full player has its own. --}}
+                    <div x-show="!isMobileViewport" class="w-px h-4 bg-gray-200 mx-1"></div>
+                    <div x-show="!isMobileViewport" class="flex items-center gap-2 w-28">
                         <button @click="toggleMute()" class="text-gray-500 hover:text-gray-800 transition">
                             <template x-if="muted || volume === 0">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.547 3.062A.75.75 0 0110 3.75v12.5a.75.75 0 01-1.264.546L4.703 13H3.167a.75.75 0 01-.7-.48A6.985 6.985 0 012 10c0-.887.165-1.737.468-2.52a.75.75 0 01.7-.48h1.535l4.033-3.796a.75.75 0 01.811-.142zM14.78 7.22a.75.75 0 00-1.06 1.06L14.94 9.5l-1.22 1.22a.75.75 0 001.06 1.06l1.22-1.22 1.22 1.22a.75.75 0 101.06-1.06L17.06 9.5l1.22-1.22a.75.75 0 10-1.06-1.06L16 8.44l-1.22-1.22z"/></svg>
@@ -944,6 +984,16 @@ function miniPlayer() {
         shufflePool: Array.isArray(P.shufflePool) ? P.shufflePool : [],
         showQueue:   false,
         mobileExpanded: false,
+        // Seek-bar drag: while scrubbing, the bar follows the finger and the
+        // audio is only moved on release (seeking on every move stutters).
+        scrubbing: false,
+        scrubRatio: 0,
+        _scrubBar: null,
+        // Swipe-left-to-dismiss on the full player.
+        swipeX: 0,
+        swipeDragging: false,
+        _swipe: null,
+        _swipeTimer: null,
         // True wherever the full-screen player is offered — phones *and* tablets.
         isMobileViewport: window.matchMedia(EXPANDED_PLAYER_MEDIA).matches,
         queueToast:  false,
@@ -974,7 +1024,20 @@ function miniPlayer() {
 
         get progress() {
             if (!this.duration) return 0;
+            if (this.scrubbing) return this.scrubRatio * 100;
             return (this.currentTime / this.duration) * 100;
+        },
+
+        get displayTime() {
+            return this.scrubbing ? Math.floor(this.scrubRatio * this.duration) : this.currentTime;
+        },
+
+        get swipeStyle() {
+            if (!this.swipeX && !this.swipeDragging) return {};
+            return {
+                transform: `translateX(${this.swipeX}px)`,
+                transition: this.swipeDragging ? 'none' : 'transform 220ms ease-out',
+            };
         },
 
         get canPlayNext() {
@@ -1803,10 +1866,97 @@ function miniPlayer() {
             if (this.volume > 0) { this.muted = false; P.audio.muted = false; P.muted = false; }
         },
 
-        seek(ev) {
-            const rect  = ev.currentTarget.getBoundingClientRect();
-            const ratio = (ev.clientX - rect.left) / rect.width;
-            P.audio.currentTime = ratio * this.duration;
+        // ── Seek bar (tap or drag) ────────────────────────────────────────
+        scrubRatioFor(ev, bar) {
+            const rect = bar.getBoundingClientRect();
+            if (!rect.width) return 0;
+            return Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width));
+        },
+
+        startScrub(ev) {
+            if (!this.duration || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+            this._scrubBar = ev.currentTarget;
+            // Capture keeps the drag alive when the finger strays off the thin bar.
+            this._scrubBar.setPointerCapture?.(ev.pointerId);
+            this.scrubRatio = this.scrubRatioFor(ev, this._scrubBar);
+            this.scrubbing = true;
+        },
+
+        moveScrub(ev) {
+            if (!this.scrubbing || !this._scrubBar) return;
+            this.scrubRatio = this.scrubRatioFor(ev, this._scrubBar);
+        },
+
+        endScrub(ev) {
+            if (!this.scrubbing || !this._scrubBar) return;
+            this.scrubRatio = this.scrubRatioFor(ev, this._scrubBar);
+            const target = this.scrubRatio * this.duration;
+            P.audio.currentTime = target;
+            this.currentTime = Math.floor(target);
+            this.cancelScrub();
+        },
+
+        cancelScrub() {
+            this.scrubbing = false;
+            this._scrubBar = null;
+        },
+
+        // ── Swipe the full player away ────────────────────────────────────
+        swipeStart(ev) {
+            if (ev.touches.length !== 1 || ev.target.closest('[data-no-swipe], input, textarea, select')) {
+                this._swipe = null;
+                return;
+            }
+            const t = ev.touches[0];
+            this._swipe = { x: t.clientX, y: t.clientY, t: Date.now(), axis: null };
+        },
+
+        swipeMove(ev) {
+            const s = this._swipe;
+            if (!s) return;
+            if (ev.touches.length !== 1) { this.swipeEnd(true); return; }
+
+            const t  = ev.touches[0];
+            const dx = t.clientX - s.x;
+            const dy = t.clientY - s.y;
+
+            // Decide once, after a small dead zone, whether this gesture is a
+            // horizontal swipe or a vertical scroll — then stick with it.
+            if (!s.axis) {
+                if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+                s.axis = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
+            }
+            if (s.axis !== 'x') return;
+
+            this.swipeDragging = true;
+            // Leftward only; a rightward drag gets a little resistance and no more.
+            this.swipeX = dx < 0 ? dx : Math.min(24, dx / 4);
+            s.lastDx = dx;
+        },
+
+        swipeEnd(cancelled = false) {
+            const s = this._swipe;
+            this._swipe = null;
+            if (!s || s.axis !== 'x') return;
+
+            this.swipeDragging = false;
+            const dx       = s.lastDx ?? 0;
+            const velocity = dx / Math.max(1, Date.now() - s.t); // px per ms
+            const width    = window.innerWidth || 1;
+            const dismiss  = !cancelled && dx < 0 && (dx < -Math.min(140, width * 0.3) || (velocity < -0.5 && dx < -40));
+
+            if (!dismiss) {
+                this.swipeX = 0;
+                return;
+            }
+
+            this.swipeX = -width;
+            clearTimeout(this._swipeTimer);
+            this._swipeTimer = setTimeout(() => {
+                this.toggleMobilePlayer(false);
+                // Reset once the overlay has finished hiding, so it opens in place next time.
+                this._swipeTimer = setTimeout(() => { this.swipeX = 0; }, 260);
+            }, 200);
         },
 
         formatTime(seconds) {
