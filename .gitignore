@@ -34,3 +34,9 @@ Thumbs.db
 /build/twa
 *.jks
 *.keystore
+
+# Server-generated, not app code
+/public/awstats-icon
+/public/awstatsicons
+/public/icon
+/storage/media-library/temp
