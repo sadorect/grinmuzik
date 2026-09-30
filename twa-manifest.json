@@ -20,8 +20,8 @@
     "path": "./android-keystore.jks",
     "alias": "grinmuzik"
   },
-  "appVersionName": "1.1.0",
-  "appVersionCode": 3,
+  "appVersionName": "1.1.1",
+  "appVersionCode": 4,
   "shortcuts": [
     {
       "name": "Search",
@@ -57,5 +57,5 @@
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "1.1.0"
+  "appVersion": "1.1.1"
 }
