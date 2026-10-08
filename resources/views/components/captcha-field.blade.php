@@ -41,79 +41,8 @@
 @if ($captcha->enabled())
     @if ($captcha->usesTurnstile())
 
-        @once
-            @push('scripts')
-                <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
-                <script>
-                    document.addEventListener('alpine:init', () => {
-                        Alpine.data('turnstileField', (config) => ({
-                            widgetId: null,
-
-                            init() {
-                                this.renderWhenReady();
-
-                                // The site's dark mode is class-based and toggled
-                                // by hand, so Turnstile's own 'auto' (which follows
-                                // the OS) would show a light widget on a dark card.
-                                // Re-render on theme change to match.
-                                window.addEventListener('grin-theme-changed', () => {
-                                    if (this.widgetId !== null && window.turnstile) {
-                                        window.turnstile.remove(this.widgetId);
-                                        this.widgetId = null;
-                                    }
-
-                                    this.renderWhenReady();
-                                });
-
-                                // Every Livewire round-trip spends the token we
-                                // are holding, so queue a fresh challenge as soon
-                                // as the response lands.
-                                Livewire.hook('commit', ({ component, respond }) => {
-                                    if (component.id !== this.$wire.id) {
-                                        return;
-                                    }
-
-                                    respond(() => queueMicrotask(() => this.reset()));
-                                });
-                            },
-
-                            renderWhenReady() {
-                                if (! window.turnstile) {
-                                    setTimeout(() => this.renderWhenReady(), 100);
-
-                                    return;
-                                }
-
-                                this.widgetId = window.turnstile.render(this.$refs.widget, {
-                                    sitekey: config.siteKey,
-                                    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-                                    action: config.action,
-                                    'refresh-expired': 'auto',
-                                    callback: (token) => this.store(token),
-                                    'expired-callback': () => this.store(''),
-                                    'error-callback': () => this.store(''),
-                                });
-                            },
-
-                            reset() {
-                                if (this.widgetId !== null && window.turnstile) {
-                                    window.turnstile.reset(this.widgetId);
-                                }
-
-                                this.store('');
-                            },
-
-                            store(token) {
-                                // Deferred: the token rides along with the next
-                                // submit rather than costing a round-trip of its
-                                // own the moment the challenge solves.
-                                this.$wire.set(config.model, token, false);
-                            },
-                        }));
-                    });
-                </script>
-            @endpush
-        @endonce
+        {{-- The turnstileField Alpine component lives in resources/js/app.js so it
+             exists however the form was reached, including wire:navigate. --}}
 
         <div
             class="mt-4"

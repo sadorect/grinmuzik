@@ -643,3 +643,154 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("livewire:navigated", () => {
     window.GrinTheme?.apply();
 });
+
+/*
+ * Cloudflare Turnstile field used by <x-captcha-field>.
+ *
+ * Registered here, in the bundle every layout loads, rather than in an inline
+ * `alpine:init` listener on the form's page: that event fires once per full
+ * page load, so a form reached through wire:navigate never got the component,
+ * rendered no widget, and failed with "The captcha field is required." until
+ * the visitor hard-refreshed.
+ */
+const TURNSTILE_SRC =
+    "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+let turnstileLoader = null;
+
+const loadTurnstile = () => {
+    if (window.turnstile) {
+        return Promise.resolve(window.turnstile);
+    }
+
+    if (!turnstileLoader) {
+        turnstileLoader = new Promise((resolve, reject) => {
+            if (!document.querySelector('script[src^="https://challenges.cloudflare.com/turnstile/"]')) {
+                const script = document.createElement("script");
+                script.src = TURNSTILE_SRC;
+                script.async = true;
+                script.onerror = () => {
+                    turnstileLoader = null;
+                    reject(new Error("Turnstile failed to load"));
+                };
+                document.head.appendChild(script);
+            }
+
+            const waitForApi = () =>
+                window.turnstile ? resolve(window.turnstile) : setTimeout(waitForApi, 50);
+
+            waitForApi();
+        });
+    }
+
+    return turnstileLoader;
+};
+
+const currentTheme = () =>
+    document.documentElement.classList.contains("dark") ? "dark" : "light";
+
+const registerTurnstileField = (Alpine) => {
+    Alpine.data("turnstileField", (config) => ({
+        widgetId: null,
+        renderedTheme: null,
+        generation: 0,
+
+        init() {
+            this.mount();
+
+            // The site's dark mode is class-based and toggled by hand, so
+            // Turnstile's own 'auto' (which follows the OS) would show a light
+            // widget on a dark card. grin-theme-changed also fires on every
+            // page load, so only re-render when the theme really changed.
+            this.onThemeChanged = () => {
+                if (this.renderedTheme !== null && this.renderedTheme !== currentTheme()) {
+                    this.unmount();
+                    this.mount();
+                }
+            };
+            window.addEventListener("grin-theme-changed", this.onThemeChanged);
+
+            // Every Livewire round-trip spends the token we are holding, so
+            // queue a fresh challenge as soon as the response lands.
+            this.stopCommitHook = window.Livewire?.hook("commit", ({ component, respond }) => {
+                if (component.id !== this.$wire.id) {
+                    return;
+                }
+
+                respond(() => queueMicrotask(() => this.reset()));
+            });
+        },
+
+        destroy() {
+            window.removeEventListener("grin-theme-changed", this.onThemeChanged);
+
+            if (typeof this.stopCommitHook === "function") {
+                this.stopCommitHook();
+            }
+
+            this.unmount();
+        },
+
+        mount() {
+            // A generation counter, not a flag: a theme change can unmount and
+            // remount while the API is still loading, and only the newest
+            // request may render. Rendering twice into one container is
+            // rejected by Turnstile and loses track of the live widget.
+            const generation = ++this.generation;
+
+            loadTurnstile()
+                .then((turnstile) => {
+                    if (generation !== this.generation || this.widgetId !== null || !this.$refs.widget?.isConnected) {
+                        return;
+                    }
+
+                    this.renderedTheme = currentTheme();
+                    this.widgetId = turnstile.render(this.$refs.widget, {
+                        sitekey: config.siteKey,
+                        theme: this.renderedTheme,
+                        action: config.action,
+                        "refresh-expired": "auto",
+                        callback: (token) => this.store(token),
+                        "expired-callback": () => this.store(""),
+                        "error-callback": () => this.store(""),
+                    }) ?? null;
+                })
+                .catch(() => {});
+        },
+
+        unmount() {
+            this.generation++;
+
+            if (this.widgetId !== null && window.turnstile) {
+                try {
+                    window.turnstile.remove(this.widgetId);
+                } catch (_) {
+                    // Already gone with its container.
+                }
+            }
+
+            this.widgetId = null;
+            this.renderedTheme = null;
+        },
+
+        reset() {
+            if (this.widgetId !== null && window.turnstile) {
+                window.turnstile.reset(this.widgetId);
+            }
+
+            this.store("");
+        },
+
+        store(token) {
+            // Deferred: the token rides along with the next submit rather than
+            // costing a round-trip of its own the moment the challenge solves.
+            this.$wire.set(config.model, token, false);
+        },
+    }));
+};
+
+if (window.Alpine) {
+    registerTurnstileField(window.Alpine);
+} else {
+    document.addEventListener("alpine:init", () => registerTurnstileField(window.Alpine), { once: true });
+}
