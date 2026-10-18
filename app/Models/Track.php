@@ -356,6 +356,19 @@ class Track extends Model implements HasMedia
         return Str::of($effectiveMood)->replace('_', ' ')->replace('-', ' ')->title()->value();
     }
 
+    /**
+     * A signed audio URL must outlive the song. Players fetch ranges as they
+     * go (and a Chromecast fetches on its own, long after the page minted the
+     * URL), so a fixed 15 minutes broke seeking late in long tracks. The URL
+     * lives for the track's length plus the configured TTL.
+     */
+    public function audioUrlExpiry(): \Illuminate\Support\Carbon
+    {
+        $ttl = (int) config('media-storage.private_url_ttl_minutes', 15);
+
+        return now()->addMinutes($ttl + (int) ceil($this->duration_in_seconds / 60));
+    }
+
     public function getAudioUrl(): string
     {
         $privateDisk = config('media-storage.private_disk', 'local');
@@ -364,9 +377,7 @@ class Track extends Model implements HasMedia
         if ($audio) {
             if ($audio->disk === $privateDisk) {
                 try {
-                    return $audio->getTemporaryUrl(
-                        now()->addMinutes((int) config('media-storage.private_url_ttl_minutes', 15))
-                    );
+                    return $audio->getTemporaryUrl($this->audioUrlExpiry());
                 } catch (Throwable $exception) {
                     report($exception);
 
@@ -393,10 +404,7 @@ class Track extends Model implements HasMedia
                     }
 
                     return $disk === $privateDisk
-                        ? $storage->temporaryUrl(
-                            $this->audio_file_path,
-                            now()->addMinutes((int) config('media-storage.private_url_ttl_minutes', 15))
-                        )
+                        ? $storage->temporaryUrl($this->audio_file_path, $this->audioUrlExpiry())
                         : $storage->url($this->audio_file_path);
                 } catch (Throwable $exception) {
                     report($exception);

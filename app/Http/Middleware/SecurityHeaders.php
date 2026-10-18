@@ -31,9 +31,12 @@ class SecurityHeaders
         // challenge silently fails to appear and every form becomes unsubmittable.
         $turnstile = 'https://challenges.cloudflare.com';
 
+        // The Google Cast sender SDK (Chromecast button) loads from gstatic.
+        $castSdk = 'https://www.gstatic.com';
+
         $csp = implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com {$turnstile}",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com {$turnstile} {$castSdk}",
             "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
             "img-src 'self' data: blob: https:",
             "font-src 'self' data: https://fonts.bunny.net",

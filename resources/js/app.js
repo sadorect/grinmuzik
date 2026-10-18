@@ -1,4 +1,5 @@
 import "./bootstrap";
+import { createCastableAudio } from "./cast";
 import {
     initMediaSession,
     registerMediaSessionHandlers,
@@ -13,7 +14,9 @@ import {
  */
 if (!window.GrinPlayer) {
     window.GrinPlayer = {
-        audio: new Audio(),
+        // Proxied so a Chromecast session can stand in for the element; with
+        // no session it behaves exactly like the plain Audio object.
+        audio: createCastableAudio(new Audio()),
         track: null, // current track object
         queue: [], // array of track IDs (for dispatch)
         queueTracks: [], // array of full track objects (for display)

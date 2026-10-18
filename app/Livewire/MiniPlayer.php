@@ -10,6 +10,7 @@ use App\Support\ArtistActivityNotifier;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 
 class MiniPlayer extends Component
@@ -91,6 +92,23 @@ class MiniPlayer extends Component
         $this->refreshLikeState();
 
         $this->dispatch('player-track-loaded', track: $this->track);
+    }
+
+    /**
+     * A freshly signed audio URL, for handing the current track to a
+     * Chromecast: the URL the page already holds may be close to expiry.
+     * Same visibility rule as loadTrack().
+     */
+    #[Renderless]
+    public function freshAudioUrl(int $id): ?string
+    {
+        $model = Track::find($id);
+
+        if (! $model || ! $model->is_published) {
+            return null;
+        }
+
+        return $model->getAudioUrl() ?: null;
     }
 
     public function likeToggle(): void

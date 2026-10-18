@@ -304,10 +304,31 @@
 
                         <div class="text-center">
                             <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-gray-500 dark:text-white/45">Now playing</p>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-white/60" x-text="queue.length > 1 ? `${queueIndex + 1} of ${queue.length}` : 'Single track'"></p>
+                            <p x-show="!castActive" class="mt-1 text-xs text-gray-500 dark:text-white/60" x-text="queue.length > 1 ? `${queueIndex + 1} of ${queue.length}` : 'Single track'"></p>
+                            <p x-show="castActive" class="mt-1 text-xs font-semibold text-primary dark:text-primary-300" x-text="castLabel" style="display:none"></p>
                         </div>
 
-                        <div class="h-11 w-11"></div>
+                        {{-- Cast / AirPlay. Shown only when the browser reports a
+                             device to send to, so it never offers a dead button. --}}
+                        <button
+                            type="button"
+                            x-show="canCast"
+                            @click="openCast()"
+                            :class="castActive ? 'text-primary dark:text-primary-300' : 'text-gray-700 dark:text-white/80'"
+                            class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/5 bg-white/75 backdrop-blur-xl transition hover:bg-white/95 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15 dark:hover:text-white"
+                            :title="castTitle"
+                            :aria-label="castTitle"
+                            style="display:none"
+                        >
+                            <svg x-show="!airplayAvailable" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                <path x-show="castConnected" d="M19 7H5v1.63c3.96 1.28 7.09 4.41 8.37 8.37H19V7z"/>
+                            </svg>
+                            <svg x-show="airplayAvailable" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="display:none">
+                                <path d="M6 22h12l-6-6-6 6zM21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v-2H3V5h18v12h-4v2h4c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                            </svg>
+                        </button>
+                        <div x-show="!canCast" class="h-11 w-11"></div>
                     </div>
 
                     {{-- Panes wrapper. Stacked in portrait (identical to the phone
@@ -744,6 +765,7 @@
                             class="block truncate text-xs text-gray-500 transition hover:text-primary dark:text-slate-400 dark:hover:text-primary-300"
                             x-text="track?.artist"
                         ></a>
+                        <p x-show="castActive" class="truncate text-[11px] font-semibold text-primary dark:text-primary-300" x-text="castLabel" style="display:none"></p>
                         <button
                             type="button"
                             x-show="track?.can_gift_artist"
@@ -918,6 +940,28 @@
                         >
                     </div>
 
+                    {{-- Cast / AirPlay. Desktop only, like the volume: tablets
+                         reach it from the full player, and the bar has no width
+                         to spare on a narrow portrait tablet. --}}
+                    <button
+                        type="button"
+                        x-show="canCast && !isMobileViewport"
+                        @click="openCast()"
+                        :class="castActive ? 'text-primary' : 'text-gray-400 hover:text-primary'"
+                        class="transition"
+                        :title="castTitle"
+                        :aria-label="castTitle"
+                        style="display:none"
+                    >
+                        <svg x-show="!airplayAvailable" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                <path x-show="castConnected" d="M19 7H5v1.63c3.96 1.28 7.09 4.41 8.37 8.37H19V7z"/>
+                            </svg>
+                            <svg x-show="airplayAvailable" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="display:none">
+                                <path d="M6 22h12l-6-6-6 6zM21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v-2H3V5h18v12h-4v2h4c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                            </svg>
+                    </button>
+
                     {{-- Queue toggle button --}}
                     <button
                         @click="showQueue = !showQueue"
@@ -1016,6 +1060,13 @@ function miniPlayer() {
         _mobileMediaQuery: null,
         _syncMobileViewport: null,
         _syncThemeState: null,
+        _syncCastState: null,
+        // Cast / AirPlay, mirrored from window.GrinCast (resources/js/cast.js).
+        castAvailable: false,
+        castConnected: false,
+        airplayAvailable: false,
+        airplayActive: false,
+        castDeviceName: '',
         _handlers:   {},
 
         get hasActiveTrack() {
@@ -1070,6 +1121,30 @@ function miniPlayer() {
             const { history } = this.getNormalizedShuffleState();
 
             return history.length > 1;
+        },
+
+        get canCast() {
+            return this.castAvailable || this.castConnected || this.airplayAvailable;
+        },
+
+        get castActive() {
+            return this.castConnected || this.airplayActive;
+        },
+
+        get castLabel() {
+            if (this.castConnected) {
+                return `Playing on ${this.castDeviceName || 'TV'}`;
+            }
+
+            return this.airplayActive ? 'Playing on AirPlay' : '';
+        },
+
+        get castTitle() {
+            if (this.castActive) {
+                return `${this.castLabel} — tap to change or stop`;
+            }
+
+            return this.airplayAvailable ? 'Play on AirPlay' : 'Cast to TV';
         },
 
         get repeatTitle() {
@@ -1143,6 +1218,13 @@ function miniPlayer() {
             };
             window.addEventListener('grin-theme-changed', this._syncThemeState);
 
+            this._syncCastState = (event) => this.applyCastState(event.detail);
+            this.applyCastState(window.GrinCast?.state);
+            window.addEventListener('grin-cast-state', this._syncCastState);
+            // Casting a track that was loaded a while ago needs a fresh signed
+            // URL: the TV fetches it itself, long after the old one may expire.
+            window.GrinCast?.setUrlResolver((id) => this.$wire.freshAudioUrl(id));
+
             if (this.hasStripeKey && window.Stripe) {
                 this.giftStripe = Stripe('{{ config('cashier.key') }}');
             }
@@ -1181,6 +1263,7 @@ function miniPlayer() {
 
             this._mobileMediaQuery?.removeEventListener?.('change', this._syncMobileViewport);
             window.removeEventListener('grin-theme-changed', this._syncThemeState);
+            window.removeEventListener('grin-cast-state', this._syncCastState);
             this.mobileExpanded = false;
             // A wire:navigate swap must never leave the body locked.
             document.body.classList.remove('overflow-hidden');
@@ -1329,6 +1412,19 @@ function miniPlayer() {
             P.track = null; P.queue = []; P.queueTracks = []; P.queueIndex = -1; P.shuffleHistory = []; P.shufflePool = [];
             this.mobileExpanded = false;
             this.showQueue = false;
+        },
+
+        applyCastState(state) {
+            if (!state) return;
+            this.castAvailable = Boolean(state.castAvailable);
+            this.castConnected = Boolean(state.castConnected);
+            this.airplayAvailable = Boolean(state.airplayAvailable);
+            this.airplayActive = Boolean(state.airplayActive);
+            this.castDeviceName = state.deviceName || '';
+        },
+
+        openCast() {
+            window.GrinCast?.open();
         },
 
         toggleMobilePlayer(force = null) {
