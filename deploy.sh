@@ -54,7 +54,7 @@ echo "==> Pulling latest code..."
 # A bare `git pull` deploys whichever branch someone last left the working copy
 # on, and fails outright if that branch has no upstream -- which is exactly how
 # the first real deploy died.
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-livestream}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 
 git fetch --prune origin "$DEPLOY_BRANCH"
 

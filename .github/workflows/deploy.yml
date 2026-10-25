@@ -2,9 +2,9 @@ name: CI / Deploy
 
 on:
   push:
-    branches: [livestream]
+    branches: [main]
   pull_request:
-    branches: [livestream]
+    branches: [main]
 
 # One deploy at a time. Two overlapping runs would interleave composer install,
 # npm build and migrations in the same directory.
@@ -69,7 +69,7 @@ jobs:
   deploy:
     name: Deploy to production
     needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/livestream'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
