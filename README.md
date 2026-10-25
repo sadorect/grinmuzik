@@ -63,7 +63,7 @@ Artists upload tracks at **zero commission**. Listeners stream for free and supp
 
 ```bash
 # 1. Clone
-git clone git@github.com:sadorect/dson-music.git grinmuzik
+git clone git@github.com:sadorect/grinmuzik.git grinmuzik
 cd grinmuzik
 
 # 2. Install PHP dependencies

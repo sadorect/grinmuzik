@@ -13,7 +13,7 @@ set -euo pipefail
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-APP_DIR="/home/grinmuzik/dson-music"
+APP_DIR="/home/grinmuzik/grinmuzik"
 BACKUP_DIR="/home/grinmuzik/backups"
 KEEP_BACKUPS=10
 

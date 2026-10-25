@@ -89,4 +89,4 @@ jobs:
           # vendor/ and public/build that FPM cannot read — a 500 on every page.
           # deploy.sh refuses to run as anyone else rather than half-breaking the
           # site.
-          script: bash /home/grinmuzik/dson-music/deploy.sh
+          script: bash /home/grinmuzik/grinmuzik/deploy.sh
