@@ -45,7 +45,14 @@ trait Reportable
     public function hideFromPublic(): void
     {
         if (array_key_exists('is_published', $this->getAttributes())) {
-            $this->forceFill(['is_published' => false])->save();
+            $hidden = ['is_published' => false];
+
+            // Otherwise the scheduler would put hidden content back up.
+            if (array_key_exists('scheduled_release_at', $this->getAttributes())) {
+                $hidden['scheduled_release_at'] = null;
+            }
+
+            $this->forceFill($hidden)->save();
 
             return;
         }

@@ -41,21 +41,27 @@ trait BuildsBrandedMail
                     'html' => 'emails.branded-message',
                     'text' => 'emails.branded-message-text',
                 ],
-                array_merge($this->brandContext(), [
-                    'subject' => $payload['subject'],
-                    'preheader' => $payload['preheader'] ?? $payload['subject'],
-                    'recipientName' => $payload['recipientName'] ?? null,
-                    'eyebrow' => $payload['eyebrow'] ?? null,
-                    'title' => $payload['title'],
-                    'intro' => $payload['intro'] ?? null,
-                    'messageLines' => $payload['messageLines'] ?? [],
-                    'highlights' => $payload['highlights'] ?? [],
-                    'ctaLabel' => $payload['ctaLabel'] ?? null,
-                    'ctaUrl' => $payload['ctaUrl'] ?? null,
-                    'secondaryCtaLabel' => $payload['secondaryCtaLabel'] ?? null,
-                    'secondaryCtaUrl' => $payload['secondaryCtaUrl'] ?? null,
-                    'footerNote' => $payload['footerNote'] ?? null,
-                ]),
+                $this->brandedViewData($payload),
             );
+    }
+
+    /** View data for emails.branded-message, shared by notifications and mailables. */
+    protected function brandedViewData(array $payload): array
+    {
+        return array_merge($this->brandContext(), [
+            'subject' => $payload['subject'],
+            'preheader' => $payload['preheader'] ?? $payload['subject'],
+            'recipientName' => $payload['recipientName'] ?? null,
+            'eyebrow' => $payload['eyebrow'] ?? null,
+            'title' => $payload['title'],
+            'intro' => $payload['intro'] ?? null,
+            'messageLines' => $payload['messageLines'] ?? [],
+            'highlights' => $payload['highlights'] ?? [],
+            'ctaLabel' => $payload['ctaLabel'] ?? null,
+            'ctaUrl' => $payload['ctaUrl'] ?? null,
+            'secondaryCtaLabel' => $payload['secondaryCtaLabel'] ?? null,
+            'secondaryCtaUrl' => $payload['secondaryCtaUrl'] ?? null,
+            'footerNote' => $payload['footerNote'] ?? null,
+        ]);
     }
 }

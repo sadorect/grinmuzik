@@ -109,7 +109,12 @@ class TrackResource extends Resource
             Section::make('Visibility & Monetization')
                 ->columns(2)
                 ->schema([
-                    Forms\Components\Toggle::make('is_published')->label('Published')->default(false),
+                    Forms\Components\Toggle::make('is_published')->label('Published')->default(false)->live(),
+                    Forms\Components\DateTimePicker::make('scheduled_release_at')
+                        ->label('Scheduled release (UTC)')
+                        ->seconds(false)
+                        ->helperText('Leave Published off. It goes live automatically at this time.')
+                        ->visible(fn (Get $get): bool => ! $get('is_published')),
                     Forms\Components\Toggle::make('is_featured')->label('Featured')->helperText('Prioritize this track in discovery rails.'),
                     Forms\Components\Toggle::make('is_demo')->label('Demo track')->default(false),
                     Forms\Components\Toggle::make('requires_donation')
@@ -143,6 +148,7 @@ class TrackResource extends Resource
                 Tables\Columns\TextColumn::make('donation_amount')->money('USD')->sortable()->label('Unlock $'),
                 Tables\Columns\IconColumn::make('is_featured')->boolean()->label('Featured'),
                 Tables\Columns\IconColumn::make('is_published')->boolean()->label('Live'),
+                Tables\Columns\TextColumn::make('scheduled_release_at')->label('Scheduled (UTC)')->dateTime()->sortable()->placeholder('—')->toggleable(),
                 Tables\Columns\IconColumn::make('allow_artist_gifts')->boolean()->label('Gifts'),
                 Tables\Columns\IconColumn::make('requires_donation')->boolean()->label('Locked'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),

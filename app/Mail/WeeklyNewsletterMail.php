@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\NewsletterDraft;
 use Illuminate\Bus\Queueable;
+use App\Models\EmailTemplate;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -26,6 +27,7 @@ class WeeklyNewsletterMail extends Mailable
     {
         return new Content(
             view: 'emails.weekly-newsletter',
+            with: ['copy' => EmailTemplate::copy('newsletter', ['recipient_name' => null])],
         );
     }
 }

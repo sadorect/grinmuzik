@@ -24,9 +24,9 @@
 <body>
 <div class="wrapper">
     <div class="header">
-        <div class="eyebrow">Message from {{ config('app.name') }}</div>
+        <div class="eyebrow">{{ $copy->eyebrow }}</div>
         <h1 class="title">{{ $broadcast->interpolate($broadcast->subject, $recipient) }}</h1>
-        <p class="subtitle">A message has been sent to you from the {{ config('app.name') }} team.</p>
+        @if($copy->intro)<p class="subtitle">{{ $copy->intro }}</p>@endif
     </div>
 
     <div class="body">
@@ -37,12 +37,12 @@
         </div>
 
         <div class="cta-wrap">
-            <a href="{{ url('/') }}" class="cta-btn">Visit {{ config('app.name') }}</a>
+            <a href="{{ url('/') }}" class="cta-btn">{{ $copy->ctaLabel }}</a>
         </div>
     </div>
 
     <div class="footer">
-        You are receiving this message because you are a member of {{ config('app.name') }}.<br>
+        {{ $copy->footerNote }}<br>
         To view all your messages, <a href="{{ route('inbox') }}" style="color:#6366f1;">visit your inbox</a>.
     </div>
 </div>

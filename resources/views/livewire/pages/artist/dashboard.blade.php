@@ -413,8 +413,8 @@ new #[Layout('layouts.glass-app')] class extends Component
                             </div>
                             <div class="flex items-center gap-4 text-xs text-gray-500 shrink-0">
                                 <span>{{ number_format($track->play_count) }} plays</span>
-                                <span class="{{ $track->is_published ? 'text-green-600' : 'text-yellow-600' }} font-medium">
-                                    {{ $track->is_published ? 'Live' : 'Draft' }}
+                                <span class="{{ $track->is_published ? 'text-green-600' : ($track->is_scheduled ? 'text-amber-600' : 'text-yellow-600') }} font-medium">
+                                    {{ $track->is_published ? 'Live' : ($track->is_scheduled ? 'Scheduled' : 'Draft') }}
                                 </span>
                             </div>
                         </li>

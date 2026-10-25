@@ -22,9 +22,9 @@
 <body>
 <div class="wrapper">
     <div class="header">
-        <div class="eyebrow">GrinMuzik Contact Desk</div>
+        <div class="eyebrow">{{ $copy->eyebrow }}</div>
         <h1 class="title">{{ $subjectLine }}</h1>
-        <p class="subtitle">This reply was sent in response to your message to the GrinMuzik team.</p>
+        @if($copy->intro)<p class="subtitle">{{ $copy->intro }}</p>@endif
     </div>
 
     <div class="body">
@@ -43,7 +43,7 @@
     </div>
 
     <div class="footer">
-        You are receiving this email because you contacted GrinMuzik through the site contact form.
+        {{ $copy->footerNote }}
     </div>
 </div>
 </body>

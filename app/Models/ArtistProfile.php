@@ -311,12 +311,23 @@ class ArtistProfile extends Model implements HasMedia
             ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->published());
     }
 
+    /**
+     * Tracks that show an artist is active: anything ever published, or a
+     * release still waiting on its scheduled date.
+     */
+    protected static function dormancyActivity($trackQuery)
+    {
+        return $trackQuery->withTrashed()->where(fn ($query) => $query
+            ->where('is_published', true)
+            ->orWhere(fn ($scheduled) => $scheduled->whereNotNull('scheduled_release_at')->whereNull('deleted_at')));
+    }
+
     public function scopePendingDormancyWarning($query)
     {
         return $query
             ->whereNull('warned_at')
             ->where('created_at', '<=', now()->subDays(7))
-            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->withTrashed()->published());
+            ->whereDoesntHave('tracks', fn ($trackQuery) => static::dormancyActivity($trackQuery));
     }
 
     public function scopePendingDormancyDemotion($query)
@@ -324,7 +335,7 @@ class ArtistProfile extends Model implements HasMedia
         return $query
             ->whereNotNull('warned_at')
             ->where('warned_at', '<=', now()->subDays(30))
-            ->whereDoesntHave('tracks', fn ($trackQuery) => $trackQuery->withTrashed()->published());
+            ->whereDoesntHave('tracks', fn ($trackQuery) => static::dormancyActivity($trackQuery));
     }
 
     public function scopeWithFeaturedRecommendationMetrics($query)

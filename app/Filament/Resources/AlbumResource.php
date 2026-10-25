@@ -6,6 +6,7 @@ use App\Filament\Resources\Concerns\HasAdminResourcePermissions;
 use App\Filament\Resources\AlbumResource\Pages;
 use App\Models\Album;
 use Filament\Forms;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -64,7 +65,12 @@ class AlbumResource extends Resource
                         ->preload(),
                     Forms\Components\DatePicker::make('release_date'),
                     Forms\Components\Textarea::make('description')->maxLength(1000)->columnSpanFull(),
-                    Forms\Components\Toggle::make('is_published')->label('Published')->default(false),
+                    Forms\Components\Toggle::make('is_published')->label('Published')->default(false)->live(),
+                    Forms\Components\DateTimePicker::make('scheduled_release_at')
+                        ->label('Scheduled release (UTC)')
+                        ->seconds(false)
+                        ->helperText('Leave Published off. It goes live automatically at this time.')
+                        ->visible(fn (Get $get): bool => ! $get('is_published')),
                 ]),
         ]);
     }
@@ -87,6 +93,7 @@ class AlbumResource extends Resource
                 Tables\Columns\TextColumn::make('play_count')->numeric()->sortable(),
                 Tables\Columns\TextColumn::make('release_date')->date()->sortable(),
                 Tables\Columns\IconColumn::make('is_published')->boolean()->label('Published'),
+                Tables\Columns\TextColumn::make('scheduled_release_at')->label('Scheduled (UTC)')->dateTime()->sortable()->placeholder('—')->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')->options(['album' => 'Album', 'ep' => 'EP', 'single' => 'Single']),

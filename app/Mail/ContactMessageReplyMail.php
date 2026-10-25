@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\ContactMessage;
 use Illuminate\Bus\Queueable;
+use App\Models\EmailTemplate;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
@@ -38,6 +39,7 @@ class ContactMessageReplyMail extends Mailable
     {
         return new Content(
             view: 'emails.contact-reply',
+            with: ['copy' => EmailTemplate::copy('contact_reply', ['recipient_name' => $this->contactMessage->name ?? null])],
         );
     }
 }

@@ -52,9 +52,7 @@
                                     @endif
 
                                     @foreach($messageLines as $line)
-                                        <div style="font-size:15px; line-height:1.8; color:#334155; margin-bottom:14px;">
-                                            {{ $line }}
-                                        </div>
+                                        <div style="font-size:15px; line-height:1.8; color:#334155; margin-bottom:14px; white-space:pre-line;">{{ $line }}</div>
                                     @endforeach
 
                                     @if(!empty($highlights))

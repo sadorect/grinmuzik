@@ -21,6 +21,7 @@ class Track extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, Searchable, SoftDeletes;
     use \App\Models\Concerns\Reportable;
+    use \App\Models\Concerns\SchedulesRelease;
 
     public static function moodDefinitions(): array
     {
@@ -138,6 +139,12 @@ class Track extends Model implements HasMedia
         });
     }
 
+    /** A scheduled track goes live dated to its scheduled time, not the cron tick. */
+    protected function releaseAttributes(\Illuminate\Support\Carbon $releaseAt): array
+    {
+        return ['published_at' => $releaseAt];
+    }
+
     // ─── Media Collections ────────────────────────────────────────────────────
     public function registerMediaCollections(): void
     {
@@ -163,6 +170,13 @@ class Track extends Model implements HasMedia
         $this->addMediaConversion('thumb')
             ->width(300)
             ->height(300)
+            ->format('webp')
+            ->performOnCollections('cover');
+
+        // Now-playing art on a TV, where the 300px thumb looks soft.
+        $this->addMediaConversion('large')
+            ->width(800)
+            ->height(800)
             ->format('webp')
             ->performOnCollections('cover');
 
@@ -319,6 +333,21 @@ class Track extends Model implements HasMedia
     {
         return $this->getFirstMediaUrl('cover', 'share')
             ?: ($this->album?->getShareImageUrl() ?: SiteSetting::defaultImageUrl());
+    }
+
+    /**
+     * Cover art big enough for a TV screen. Covers uploaded before the 'large'
+     * rendition existed fall back to the next best one that was generated.
+     */
+    public function getLargeCoverUrl(): string
+    {
+        $media = $this->getFirstMedia('cover');
+
+        if (! $media) {
+            return $this->album?->getLargeCoverUrl() ?: SiteSetting::defaultImageUrl();
+        }
+
+        return $media->getAvailableUrl(['large', 'share', 'thumb']);
     }
 
     public function getCoverAltAttribute(): string

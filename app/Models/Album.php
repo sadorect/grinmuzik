@@ -16,6 +16,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Album extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, Searchable;
+    use Concerns\SchedulesRelease;
 
     public const PUBLIC_TYPES = ['album', 'ep'];
 
@@ -45,6 +46,49 @@ class Album extends Model implements HasMedia
                 $album->slug = static::generateUniqueSlug($album->title);
             }
         });
+
+        static::updated(function (Album $album) {
+            $album->syncTracksScheduledWithAlbum();
+        });
+    }
+
+    /**
+     * Hold every track of this release that is not live yet until the album's
+     * scheduled time, so they all go live together.
+     */
+    public function scheduleUnreleasedTracks(): void
+    {
+        if (! $this->is_scheduled) {
+            return;
+        }
+
+        $this->tracks()->where('is_published', false)->get()
+            ->each(fn (Track $track) => $track->update(['scheduled_release_at' => $this->scheduled_release_at]));
+    }
+
+    /**
+     * Tracks scheduled for exactly the album's release time travel with it:
+     * released together, rescheduled together, or put back to draft together.
+     * This holds however the album changed (artist form, admin panel, scheduler).
+     */
+    protected function syncTracksScheduledWithAlbum(): void
+    {
+        $previous = $this->getOriginal('scheduled_release_at');
+
+        if (! $previous || ! $this->wasChanged('scheduled_release_at')) {
+            return;
+        }
+
+        $tied = $this->tracks()->scheduled()->where('scheduled_release_at', $previous)->get();
+
+        foreach ($tied as $track) {
+            if ($this->is_published) {
+                // Due release: date the tracks to the album's time, not "now".
+                $track->releaseNow($previous->isPast() ? $previous : null);
+            } else {
+                $track->update(['scheduled_release_at' => $this->scheduled_release_at]);
+            }
+        }
     }
 
     // ─── Media Collections ────────────────────────────────────────────────────
@@ -130,6 +174,18 @@ class Album extends Model implements HasMedia
         return $this->getFirstMediaUrl('cover', 'share') ?: SiteSetting::defaultImageUrl();
     }
 
+    /** Cover art big enough for a TV screen; see Track::getLargeCoverUrl(). */
+    public function getLargeCoverUrl(): string
+    {
+        $media = $this->getFirstMedia('cover');
+
+        if (! $media) {
+            return SiteSetting::defaultImageUrl();
+        }
+
+        return $media->getAvailableUrl(['large', 'share', 'thumb']);
+    }
+
     public function getCoverAltAttribute(): string
     {
         $artistName = $this->artist?->stage_name
@@ -151,6 +207,10 @@ class Album extends Model implements HasMedia
 
     public function getReleaseStatusLabelAttribute(): string
     {
+        if ($this->is_scheduled) {
+            return 'Scheduled';
+        }
+
         if (! $this->is_published) {
             return 'Draft';
         }

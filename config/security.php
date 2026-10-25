@@ -121,6 +121,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | TV sign-in (device code)
+    |--------------------------------------------------------------------------
+    |
+    | A TV shows a short code; the listener approves it at /tv on their phone.
+    | The code only needs to live as long as it takes to walk to a phone, and
+    | the TV polls no faster than the interval it is told.
+    |
+    */
+
+    'tv' => [
+        'code_minutes' => (int) env('TV_CODE_MINUTES', 10),
+        'poll_interval' => (int) env('TV_POLL_INTERVAL', 5),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Google Play (Trusted Web Activity)
     |--------------------------------------------------------------------------
     |
@@ -195,6 +211,13 @@ return [
         'content_report' => [
             'per_ip' => (int) env('RATE_LIMIT_CONTENT_REPORT_PER_IP', 20),
             'decay_minutes' => (int) env('RATE_LIMIT_CONTENT_REPORT_DECAY', 10),
+        ],
+
+        // Typing a TV code at /tv. The code space is large, but this is the
+        // one place a guess could hand someone else's TV your account.
+        'tv_code_entry' => [
+            'per_ip' => (int) env('RATE_LIMIT_TV_CODE_ENTRY_PER_IP', 10),
+            'decay_minutes' => (int) env('RATE_LIMIT_TV_CODE_ENTRY_DECAY', 10),
         ],
 
         // Public and unauthenticated, and each request sends mail to an address

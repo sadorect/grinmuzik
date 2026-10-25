@@ -11,3 +11,8 @@ Artisan::command('inspire', function () {
 Schedule::command('charts:snapshot week')->weeklyOn(1, '00:10');
 Schedule::command('charts:snapshot month')->monthlyOn(1, '00:20');
 Schedule::command('artists:prune-dormant')->daily();
+// Scheduled releases are claimed atomically, so an overlapping or duplicate
+// scheduler run cannot double-publish; withoutOverlapping just avoids pile-ups.
+Schedule::command('releases:publish-scheduled')->everyMinute()->withoutOverlapping();
+// Spent and abandoned TV sign-in codes (see TvDeviceCode::prunable).
+Schedule::command('model:prune', ['--model' => [\App\Models\TvDeviceCode::class]])->daily();

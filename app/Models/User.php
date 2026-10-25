@@ -258,6 +258,11 @@ class User extends Authenticatable implements HasMedia, FilamentUser, MustVerify
         $this->notify(new BrandedResetPassword($token));
     }
 
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new \App\Notifications\Auth\BrandedVerifyEmail);
+    }
+
     /**
      * Check if user is an artist
      */

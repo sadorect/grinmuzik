@@ -76,8 +76,8 @@ new #[Layout('layouts.glass-app')] class extends Component
                 </p>
                 <div class="mt-3 space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs {{ $album->is_published ? ($album->is_upcoming ? 'text-amber-600' : 'text-green-600') : 'text-yellow-600' }} font-medium">
-                            {{ $album->release_status_label }}
+                        <span class="text-xs {{ $album->is_published ? ($album->is_upcoming ? 'text-amber-600' : 'text-green-600') : ($album->is_scheduled ? 'text-amber-600' : 'text-yellow-600') }} font-medium">
+                            {{ $album->release_status_label }}@if($album->is_scheduled) · <x-local-time :at="$album->scheduled_release_at" />@endif
                         </span>
                         <button wire:click="deleteAlbum({{ $album->id }})"
                                 wire:confirm="Delete album '{{ addslashes($album->title) }}'?"

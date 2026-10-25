@@ -22,6 +22,9 @@ use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\TrackController;
 use App\Http\Controllers\Api\TrendingController;
+use App\Http\Controllers\Api\TvAuthController;
+use App\Http\Controllers\Api\TvCatalogController;
+use App\Http\Controllers\Api\TvPlaybackController;
 use Illuminate\Support\Facades\Route;
 
 // ── Read endpoints (any valid token) ──────────────────────────────────────────
@@ -51,8 +54,34 @@ Route::middleware(['throttle:60,1'])->group(function () {
     Route::get('/resources/contract',   [ResourceController::class, 'contract']);
 });
 
-// ── Write endpoints (token must have write ability) ────────────────────────────
-Route::middleware(['auth:sanctum', 'ability:write', 'throttle:30,1'])->group(function () {
+// ── TV sign-in (device code; see TvAuthController) ────────────────────────────
+Route::prefix('tv')->group(function () {
+    Route::post('/device-code', [TvAuthController::class, 'deviceCode'])->middleware('throttle:10,1');
+    // A TV polls every few seconds for up to ten minutes.
+    Route::post('/token', [TvAuthController::class, 'token'])->middleware('throttle:30,1');
+
+    Route::middleware(['auth:sanctum', 'ability:listen', 'throttle:60,1'])->group(function () {
+        Route::get('/me', [TvAuthController::class, 'me']);
+        Route::delete('/token', [TvAuthController::class, 'logout']);
+    });
+
+    // Browsing and playback: open to everyone, like the website. A TV that
+    // sends its token also gets its listener's own rows and history.
+    Route::middleware('throttle:120,1')->group(function () {
+        Route::get('/home', [TvCatalogController::class, 'home']);
+        Route::get('/search', [TvCatalogController::class, 'search']);
+        Route::get('/albums/{album:slug}', [TvCatalogController::class, 'album']);
+        Route::get('/artists/{artist:slug}', [TvCatalogController::class, 'artist']);
+        Route::get('/playlists/{playlist:slug}', [TvCatalogController::class, 'playlist']);
+        Route::get('/tracks/{track:slug}/play', [TvPlaybackController::class, 'show']);
+    });
+    Route::post('/tracks/{track:slug}/play', [TvPlaybackController::class, 'record'])->middleware('throttle:30,1');
+});
+
+// ── Listener actions (write ability, or a TV's listen ability) ─────────────────
+// TV tokens carry only `listen`, never `write`: the admin and MCP groups below
+// check `write` alone, so a TV token can never reach them.
+Route::middleware(['auth:sanctum', 'abilities:write,listen', 'throttle:30,1'])->group(function () {
     Route::post('/tracks/{track:slug}/play', [ActionController::class, 'recordPlay']);
     Route::post('/tracks/{track:slug}/like', [ActionController::class, 'toggleLike']);
 

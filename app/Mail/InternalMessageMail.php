@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\InternalMessage;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use App\Models\EmailTemplate;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -30,6 +31,7 @@ class InternalMessageMail extends Mailable
     {
         return new Content(
             view: 'emails.internal-message',
+            with: ['copy' => EmailTemplate::copy('internal_message', ['recipient_name' => $this->recipient->name])],
         );
     }
 }

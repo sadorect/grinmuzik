@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\ManagesReleaseSchedule;
 use App\Models\Album;
 use App\Models\Genre;
 use App\Models\Track;
@@ -14,6 +15,7 @@ use Livewire\WithFileUploads;
 
 new #[Layout('layouts.glass-app')] class extends Component
 {
+    use ManagesReleaseSchedule;
     use StagesLivewireUploads;
     use WithFileUploads;
 
@@ -22,7 +24,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     public string $type = 'album';
     public ?int $genre_id = null;
     public string $release_date = '';
-    public bool $is_published = false;
+    public bool $scheduleTracksWithRelease = true;
     public $coverFile = null;
     public array $genres = [];
     public string $trackSearch = '';
@@ -45,6 +47,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
         $this->genres = Genre::active()->orderBy('name')->get(['id', 'name'])->toArray();
         $this->release_date = now()->format('Y-m-d');
+        $this->release_mode = 'draft';
     }
 
     protected function artistProfile()
@@ -118,12 +121,13 @@ new #[Layout('layouts.glass-app')] class extends Component
             'type' => ['required', Rule::in(['album', 'ep', 'single'])],
             'genre_id' => ['nullable', 'exists:genres,id'],
             'release_date' => ['nullable', 'date'],
-            'is_published' => ['boolean'],
+            ...$this->releaseScheduleRules(),
+            'scheduleTracksWithRelease' => ['boolean'],
             'coverFile' => ['nullable', 'image', 'max:' . UploadLimits::imageKb()],
             'selectedTrackIds' => ['array'],
             'selectedTrackIds.*' => ['integer', Rule::exists('tracks', 'id')->where(fn ($query) => $query->where('artist_profile_id', $profile->id))],
             'confirmReassign' => ['boolean'],
-        ]);
+        ], $this->releaseScheduleMessages());
 
         $selectedTracks = $this->selectedTracksCollection();
         $tracksRequiringReassignment = $selectedTracks->filter(fn (Track $track) => ! is_null($track->album_id));
@@ -140,7 +144,9 @@ new #[Layout('layouts.glass-app')] class extends Component
             return;
         }
 
-        DB::transaction(function () use ($profile, $selectedTracks): void {
+        $album = null;
+
+        DB::transaction(function () use ($profile, $selectedTracks, &$album): void {
             $album = Album::create([
                 'user_id' => auth()->id(),
                 'artist_profile_id' => $profile->id,
@@ -148,8 +154,11 @@ new #[Layout('layouts.glass-app')] class extends Component
                 'description' => $this->description,
                 'type' => $this->type,
                 'genre_id' => $this->genre_id,
-                'release_date' => $this->release_date ?: null,
-                'is_published' => $this->is_published,
+                // A scheduled release is dated to the day it goes live.
+                'release_date' => $this->release_mode === 'scheduled'
+                    ? $this->scheduledReleaseTime()->toDateString()
+                    : ($this->release_date ?: null),
+                ...$this->releaseAttributes(),
             ]);
 
             if ($this->coverFile) {
@@ -170,7 +179,11 @@ new #[Layout('layouts.glass-app')] class extends Component
             }
         });
 
-        session()->flash('success', "Album \"{$this->title}\" created!");
+        if ($this->scheduleTracksWithRelease) {
+            $album->scheduleUnreleasedTracks();
+        }
+
+        session()->flash('success', $this->releaseFlash('Album', $this->title) ?: "Album \"{$this->title}\" created!");
         $this->redirect(route('artist.albums'), navigate: true);
     }
 }; ?>
@@ -245,13 +258,24 @@ new #[Layout('layouts.glass-app')] class extends Component
                     <x-input-error :messages="$errors->get('coverFile')" class="mt-1" />
                 </div>
 
-                <label class="flex cursor-pointer items-center gap-3">
-                    <input wire:model="is_published" type="checkbox" class="rounded border-gray-300 text-red-500 focus:ring-red-400">
-                    <div>
-                        <p class="text-sm font-medium text-gray-700">Publish immediately</p>
-                        <p class="text-xs text-gray-400">Draft releases stay private until you are ready.</p>
-                    </div>
-                </label>
+                <div class="space-y-2">
+                    <x-input-label value="Release" />
+                    <x-release-schedule
+                        now-label="Public now"
+                        :now-hint="'Public as soon as you save. A future release date shows as Upcoming.'"
+                        draft-hint="Stays private until you are ready."
+                        
+                    >
+                        <label class="flex cursor-pointer items-start gap-3">
+                            <input wire:model="scheduleTracksWithRelease" type="checkbox" class="mt-0.5 rounded border-gray-300 text-red-500 focus:ring-red-400">
+                            <span>
+                                <span class="block text-sm font-medium text-gray-700">Release this album's tracks at the same time</span>
+                                <span class="block text-xs text-gray-500">Any attached track that isn't live yet stays hidden until then. Tracks already live stay live.</span>
+                            </span>
+                        </label>
+                        <p class="text-xs text-gray-500">The album's release date is set to this day.</p>
+                    </x-release-schedule>
+                </div>
             </div>
 
             <div class="glass-card rounded-2xl p-6">

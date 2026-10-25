@@ -23,7 +23,7 @@
     <div class="header">
         <div class="eyebrow">{{ $draft->period }}</div>
         <h1 class="title">{{ $draft->subject }}</h1>
-        <p class="subtitle">The latest from {{ config('app.name') }}.</p>
+        @if($copy->intro)<p class="subtitle">{{ $copy->intro }}</p>@endif
     </div>
 
     <div class="body">
@@ -33,7 +33,7 @@
     </div>
 
     <div class="footer">
-        You are receiving this newsletter because you are a member of {{ config('app.name') }}.
+        {{ $copy->footerNote }}
     </div>
 </div>
 </body>

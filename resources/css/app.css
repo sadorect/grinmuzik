@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Alpine removes x-cloak once it initialises; hide those elements until then. */
+[x-cloak] {
+    display: none !important;
+}
+
 @layer components {
     html.dark {
         color-scheme: dark;

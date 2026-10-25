@@ -30,6 +30,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     {
         $track = Track::where('artist_profile_id', auth()->user()->artistProfile->id)->findOrFail($trackId);
         $newValue = ! $track->is_published;
+        // Publishing a scheduled track releases it early; its schedule is cleared.
         $track->update(['is_published' => $newValue]);
         $this->successMessage = $newValue ? "\"{$track->title}\" is now live." : "\"{$track->title}\" set to draft.";
     }
@@ -58,7 +59,8 @@ new #[Layout('layouts.glass-app')] class extends Component
 
         match ($this->filter) {
             'published' => $query->where('is_published', true),
-            'drafts' => $query->where('is_published', false),
+            'scheduled' => $query->scheduled()->reorder('scheduled_release_at'),
+            'drafts' => $query->where('is_published', false)->whereNull('scheduled_release_at'),
             'locked' => $query->where('is_free', false),
             default => null,
         };
@@ -90,7 +92,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     <div class="flex flex-col sm:flex-row gap-3">
         <x-text-input wire:model.live.debounce.300ms="search" class="flex-1" type="search" placeholder="Search tracks..." />
         <div class="flex gap-2">
-            @foreach(['all' => 'All', 'published' => 'Live', 'drafts' => 'Drafts', 'locked' => 'Locked'] as $key => $label)
+            @foreach(['all' => 'All', 'published' => 'Live', 'scheduled' => 'Scheduled', 'drafts' => 'Drafts', 'locked' => 'Locked'] as $key => $label)
                 <button wire:click="$set('filter', '{{ $key }}')"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium transition {{ $filter === $key ? 'bg-red-500 text-white' : 'bg-white/60 text-gray-600 hover:bg-white' }}">
                     {{ $label }}
@@ -148,10 +150,19 @@ new #[Layout('layouts.glass-app')] class extends Component
 
                             <x-queue-track-button :track="$track" label="+" class="px-2.5 py-1.5 text-[11px]" />
 
-                            <button wire:click="togglePublished({{ $track->id }})"
-                                    class="px-2.5 py-1 rounded-full font-medium transition {{ $track->is_published ? 'bg-green-100 text-green-700 hover:bg-yellow-100 hover:text-yellow-700' : 'bg-yellow-100 text-yellow-700 hover:bg-green-100 hover:text-green-700' }}">
-                                {{ $track->is_published ? 'Live' : 'Draft' }}
-                            </button>
+                            @if($track->is_scheduled)
+                                <button wire:click="togglePublished({{ $track->id }})"
+                                        wire:confirm="Release &lsquo;{{ addslashes($track->title) }}&rsquo; now instead of at its scheduled time?"
+                                        title="Scheduled — click to release now"
+                                        class="px-2.5 py-1 rounded-full font-medium transition bg-amber-100 text-amber-700 hover:bg-green-100 hover:text-green-700">
+                                    Scheduled · <x-local-time :at="$track->scheduled_release_at" />
+                                </button>
+                            @else
+                                <button wire:click="togglePublished({{ $track->id }})"
+                                        class="px-2.5 py-1 rounded-full font-medium transition {{ $track->is_published ? 'bg-green-100 text-green-700 hover:bg-yellow-100 hover:text-yellow-700' : 'bg-yellow-100 text-yellow-700 hover:bg-green-100 hover:text-green-700' }}">
+                                    {{ $track->is_published ? 'Live' : 'Draft' }}
+                                </button>
+                            @endif
 
                             <a href="{{ route('artist.edit-track', $track) }}" wire:navigate
                                class="text-gray-400 hover:text-blue-600 transition"

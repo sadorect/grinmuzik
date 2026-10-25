@@ -1,6 +1,8 @@
 <?php
 
 use App\Jobs\ProcessOversizedTrackUpload;
+use App\Livewire\Concerns\ManagesReleaseSchedule;
+use App\Models\Album;
 use App\Models\Genre;
 use App\Models\Track;
 use App\Rules\ValidAudioUpload;
@@ -20,6 +22,7 @@ use Livewire\WithFileUploads;
 
 new #[Layout('layouts.glass-app')] class extends Component
 {
+    use ManagesReleaseSchedule;
     use StagesLivewireUploads;
     use WithFileUploads;
 
@@ -30,7 +33,6 @@ new #[Layout('layouts.glass-app')] class extends Component
     public ?int $album_id = null;
     public ?string $mood = null;
     public int $track_number = 1;
-    public bool $is_published = true;
     public bool $requires_donation = false;
     public string $donation_amount = '';
 
@@ -72,6 +74,18 @@ new #[Layout('layouts.glass-app')] class extends Component
         $this->paymentsEnabled = SiteSetting::paymentsEnabled();
     }
 
+    /** The chosen album, when it is waiting on a scheduled release. */
+    public function scheduledAlbum(): ?Album
+    {
+        if (! $this->album_id) {
+            return null;
+        }
+
+        $album = auth()->user()->artistProfile?->albums()->find($this->album_id);
+
+        return $album?->is_scheduled ? $album : null;
+    }
+
     public function suggestedMoodLabel(): ?string
     {
         if (! $this->genre_id) {
@@ -96,7 +110,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             'album_id' => ['nullable', Rule::exists('albums', 'id')->where(fn ($query) => $query->where('artist_profile_id', $profileId))],
             'mood' => ['nullable', 'string', 'max:50'],
             'track_number' => ['nullable', 'integer', 'min:1'],
-            'is_published' => ['boolean'],
+            ...$this->releaseScheduleRules(),
             'requires_donation' => ['boolean'],
             'donation_amount' => ['nullable', 'numeric', 'min:0.5', 'max:999'],
             'audioFile' => ['required', 'file', new ValidAudioUpload(), 'max:' . UploadLimits::audioKb()],
@@ -197,7 +211,7 @@ new #[Layout('layouts.glass-app')] class extends Component
             'description' => $this->description,
             'lyrics' => $this->lyrics ?: null,
             'track_number' => $this->track_number ?: 1,
-            'is_published' => $this->is_published,
+            ...$this->releaseAttributes(),
             'is_free' => ! ($this->paymentsEnabled && $this->requires_donation),
             'donation_amount' => ($this->paymentsEnabled && $this->requires_donation) ? (float) $this->donation_amount : 1.00,
         ];
@@ -224,6 +238,7 @@ new #[Layout('layouts.glass-app')] class extends Component
     protected function messages(): array
     {
         return [
+            ...$this->releaseScheduleMessages(),
             'audioFile.max' => 'The audio file must not be greater than ' . UploadLimits::formatKilobytes(UploadLimits::audioKb()) . '.',
             'coverFile.max' => 'The cover image must not be greater than ' . UploadLimits::formatKilobytes(UploadLimits::imageKb()) . '.',
         ];
@@ -255,7 +270,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                     'description' => $this->description,
                     'lyrics' => $this->lyrics ?: null,
                     'track_number' => $this->track_number ?: 1,
-                    'is_published' => $this->is_published,
+                    ...$this->releaseAttributes(),
                     'is_free' => ! ($this->paymentsEnabled && $this->requires_donation),
                     'donation_amount' => ($this->paymentsEnabled && $this->requires_donation) ? (float) $this->donation_amount : 1.00,
                 ]);
@@ -292,7 +307,7 @@ new #[Layout('layouts.glass-app')] class extends Component
 
         app(ArtistActivityNotifier::class)->sendTrackUploaded($track->fresh(['artistProfile.user', 'genre', 'album']));
 
-        session()->flash('success', "Track \"{$track->title}\" uploaded successfully!");
+        session()->flash('success', $this->releaseFlash('Track', $track->title) ?: "Track \"{$track->title}\" uploaded successfully!");
         $this->redirect(route('artist.tracks'));
     }
 };
@@ -518,7 +533,7 @@ new #[Layout('layouts.glass-app')] class extends Component
                 </div>
                 <div>
                     <x-input-label for="album_id" value="Album" />
-                    <select wire:model="album_id" id="album_id" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-red-400 focus:ring-red-400 text-sm">
+                    <select wire:model.live="album_id" id="album_id" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-red-400 focus:ring-red-400 text-sm">
                         <option value="">Standalone single</option>
                         @foreach($albums as $a)
                             <option value="{{ $a['id'] }}">{{ $a['title'] }}</option>
@@ -585,15 +600,13 @@ new #[Layout('layouts.glass-app')] class extends Component
         </div>
 
         <div class="glass-card rounded-2xl p-6 space-y-4">
-            <h2 class="font-semibold text-gray-700">Visibility </h2>
+            <h2 class="font-semibold text-gray-700">Release</h2>
 
-            <label class="flex items-center gap-3 cursor-pointer">
-                <input wire:model.live="is_published" type="checkbox" class="rounded border-gray-300 text-red-500 focus:ring-red-400">
-                <div>
-                    <p class="text-sm font-medium text-gray-700">Publish immediately</p>
-                    <p class="text-xs text-gray-400">Uncheck to save as a draft</p>
-                </div>
-            </label>
+            @php($scheduledAlbum = $this->scheduledAlbum())
+            <x-release-schedule
+                :album-release-at="$scheduledAlbum?->scheduled_release_at"
+                :album-title="$scheduledAlbum?->title"
+            />
 
             @if($paymentsEnabled)
                 <label class="flex items-center gap-3 cursor-pointer">

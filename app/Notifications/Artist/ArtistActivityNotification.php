@@ -28,6 +28,7 @@ class ArtistActivityNotification extends Notification
         public ?string $secondaryCtaUrl = null,
         public ?string $preheader = null,
         public ?string $intro = null,
+        public ?string $footerNote = null,
     ) {
     }
 
@@ -51,6 +52,7 @@ class ArtistActivityNotification extends Notification
             'ctaUrl' => $this->ctaUrl,
             'secondaryCtaLabel' => $this->secondaryCtaLabel,
             'secondaryCtaUrl' => $this->secondaryCtaUrl,
+            'footerNote' => $this->footerNote,
         ]);
     }
 }

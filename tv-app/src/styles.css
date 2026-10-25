@@ -1,0 +1,806 @@
+/*
+ * 10-foot layout at a fixed 1920x1080 (TVs scale it to the panel).
+ * Written for a 2017 Samsung (about Chrome 47): flexbox and margins only,
+ * no CSS grid, no custom properties, no flex gap. Colours repeat by hand:
+ *   ground #0b0e17 · panel #161b2a · text #f2f4fa · muted #9aa3bd
+ *   accent #4f74f0 (GrinMuzik blue) · focus ring #ffffff
+ */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #0b0e17;
+    color: #f2f4fa;
+    font-family: 'SamsungOne', 'Tizen Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 28px;
+    line-height: 1.3;
+}
+
+h1,
+h2,
+p {
+    margin: 0;
+}
+
+img {
+    display: block;
+}
+
+.app,
+.layer,
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+}
+
+/* Messages (loading, errors, empty) */
+.message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #9aa3bd;
+}
+
+.message h1 {
+    color: #f2f4fa;
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+/* Buttons */
+.button {
+    display: inline-block;
+    padding: 18px 40px;
+    margin-right: 24px;
+    border-radius: 48px;
+    background: #161b2a;
+    color: #f2f4fa;
+    font-size: 30px;
+    font-weight: bold;
+    border: 4px solid transparent;
+    -webkit-transition: -webkit-transform 0.15s ease-out;
+    transition: transform 0.15s ease-out;
+}
+
+.button.is-focused {
+    background: #4f74f0;
+    border-color: #ffffff;
+    -webkit-transform: scale(1.06);
+    transform: scale(1.06);
+}
+
+/* ── Home ───────────────────────────────────────────────────────── */
+.rail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 1080px;
+    padding: 56px 0 0 40px;
+    background: #0b0e17;
+    z-index: 2;
+    border-right: 2px solid #161b2a;
+}
+
+.rail.is-open {
+    width: 400px;
+    background: #10141f;
+    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.6);
+}
+
+.rail__brand {
+    font-size: 30px;
+    font-weight: bold;
+    color: #4f74f0;
+    margin-bottom: 64px;
+}
+
+.rail__item {
+    color: #9aa3bd;
+    font-size: 30px;
+    padding: 14px 24px;
+    margin: 0 24px 12px -24px;
+    border-radius: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rail.is-open .rail__item {
+    color: #f2f4fa;
+}
+
+.rail__item.is-focused {
+    background: #4f74f0;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px #ffffff;
+}
+
+.home__content {
+    position: absolute;
+    top: 0;
+    left: 280px;
+    width: 1640px;
+    height: 1080px;
+    overflow: hidden;
+}
+
+.home__rows,
+.search__rows {
+    padding-top: 56px;
+    -webkit-transition: -webkit-transform 0.25s ease-out;
+    transition: transform 0.25s ease-out;
+}
+
+/* Rows of tiles */
+.row {
+    height: 470px;
+    overflow: hidden;
+    opacity: 0.75;
+}
+
+/* Rows scrolled past stay hidden rather than peeking in, cut off, at the top. */
+.row.is-above {
+    visibility: hidden;
+}
+
+.row.is-active {
+    opacity: 1;
+}
+
+.row__title {
+    font-size: 34px;
+    margin-bottom: 8px;
+    padding-left: 24px;
+}
+
+.row__track {
+    display: flex;
+    flex-wrap: nowrap;
+    padding: 20px 24px 0;
+    -webkit-transition: -webkit-transform 0.2s ease-out;
+    transition: transform 0.2s ease-out;
+}
+
+.tile {
+    -webkit-flex: 0 0 280px;
+    flex: 0 0 280px;
+    width: 280px;
+    margin-right: 32px;
+}
+
+.tile__art {
+    width: 280px;
+    height: 280px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #161b2a;
+    border: 4px solid transparent;
+    -webkit-transition: -webkit-transform 0.15s ease-out;
+    transition: transform 0.15s ease-out;
+}
+
+.tile__art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tile--round .tile__art {
+    border-radius: 50%;
+}
+
+.tile__title {
+    margin-top: 14px;
+    font-size: 26px;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tile__subtitle {
+    font-size: 22px;
+    color: #9aa3bd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tile--round .tile__title,
+.tile--round .tile__subtitle {
+    text-align: center;
+}
+
+.tile.is-focused .tile__art {
+    -webkit-transform: scale(1.06);
+    transform: scale(1.06);
+    border-color: #ffffff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Mini player ────────────────────────────────────────────────── */
+.mini {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 1920px;
+    height: 112px;
+    padding: 16px 64px 16px 280px;
+    display: flex;
+    align-items: center;
+    background: #161b2a;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+    z-index: 3;
+}
+
+.mini__progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: #4f74f0;
+}
+
+.mini__art {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    margin-right: 24px;
+    object-fit: cover;
+}
+
+.mini__text {
+    -webkit-flex: 1;
+    flex: 1;
+    min-width: 0;
+}
+
+.mini__title {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini__artist {
+    font-size: 24px;
+    color: #9aa3bd;
+}
+
+.mini__state {
+    font-size: 24px;
+    color: #9aa3bd;
+    text-align: right;
+}
+
+.mini__time {
+    display: block;
+    color: #f2f4fa;
+}
+
+/* ── Album / artist / playlist ──────────────────────────────────── */
+.detail__side {
+    position: absolute;
+    top: 80px;
+    left: 96px;
+    width: 560px;
+}
+
+.detail__art {
+    width: 480px;
+    height: 480px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #161b2a;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.detail__art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail__art--round {
+    border-radius: 50%;
+}
+
+.detail__title {
+    margin-top: 36px;
+    font-size: 52px;
+    line-height: 1.1;
+    max-height: 120px;
+    overflow: hidden;
+}
+
+.detail__meta {
+    margin-top: 12px;
+    color: #9aa3bd;
+}
+
+.detail__buttons {
+    margin-top: 36px;
+}
+
+.detail__list {
+    position: absolute;
+    top: 80px;
+    left: 720px;
+    width: 1120px;
+    height: 880px;
+    overflow: hidden;
+}
+
+.detail__empty {
+    color: #9aa3bd;
+}
+
+.detail__list-track,
+.playing__queue-track {
+    -webkit-transition: -webkit-transform 0.2s ease-out;
+    transition: transform 0.2s ease-out;
+}
+
+.list-row {
+    height: 100px;
+    margin-bottom: 12px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    border-radius: 14px;
+    border: 4px solid transparent;
+}
+
+.list-row.is-focused {
+    background: #161b2a;
+    border-color: #ffffff;
+}
+
+.list-row__number {
+    width: 56px;
+    color: #9aa3bd;
+    font-size: 26px;
+}
+
+.list-row__art {
+    width: 68px;
+    height: 68px;
+    border-radius: 8px;
+    margin-right: 24px;
+    object-fit: cover;
+    background: #161b2a;
+}
+
+.list-row__text {
+    -webkit-flex: 1;
+    flex: 1;
+    min-width: 0;
+}
+
+.list-row__title,
+.list-row__subtitle {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.list-row__title {
+    font-weight: bold;
+}
+
+.list-row__subtitle {
+    font-size: 22px;
+    color: #9aa3bd;
+}
+
+.list-row__end {
+    color: #9aa3bd;
+    font-size: 24px;
+    margin-left: 24px;
+}
+
+/* ── Now playing ────────────────────────────────────────────────── */
+.playing {
+    background: #0b0e17;
+    background-image: -webkit-linear-gradient(top, #1a2244 0%, #0b0e17 70%);
+    background-image: linear-gradient(to bottom, #1a2244 0%, #0b0e17 70%);
+}
+
+.playing__art {
+    position: absolute;
+    top: 140px;
+    left: 96px;
+    width: 640px;
+    height: 640px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #161b2a;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+.playing__art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.playing__main {
+    position: absolute;
+    top: 180px;
+    left: 816px;
+    width: 600px;
+}
+
+.playing__label {
+    color: #4f74f0;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.playing__title {
+    margin-top: 16px;
+    font-size: 60px;
+    line-height: 1.1;
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.playing__artist {
+    margin-top: 12px;
+    font-size: 36px;
+    color: #9aa3bd;
+}
+
+.playing__error {
+    margin-top: 20px;
+    color: #ffb4a8;
+}
+
+.progress {
+    margin-top: 56px;
+}
+
+.progress__bar {
+    height: 10px;
+    border-radius: 5px;
+    background: #2a3045;
+    overflow: hidden;
+}
+
+.progress__fill {
+    height: 10px;
+    background: #4f74f0;
+}
+
+.progress__times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-size: 24px;
+    color: #9aa3bd;
+}
+
+.controls {
+    margin-top: 48px;
+    display: flex;
+}
+
+.control {
+    padding: 18px 32px;
+    margin-right: 20px;
+    border-radius: 48px;
+    background: #161b2a;
+    font-size: 28px;
+    font-weight: bold;
+    border: 4px solid transparent;
+}
+
+.control--toggle {
+    min-width: 170px;
+    text-align: center;
+}
+
+.control.is-focused {
+    background: #4f74f0;
+    border-color: #ffffff;
+    -webkit-transform: scale(1.06);
+    transform: scale(1.06);
+}
+
+.playing__hint {
+    margin-top: 36px;
+    font-size: 22px;
+    color: #9aa3bd;
+}
+
+.playing__queue {
+    position: absolute;
+    top: 140px;
+    left: 1480px;
+    width: 380px;
+    height: 860px;
+    overflow: hidden;
+}
+
+.playing__queue-title {
+    font-size: 30px;
+    margin-bottom: 20px;
+}
+
+.playing__queue-empty {
+    color: #9aa3bd;
+    font-size: 24px;
+}
+
+.queue-row {
+    height: 92px;
+    margin-bottom: 12px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    border-radius: 12px;
+    border: 4px solid transparent;
+}
+
+.queue-row.is-focused {
+    background: #161b2a;
+    border-color: #ffffff;
+}
+
+.queue-row__art {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    margin-right: 16px;
+    object-fit: cover;
+    background: #161b2a;
+}
+
+.queue-row__text {
+    min-width: 0;
+    -webkit-flex: 1;
+    flex: 1;
+}
+
+.queue-row__title,
+.queue-row__artist {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-row__title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.queue-row__artist {
+    font-size: 20px;
+    color: #9aa3bd;
+}
+
+/* ── Search ─────────────────────────────────────────────────────── */
+.search__side {
+    position: absolute;
+    top: 64px;
+    left: 80px;
+    width: 640px;
+}
+
+.search__query {
+    height: 88px;
+    padding: 20px 28px;
+    border-radius: 14px;
+    background: #161b2a;
+    font-size: 36px;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-bottom: 32px;
+}
+
+.search__placeholder {
+    color: #9aa3bd;
+    font-size: 28px;
+}
+
+.search__caret {
+    display: inline-block;
+    width: 3px;
+    height: 40px;
+    margin-left: 4px;
+    vertical-align: middle;
+    background: #4f74f0;
+}
+
+.keyboard {
+    display: flex;
+    flex-wrap: wrap;
+    width: 624px;
+}
+
+.key {
+    width: 92px;
+    height: 80px;
+    margin: 0 12px 12px 0;
+    border-radius: 10px;
+    background: #161b2a;
+    text-align: center;
+    line-height: 72px;
+    font-size: 32px;
+    font-weight: bold;
+    border: 4px solid transparent;
+}
+
+.key--wide {
+    width: 196px;
+    font-size: 26px;
+}
+
+.key.is-focused {
+    background: #4f74f0;
+    border-color: #ffffff;
+}
+
+.search__results {
+    position: absolute;
+    top: 0;
+    left: 780px;
+    width: 1140px;
+    height: 1080px;
+    overflow: hidden;
+}
+
+.search__hint {
+    margin-top: 80px;
+    color: #9aa3bd;
+}
+
+/* ── Sign in ────────────────────────────────────────────────────── */
+.signin__steps {
+    position: absolute;
+    top: 120px;
+    left: 140px;
+    width: 980px;
+}
+
+.signin__steps h1 {
+    font-size: 56px;
+}
+
+.signin__lead {
+    margin-top: 16px;
+    color: #9aa3bd;
+}
+
+.signin__list {
+    margin: 40px 0 0;
+    padding-left: 40px;
+    font-size: 32px;
+}
+
+.signin__list li {
+    margin-bottom: 16px;
+}
+
+.signin__code {
+    margin-top: 32px;
+    font-size: 104px;
+    font-weight: bold;
+    letter-spacing: 12px;
+    font-family: 'Courier New', monospace;
+}
+
+.signin__status {
+    margin-top: 24px;
+    color: #4f74f0;
+}
+
+.signin__back {
+    margin-top: 12px;
+    color: #9aa3bd;
+    font-size: 24px;
+}
+
+.signin__qr {
+    position: absolute;
+    top: 220px;
+    left: 1240px;
+    width: 520px;
+    height: 520px;
+    padding: 24px;
+    border-radius: 18px;
+    background: #ffffff;
+}
+
+.signin__qr svg {
+    width: 472px;
+    height: 472px;
+}
+
+/* ── Account ────────────────────────────────────────────────────── */
+.account {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.account__avatar {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    margin-bottom: 32px;
+    object-fit: cover;
+}
+
+.account h1 {
+    font-size: 52px;
+}
+
+.account p {
+    margin: 16px 0 40px;
+    color: #9aa3bd;
+}
+
+.account .button {
+    margin-right: 0;
+}
+
+.account .account__hint {
+    margin-top: 40px;
+    font-size: 24px;
+}
+
+/* ── Exit dialog ────────────────────────────────────────────────── */
+.dialog {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1920px;
+    height: 1080px;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.dialog__box {
+    width: 820px;
+    padding: 56px;
+    border-radius: 24px;
+    background: #161b2a;
+    text-align: center;
+}
+
+.dialog__box h1 {
+    font-size: 48px;
+}
+
+.dialog__box p {
+    margin: 16px 0 40px;
+    color: #9aa3bd;
+}
+
+.dialog__buttons .button:last-child {
+    margin-right: 0;
+}

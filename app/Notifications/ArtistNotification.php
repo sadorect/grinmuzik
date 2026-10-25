@@ -4,11 +4,14 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\EmailTemplate;
+use App\Notifications\Concerns\BuildsBrandedMail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class ArtistNotification extends Notification implements ShouldQueue
 {
+    use BuildsBrandedMail;
     use Queueable;
 
     public function __construct(
@@ -23,9 +26,15 @@ class ArtistNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject($this->subject)
-            ->line($this->body)
-            ->line('— The GrinMuzik Team');
+        $copy = EmailTemplate::copy('artist_admin_notice', ['recipient_name' => $notifiable->name ?? null]);
+
+        return $this->brandedMail([
+            'subject' => $this->subject,
+            'title' => $this->subject,
+            'eyebrow' => $copy->eyebrow,
+            'recipientName' => $notifiable->name ?? null,
+            'messageLines' => [$this->body],
+            'footerNote' => $copy->footerNote,
+        ]);
     }
 }

@@ -354,6 +354,9 @@ Route::middleware(['auth'])->prefix('me')->name('listener.')->group(function () 
     Volt::route('/history', 'pages.listener.history')->name('history');
 });
 
+// ── TV sign-in: approve the code a TV is showing ──────────────────────────
+Volt::route('/tv', 'pages.tv-link')->middleware(['auth'])->name('tv.link');
+
 // ── Inbox (all authenticated users) ───────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Volt::route('/inbox', 'pages.inbox')->name('inbox');
