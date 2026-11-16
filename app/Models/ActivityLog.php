@@ -74,6 +74,9 @@ class ActivityLog extends Model
             'artist.restored' => 'Artist profile restored',
 
             'auth.login' => 'Signed in',
+
+            'impersonation.started' => 'Admin signed in as user',
+            'impersonation.stopped' => 'Admin returned to own account',
         ];
     }
 

@@ -464,6 +464,12 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
+            // "Sign in as" swaps the user with Auth::login(); that is not a
+            // sign-in by the artist and has its own impersonation.* rows.
+            if (\App\Support\Impersonation::isSwitching()) {
+                return;
+            }
+
             // Listener logins are high-volume and were explicitly out of
             // scope; the value here is confirming an artist or admin was
             // actually online when something changed.

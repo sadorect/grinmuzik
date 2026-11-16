@@ -58,6 +58,7 @@ class AuditLogger
     ): ?ActivityLog {
         try {
             $actor = $this->resolveActor();
+            $properties = $this->withImpersonator($event, $properties);
 
             return ActivityLog::create([
                 'event' => $event,
@@ -134,6 +135,37 @@ class AuditLogger
     public function tracks(string $attribute): bool
     {
         return ! in_array($attribute, self::IGNORED_ATTRIBUTES, true);
+    }
+
+    /**
+     * While the super admin is signed in as someone, every action is the
+     * admin's, not the account owner's. Say so on the row.
+     *
+     * @param  array<string, mixed>  $properties
+     * @return array<string, mixed>
+     */
+    private function withImpersonator(string $event, array $properties): array
+    {
+        if (str_starts_with($event, 'impersonation.')) {
+            return $properties;
+        }
+
+        try {
+            $impersonator = app(Impersonation::class)->impersonator();
+        } catch (Throwable) {
+            return $properties;
+        }
+
+        if (! $impersonator) {
+            return $properties;
+        }
+
+        return $properties + [
+            'impersonated_by' => [
+                'id' => $impersonator->getKey(),
+                'name' => $impersonator->name,
+            ],
+        ];
     }
 
     private function resolveActor(): ?User

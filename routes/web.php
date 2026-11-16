@@ -363,11 +363,21 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::post('logout', function () {
+    // Signing out while signed in as someone returns the admin to their own
+    // account instead of ending the admin's session.
+    if ($returnUrl = app(\App\Support\Impersonation::class)->stop()) {
+        return redirect()->to($returnUrl);
+    }
+
     auth()->logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     return redirect()->route('home');
 })->name('logout');
+Route::post('/impersonate/stop', function () {
+    return redirect()->to(app(\App\Support\Impersonation::class)->stop() ?? route('home'));
+})->middleware('auth')->name('impersonation.stop');
+
 // Admin panel is served by Filament at /musicdirector
 require __DIR__.'/auth.php';
 

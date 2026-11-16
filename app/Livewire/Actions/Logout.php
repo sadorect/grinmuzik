@@ -12,6 +12,10 @@ class Logout
      */
     public function __invoke(): void
     {
+        if (app(\App\Support\Impersonation::class)->stop()) {
+            return;
+        }
+
         Auth::guard('web')->logout();
 
         Session::invalidate();

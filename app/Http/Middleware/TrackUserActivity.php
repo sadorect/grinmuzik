@@ -24,6 +24,11 @@ class TrackUserActivity
             return $response;
         }
 
+        // The super admin signed in as this person is not them being online.
+        if ($request->hasSession() && $request->session()->has(\App\Support\Impersonation::SESSION_KEY)) {
+            return $response;
+        }
+
         try {
             $now = now();
             $lastTrackedAt = $request->session()->get(self::SESSION_KEY);

@@ -28,6 +28,7 @@
         @stack('head')
     </head>
     <body class="font-sans antialiased">
+        @include('partials.impersonation-banner')
         <div class="min-h-screen bg-gray-100">
             <livewire:layout.navigation />
 

@@ -194,6 +194,25 @@ class UserResource extends Resource
                             'email_verified_at' => now(),
                         ])->save();
                     }),
+Actions\Action::make('impersonate')
+                    ->label('Sign in as')
+                    ->icon('heroicon-o-arrow-right-end-on-rectangle')
+                    ->color('warning')
+                    ->visible(fn ($record): bool => app(\App\Support\Impersonation::class)->canImpersonate(\Illuminate\Support\Facades\Auth::user(), $record))
+                    ->requiresConfirmation()
+                    ->modalHeading(fn ($record): string => 'Sign in as ' . trim((string) $record?->name) . '?')
+                    ->modalDescription('You will see grinmuzik exactly as they do and can act for them. Every change is recorded in the audit log as yours. Use "Return to my account" in the banner, or Log out, to come back.')
+                    ->modalSubmitActionLabel('Sign in as them')
+                    ->action(function ($record) {
+                        // start() re-checks every rule, so a stale button cannot bypass them.
+                        app(\App\Support\Impersonation::class)->start(
+                            \Illuminate\Support\Facades\Auth::user(),
+                            $record,
+                            static::getUrl('index'),
+                        );
+
+                        return redirect()->route('dashboard');
+                    }),
                 Actions\EditAction::make(),
             ])
             ->bulkActions([

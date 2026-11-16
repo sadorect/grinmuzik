@@ -35,6 +35,7 @@
 <body class="glass-gradient-light min-h-screen antialiased transition-colors duration-300"
       x-data="{ showBackToTop: false }"
       x-on:scroll.window.throttle.150ms="showBackToTop = window.scrollY > 500">
+@include('partials.impersonation-banner')
 @php
     $currentRouteName = request()->route()?->getName();
     $publicShell = $publicShell ?? ($currentRouteName === 'search' ? 'search-sidebar' : 'default');
